@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import React, { useRef, useState, useEffect } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { uploadFile } from "@/lib/api";
+import { uploadFile, API_ENDPOINTS } from "@/lib/api";
 
 // Enhanced file type with processing status and scores
 interface UploadedFile {
@@ -49,7 +49,7 @@ export default function DocumentsPage() {
             
             if (!memoId && uploadedFile.fileName) {
                 // Search for memo by filename in ingestionResults
-                const response = await fetch(`https://asia-south1-veritas-472301.cloudfunctions.net/check-memo?fileName=${encodeURIComponent(uploadedFile.fileName)}`);
+                const response = await fetch(`${API_ENDPOINTS.CHECK_MEMO}?fileName=${encodeURIComponent(uploadedFile.fileName)}`);
                 const data = await response.json();
                 if (data.memoId) {
                     memoId = data.memoId;
@@ -65,7 +65,7 @@ export default function DocumentsPage() {
 
             if (memoId) {
                 // Check diligence results for this memo
-                const diligenceResponse = await fetch(`https://asia-south1-veritas-472301.cloudfunctions.net/check-diligence?memoId=${memoId}`);
+                const diligenceResponse = await fetch(`${API_ENDPOINTS.CHECK_DILIGENCE}?memoId=${memoId}`);
                 const diligenceData = await diligenceResponse.json();
                 
                 if (diligenceData.status === 'completed') {

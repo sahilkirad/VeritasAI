@@ -8,7 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import React, { useState, useTransition, useEffect } from "react";
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation';
+import { API_ENDPOINTS, safeJsonResponse } from '@/lib/api';
 
 type ConductAiInterviewOutput = {
     interviewSummary: string;
@@ -17,12 +18,32 @@ type ConductAiInterviewOutput = {
 };
 
 const conductAiInterview = async (params: any): Promise<ConductAiInterviewOutput> => {
-    // Mock implementation
-    return {
-        interviewSummary: "Mock interview summary",
-        interviewTranscript: "Mock interview transcript",
-        meetingLink: "https://meet.google.com/mock-meeting"
-    };
+    try {
+        const response = await fetch(API_ENDPOINTS.SCHEDULE_INTERVIEW, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify({
+                interviewQuestions: params.interviewQuestions,
+                founderEmail: params.founderEmail,
+                companyName: params.companyName,
+                timestamp: Date.now(),
+            }),
+        });
+
+        const data = await safeJsonResponse(response);
+        
+        return {
+            interviewSummary: data.interviewSummary || "Interview summary not available",
+            interviewTranscript: data.interviewTranscript || "Interview transcript not available",
+            meetingLink: data.meetingLink || "https://meet.google.com/meeting-link"
+        };
+    } catch (error) {
+        console.error('Error conducting AI interview:', error);
+        throw new Error('Failed to conduct AI interview');
+    }
 };
 
 const initialInterviewTranscript = `

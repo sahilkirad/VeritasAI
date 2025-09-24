@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Calendar, FileText, TrendingUp, Users, DollarSign, Target, AlertTriangle, CheckCircle, BarChart3, User, Building, Shield, Upload, ThumbsUp, ThumbsDown, MessageCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useRouter } from 'next/navigation';
-import { safeJsonResponse } from '@/lib/api';
+import { safeJsonResponse, API_ENDPOINTS } from '@/lib/api';
+import { useToast } from "@/hooks/use-toast";
 
 interface MemoData {
   id: string;
@@ -45,6 +46,7 @@ export default function DealMemoPage() {
   const [activeTab, setActiveTab] = useState("memo1");
   const [hasRecentData, setHasRecentData] = useState(false);
   const router = useRouter();
+  const { toast } = useToast();
 
   useEffect(() => {
     fetchMemoData();
@@ -53,7 +55,7 @@ export default function DealMemoPage() {
   const fetchMemoData = async () => {
     try {
       console.log('Fetching memo data...');
-      const response = await fetch('https://asia-south1-veritas-472301.cloudfunctions.net/memo-data');
+      const response = await fetch(API_ENDPOINTS.MEMO_DATA);
       const data = await safeJsonResponse(response);
       console.log('API Response:', data);
       
@@ -69,7 +71,7 @@ export default function DealMemoPage() {
           
           // Fetch diligence data separately using the memo ID
           try {
-            const diligenceResponse = await fetch(`https://asia-south1-veritas-472301.cloudfunctions.net/check-diligence?memoId=${latestMemo.id}`);
+            const diligenceResponse = await fetch(`${API_ENDPOINTS.CHECK_DILIGENCE}?memoId=${latestMemo.id}`);
             const diligenceData = await safeJsonResponse(diligenceResponse);
             console.log('Diligence Response:', diligenceData);
             
@@ -108,6 +110,55 @@ export default function DealMemoPage() {
   const handleCreateRoom = () => {
     // Navigate to the Create Room page
     router.push('/dashboard/create-room');
+  };
+
+  const handleTriggerDiligence = async () => {
+    if (!memoData?.id) {
+      toast({
+        title: "Error",
+        description: "No memo data available to trigger diligence",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch(API_ENDPOINTS.TRIGGER_DILIGENCE, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          memoId: memoData.id,
+          timestamp: Date.now(),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to trigger diligence: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      toast({
+        title: "Diligence Triggered",
+        description: "Due diligence analysis has been started. This may take a few minutes.",
+      });
+
+      // Refresh the page after a short delay to show updated status
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+
+    } catch (error) {
+      console.error('Error triggering diligence:', error);
+      toast({
+        title: "Error",
+        description: "Failed to trigger diligence. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const formatTimestamp = (timestamp: any) => {
@@ -228,10 +279,19 @@ export default function DealMemoPage() {
           <Badge variant="outline" className="text-green-600 border-green-600">
             {memoData.memo_1 ? 'Analysis Complete' : 'Processing'}
           </Badge>
-          {diligenceData && (
+          {diligenceData ? (
             <Badge variant="outline" className="text-blue-600 border-blue-600">
               Diligence Complete
             </Badge>
+          ) : (
+            <Button 
+              onClick={handleTriggerDiligence}
+              size="sm"
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <TrendingUp className="mr-2 h-4 w-4" />
+              Start Diligence
+            </Button>
           )}
         </div>
       </div>

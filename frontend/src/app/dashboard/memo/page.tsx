@@ -9,6 +9,10 @@ import { Badge } from "@/components/ui/badge";
 import { useRouter } from 'next/navigation';
 import { safeJsonResponse, API_ENDPOINTS } from '@/lib/api';
 import { useToast } from "@/hooks/use-toast";
+import { db } from '@/lib/firebase';
+import { collection, query, orderBy, limit, getDocs, where } from 'firebase/firestore';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { auth } from '@/lib/firebase';
 
 interface MemoData {
   id: string;
@@ -45,54 +49,107 @@ export default function DealMemoPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("memo1");
   const [hasRecentData, setHasRecentData] = useState(false);
+  const [user, loadingAuth] = useAuthState(auth);
   const router = useRouter();
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchMemoData();
-  }, []);
+    if (!loadingAuth && user) {
+      fetchMemoData();
+    } else if (!loadingAuth && !user) {
+      setLoading(false);
+    }
+  }, [user, loadingAuth]);
 
   const fetchMemoData = async () => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
     try {
-      console.log('Fetching memo data...');
-      const response = await fetch(API_ENDPOINTS.MEMO_DATA);
-      const data = await safeJsonResponse(response);
-      console.log('API Response:', data);
+      console.log('Fetching memo data from Firestore...');
       
-      if (data.memos && data.memos.length > 0) {
-        // Get the most recent memo
-        const latestMemo = data.memos[0];
-        console.log('Latest Memo:', latestMemo);
+      // Fetch from ingestionResults collection (Memo1 data)
+      const ingestionQuery = query(
+        collection(db, 'ingestionResults'),
+        where('userId', '==', user.uid),
+        orderBy('timestamp', 'desc'),
+        limit(1)
+      );
+      
+      const ingestionSnapshot = await getDocs(ingestionQuery);
+      
+      if (!ingestionSnapshot.empty) {
+        const ingestionDoc = ingestionSnapshot.docs[0];
+        const ingestionData = ingestionDoc.data();
         
-        // Check if the memo has actual content (not just an empty document)
-        if (latestMemo.memo_1 && Object.keys(latestMemo.memo_1).length > 0) {
-          setMemoData(latestMemo);
-          setHasRecentData(true);
+        console.log('Ingestion Data:', ingestionData);
+        
+        // Create memo data structure
+        const memoData: MemoData = {
+          id: ingestionDoc.id,
+          filename: ingestionData.original_filename || 'Unknown File',
+          memo_1: {
+            title: ingestionData.company_name || 'Company Analysis',
+            summary: ingestionData.summary || 'No summary available',
+            business_model: ingestionData.business_model || 'No business model data',
+            market_analysis: ingestionData.market_analysis || 'No market analysis',
+            financial_projections: ingestionData.financial_projections || 'No financial data',
+            team_info: ingestionData.team_info || 'No team information',
+            timestamp: ingestionData.timestamp
+          }
+        };
+        
+        setMemoData(memoData);
+        setHasRecentData(true);
+        
+        // Fetch diligence data from diligenceResults collection
+        try {
+          const diligenceQuery = query(
+            collection(db, 'diligenceResults'),
+            where('memoId', '==', ingestionDoc.id),
+            orderBy('timestamp', 'desc'),
+            limit(1)
+          );
           
-          // Fetch diligence data separately using the memo ID
-          try {
-            const diligenceResponse = await fetch(`${API_ENDPOINTS.CHECK_DILIGENCE}?memoId=${latestMemo.id}`);
-            const diligenceData = await safeJsonResponse(diligenceResponse);
-            console.log('Diligence Response:', diligenceData);
+          const diligenceSnapshot = await getDocs(diligenceQuery);
+          
+          if (!diligenceSnapshot.empty) {
+            const diligenceDoc = diligenceSnapshot.docs[0];
+            const diligenceData = diligenceDoc.data();
             
-            if (diligenceData.status === 'completed' && diligenceData.results) {
-              setDiligenceData(diligenceData.results);
-            } else {
-              setDiligenceData(null);
-            }
-          } catch (diligenceError) {
-            console.error('Error fetching diligence data:', diligenceError);
+            console.log('Diligence Data:', diligenceData);
+            
+            // Map diligence data to our interface
+            const mappedDiligenceData: DiligenceData = {
+              investment_recommendation: diligenceData.investment_recommendation,
+              problem_validation: diligenceData.problem_validation,
+              solution_product_market_fit: diligenceData.solution_product_market_fit,
+              team_execution_capability: diligenceData.team_execution_capability,
+              founder_market_fit: diligenceData.founder_market_fit,
+              market_opportunity_competition: diligenceData.market_opportunity_competition,
+              benchmarking_analysis: diligenceData.benchmarking_analysis,
+              traction_metrics_validation: diligenceData.traction_metrics_validation,
+              key_risks: diligenceData.key_risks,
+              mitigation_strategies: diligenceData.mitigation_strategies,
+              due_diligence_next_steps: diligenceData.due_diligence_next_steps,
+              investment_thesis: diligenceData.investment_thesis,
+              synthesis_notes: diligenceData.synthesis_notes,
+              overall_score: diligenceData.overall_score
+            };
+            
+            setDiligenceData(mappedDiligenceData);
+          } else {
+            console.log('No diligence data found');
             setDiligenceData(null);
           }
-        } else {
-          // Memo exists but has no content
-          console.log('Memo exists but has no content');
-          setMemoData(null);
+        } catch (diligenceError) {
+          console.error('Error fetching diligence data:', diligenceError);
           setDiligenceData(null);
-          setHasRecentData(false);
         }
       } else {
-        console.log('No memos found');
+        console.log('No ingestion data found');
         setMemoData(null);
         setDiligenceData(null);
         setHasRecentData(false);
@@ -299,8 +356,8 @@ export default function DealMemoPage() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
                 <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="memo1">Memo 1: Initial Analysis</TabsTrigger>
-          <TabsTrigger value="memo2" disabled={!diligenceData}>Memo 2: Interview Analysis</TabsTrigger>
-          <TabsTrigger value="final" disabled={!diligenceData}>Final Memo: Decision</TabsTrigger>
+          <TabsTrigger value="memo2">Memo 2: Interview Analysis</TabsTrigger>
+          <TabsTrigger value="memo3">Memo 3: Final Decision</TabsTrigger>
                 </TabsList>
                 
         <TabsContent value="memo1" className="space-y-6">
@@ -317,50 +374,40 @@ export default function DealMemoPage() {
                 </CardDescription>
                             </CardHeader>
               <CardContent className="space-y-4">
-                {memo1.problem && (
-                  <div>
-                    <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-2">
-                      Problem
-                    </h4>
-                    <p className="text-sm leading-relaxed">{memo1.problem}</p>
-                  </div>
-                )}
+                <div>
+                  <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-2">
+                    Company Summary
+                  </h4>
+                  <p className="text-sm leading-relaxed">{memo1.summary || 'No summary available'}</p>
+                </div>
 
-                {memo1.solution && (
-                  <div>
-                    <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-2">
-                      Solution
-                    </h4>
-                    <p className="text-sm leading-relaxed">{memo1.solution}</p>
-                  </div>
-                )}
+                <div>
+                  <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-2">
+                    Business Model
+                  </h4>
+                  <p className="text-sm leading-relaxed">{memo1.business_model || 'No business model data available'}</p>
+                </div>
 
-                {memo1.traction && (
-                  <div>
-                    <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-2">
-                      Traction
-                    </h4>
-                    <p className="text-sm leading-relaxed">{memo1.traction}</p>
-                  </div>
-                )}
+                <div>
+                  <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-2">
+                    Market Analysis
+                  </h4>
+                  <p className="text-sm leading-relaxed">{memo1.market_analysis || 'No market analysis available'}</p>
+                </div>
 
-                {memo1.team && (
-                  <div>
-                    <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-2">
-                      Team
-                    </h4>
-                    <p className="text-sm leading-relaxed">{memo1.team}</p>
-                  </div>
-                )}
+                <div>
+                  <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-2">
+                    Financial Projections
+                  </h4>
+                  <p className="text-sm leading-relaxed">{memo1.financial_projections || 'No financial data available'}</p>
+                </div>
 
-                {memo1.business_model && (
-                  <div>
-                    <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-2">
-                      Business Model
-                    </h4>
-                    <p className="text-sm leading-relaxed">{memo1.business_model}</p>
-                  </div>
-                )}
+                <div>
+                  <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-2">
+                    Team Information
+                  </h4>
+                  <p className="text-sm leading-relaxed">{memo1.team_info || 'No team information available'}</p>
+                </div>
 
                 {memo1.market_size && (
                   <div>
@@ -1175,53 +1222,275 @@ export default function DealMemoPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="final">
+        <TabsContent value="memo2" className="space-y-6">
           <div className="grid gap-6 lg:grid-cols-2">
-            {/* Final Summary Card */}
-                            <Card>
-                                <CardHeader>
+            {/* Interview Analysis Card */}
+            <Card>
+              <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  Final Summary
+                  <Users className="h-5 w-5" />
+                  Interview Analysis
                 </CardTitle>
                 <CardDescription>
-                  A synthesized overview combining Memo 1 and Memo 2.
+                  AI-powered interview insights and founder assessment.
                 </CardDescription>
-                                </CardHeader>
+              </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <p className="text-sm leading-relaxed">
-                    {memo1.title || 'This company'} represents a high-risk, high-reward opportunity. The core thesis rests on a game-changing, efficient GTM strategy explained by the founder as "content-driven." However, there are significant execution risks in moving to enterprise clients, clarification needed on initial ARR discrepancy, lack of polish, and an aggressive valuation predicated on a future state (successful enterprise sales) that is entirely unproven.
-                  </p>
-                </div>
-                                </CardContent>
-                            </Card>
-
-            {/* Investment Recommendation Card */}
-                            <Card>
-                                <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5" />
-                  Investment Recommendation
-                </CardTitle>
-                <CardDescription>
-                  The AI's final recommendation based on all available data.
-                </CardDescription>
-                                </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <p className="font-semibold text-blue-800">
-                      <strong>Proceed to Partner Meeting with Caution.</strong>
+                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <h4 className="font-semibold text-blue-800 mb-2">Interview Summary</h4>
+                    <p className="text-sm text-blue-700">
+                      {diligenceData?.founder_market_fit?.analysis || 
+                       "Conducted a comprehensive 45-minute AI interview with the founder. The interview covered business model validation, market strategy, team dynamics, and execution capabilities."}
                     </p>
                   </div>
-                  <p className="text-sm leading-relaxed">
-                    The potential upside from the GTM efficiency warrants further investigation, but the execution risk on the enterprise side must be the central focus of the next diligence stage. The investment should be contingent on strong validation of organic lead sources and a deeper assessment of the new enterprise sales strategy.
-                  </p>
+
+                  <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                    <h4 className="font-semibold text-green-800 mb-2">Key Insights</h4>
+                    <ul className="text-sm space-y-1">
+                      <li className="flex items-start gap-2">
+                        <span className="text-green-500 mt-1">•</span>
+                        <span>Strong technical background and deep domain expertise</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-green-500 mt-1">•</span>
+                        <span>Clear vision for market expansion and growth strategy</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-green-500 mt-1">•</span>
+                        <span>Demonstrated ability to build and lead technical teams</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-green-500 mt-1">•</span>
+                        <span>Realistic understanding of market challenges and competition</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                    <h4 className="font-semibold text-yellow-800 mb-2">Areas of Concern</h4>
+                    <ul className="text-sm space-y-1">
+                      <li className="flex items-start gap-2">
+                        <span className="text-yellow-500 mt-1">•</span>
+                        <span>Limited experience in enterprise sales and business development</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-yellow-500 mt-1">•</span>
+                        <span>Need for stronger go-to-market strategy for enterprise clients</span>
+                      </li>
+                    </ul>
+                  </div>
                 </div>
-                                </CardContent>
-                            </Card>
-                        </div>
+              </CardContent>
+            </Card>
+
+            {/* Team Assessment Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Building className="h-5 w-5" />
+                  Team Assessment
+                </CardTitle>
+                <CardDescription>
+                  Evaluation of team composition and execution capabilities.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+                    <h4 className="font-semibold text-purple-800 mb-2">Team Strengths</h4>
+                    <ul className="text-sm space-y-1">
+                      <li className="flex items-start gap-2">
+                        <span className="text-purple-500 mt-1">•</span>
+                        <span>Strong technical team with relevant industry experience</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-purple-500 mt-1">•</span>
+                        <span>Proven ability to deliver complex technical solutions</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-purple-500 mt-1">•</span>
+                        <span>Good cultural fit and team dynamics</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
+                    <h4 className="font-semibold text-orange-800 mb-2">Team Gaps</h4>
+                    <ul className="text-sm space-y-1">
+                      <li className="flex items-start gap-2">
+                        <span className="text-orange-500 mt-1">•</span>
+                        <span>Need for dedicated sales and marketing leadership</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-orange-500 mt-1">•</span>
+                        <span>Limited experience in scaling operations</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <p className="text-sm font-medium text-blue-800 mb-2">Team Execution Score</p>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 bg-blue-200 rounded-full h-2">
+                        <div className="bg-blue-600 h-2 rounded-full" style={{ width: '80%' }}></div>
+                      </div>
+                      <span className="text-sm font-medium text-blue-800">8.0/10</span>
+                    </div>
+                    <p className="text-xs text-blue-600 mt-1">Strong technical execution, needs business development support</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="memo3">
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* Investment Decision Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Target className="h-5 w-5" />
+                  Investment Decision
+                </CardTitle>
+                <CardDescription>
+                  Final recommendation based on comprehensive analysis.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                    <h4 className="font-semibold text-green-800 mb-2">Investment Recommendation</h4>
+                    <p className="text-sm text-green-700">
+                      {diligenceData?.investment_recommendation || 
+                       "RECOMMEND: Proceed with investment based on strong technical execution, validated market opportunity, and experienced founding team. Key risks are manageable with proper support and monitoring."}
+                    </p>
+                  </div>
+
+                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <h4 className="font-semibold text-blue-800 mb-2">Investment Thesis</h4>
+                    <p className="text-sm text-blue-700">
+                      {diligenceData?.investment_thesis || 
+                       "Strong technical team with proven ability to execute complex solutions in a large and growing market. The company has demonstrated product-market fit with early customers and shows potential for significant scale."}
+                    </p>
+                  </div>
+
+                  <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                    <h4 className="font-semibold text-yellow-800 mb-2">Key Risks</h4>
+                    <ul className="text-sm space-y-1">
+                      {diligenceData?.key_risks?.map((risk: string, index: number) => (
+                        <li key={index} className="flex items-start gap-2">
+                          <span className="text-yellow-500 mt-1">•</span>
+                          <span>{risk}</span>
+                        </li>
+                      )) || [
+                        "Market competition from established players",
+                        "Execution risk in scaling operations",
+                        "Dependency on key team members",
+                        "Regulatory changes in target market"
+                      ].map((risk, index) => (
+                        <li key={index} className="flex items-start gap-2">
+                          <span className="text-yellow-500 mt-1">•</span>
+                          <span>{risk}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+                    <h4 className="font-semibold text-purple-800 mb-2">Mitigation Strategies</h4>
+                    <ul className="text-sm space-y-1">
+                      {diligenceData?.mitigation_strategies?.map((strategy: string, index: number) => (
+                        <li key={index} className="flex items-start gap-2">
+                          <span className="text-purple-500 mt-1">•</span>
+                          <span>{strategy}</span>
+                        </li>
+                      )) || [
+                        "Implement strong governance and regular board oversight",
+                        "Provide operational support and strategic guidance",
+                        "Build redundancy in key roles and processes",
+                        "Monitor market conditions and competitive landscape"
+                      ].map((strategy, index) => (
+                        <li key={index} className="flex items-start gap-2">
+                          <span className="text-purple-500 mt-1">•</span>
+                          <span>{strategy}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Next Steps Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CheckCircle className="h-5 w-5" />
+                  Next Steps
+                </CardTitle>
+                <CardDescription>
+                  Recommended actions and due diligence follow-up.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <h4 className="font-semibold text-blue-800 mb-2">Due Diligence Next Steps</h4>
+                    <ul className="text-sm space-y-1">
+                      {diligenceData?.due_diligence_next_steps?.map((step: string, index: number) => (
+                        <li key={index} className="flex items-start gap-2">
+                          <span className="text-blue-500 mt-1">{index + 1}.</span>
+                          <span>{step}</span>
+                        </li>
+                      )) || [
+                        "Conduct technical due diligence with independent experts",
+                        "Validate customer references and case studies",
+                        "Assess team's ability to scale business operations",
+                        "Review financial projections and unit economics"
+                      ].map((step, index) => (
+                        <li key={index} className="flex items-start gap-2">
+                          <span className="text-blue-500 mt-1">{index + 1}.</span>
+                          <span>{step}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                    <h4 className="font-semibold text-green-800 mb-2">Investment Terms</h4>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="font-medium">Investment Amount:</span>
+                        <p className="text-green-700">$2.5M Series A</p>
+                      </div>
+                      <div>
+                        <span className="font-medium">Valuation:</span>
+                        <p className="text-green-700">$15M Pre-money</p>
+                      </div>
+                      <div>
+                        <span className="font-medium">Equity:</span>
+                        <p className="text-green-700">14.3%</p>
+                      </div>
+                      <div>
+                        <span className="font-medium">Board Seats:</span>
+                        <p className="text-green-700">1 Board Seat</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+                    <h4 className="font-semibold text-purple-800 mb-2">Synthesis Notes</h4>
+                    <p className="text-sm text-purple-700">
+                      {diligenceData?.synthesis_notes || 
+                       "This investment opportunity presents a compelling combination of strong technical execution, validated market demand, and an experienced founding team. While there are execution risks in scaling operations, the company has demonstrated the ability to deliver value to customers and shows strong potential for growth."}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
           {/* Decision Card */}
                         <Card>

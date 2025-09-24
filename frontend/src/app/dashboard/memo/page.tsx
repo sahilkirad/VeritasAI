@@ -85,18 +85,28 @@ export default function DealMemoPage() {
         const ingestionData = ingestionDoc.data();
         
         console.log('Ingestion Data:', ingestionData);
+        console.log('Memo 1 Data:', ingestionData.memo_1);
         
-        // Create memo data structure
+        // Create memo data structure - the actual data is in memo_1 field
+        const memo1Data = ingestionData.memo_1 || {};
         const memoData: MemoData = {
           id: ingestionDoc.id,
           filename: ingestionData.original_filename || 'Unknown File',
           memo_1: {
-            title: ingestionData.company_name || 'Company Analysis',
-            summary: ingestionData.summary || 'No summary available',
-            business_model: ingestionData.business_model || 'No business model data',
-            market_analysis: ingestionData.market_analysis || 'No market analysis',
-            financial_projections: ingestionData.financial_projections || 'No financial data',
-            team_info: ingestionData.team_info || 'No team information',
+            title: memo1Data.title || 'Company Analysis',
+            summary: memo1Data.summary_analysis || 'No summary available',
+            business_model: memo1Data.business_model || 'No business model data',
+            market_analysis: memo1Data.market_size || 'No market analysis',
+            financial_projections: memo1Data.traction || 'No financial data',
+            team_info: memo1Data.team || 'No team information',
+            problem: memo1Data.problem || 'No problem statement',
+            solution: memo1Data.solution || 'No solution description',
+            competition: memo1Data.competition || [],
+            initial_flags: memo1Data.initial_flags || [],
+            validation_points: memo1Data.validation_points || [],
+            founder_name: memo1Data.founder_name || 'Unknown',
+            founder_linkedin_url: memo1Data.founder_linkedin_url || '',
+            company_linkedin_url: memo1Data.company_linkedin_url || '',
             timestamp: ingestionData.timestamp
           }
         };
@@ -376,9 +386,16 @@ export default function DealMemoPage() {
               <CardContent className="space-y-4">
                 <div>
                   <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-2">
-                    Company Summary
+                    Problem Statement
                   </h4>
-                  <p className="text-sm leading-relaxed">{memo1.summary || 'No summary available'}</p>
+                  <p className="text-sm leading-relaxed">{memo1.problem || 'No problem statement available'}</p>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-2">
+                    Solution
+                  </h4>
+                  <p className="text-sm leading-relaxed">{memo1.solution || 'No solution description available'}</p>
                 </div>
 
                 <div>
@@ -390,33 +407,79 @@ export default function DealMemoPage() {
 
                 <div>
                   <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-2">
-                    Market Analysis
+                    Market Size
                   </h4>
                   <p className="text-sm leading-relaxed">{memo1.market_analysis || 'No market analysis available'}</p>
                 </div>
 
                 <div>
                   <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-2">
-                    Financial Projections
+                    Traction
                   </h4>
-                  <p className="text-sm leading-relaxed">{memo1.financial_projections || 'No financial data available'}</p>
+                  <p className="text-sm leading-relaxed">{memo1.financial_projections || 'No traction data available'}</p>
                 </div>
 
                 <div>
                   <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-2">
-                    Team Information
+                    Team
                   </h4>
                   <p className="text-sm leading-relaxed">{memo1.team_info || 'No team information available'}</p>
                 </div>
 
-                {memo1.market_size && (
+                {memo1.competition && memo1.competition.length > 0 && (
                   <div>
                     <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-2">
-                      Market Size
+                      Competition
                     </h4>
-                    <p className="text-sm leading-relaxed">{memo1.market_size}</p>
-                                </div>
+                    <ul className="text-sm space-y-1">
+                      {memo1.competition.map((competitor: string, index: number) => (
+                        <li key={index} className="flex items-start gap-2">
+                          <span className="text-blue-500 mt-1">•</span>
+                          <span>{competitor}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
+
+                {memo1.initial_flags && memo1.initial_flags.length > 0 && (
+                  <div>
+                    <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-2">
+                      Initial Red Flags
+                    </h4>
+                    <ul className="text-sm space-y-1">
+                      {memo1.initial_flags.map((flag: string, index: number) => (
+                        <li key={index} className="flex items-start gap-2">
+                          <span className="text-red-500 mt-1">⚠</span>
+                          <span>{flag}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {memo1.validation_points && memo1.validation_points.length > 0 && (
+                  <div>
+                    <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-2">
+                      Key Validation Points
+                    </h4>
+                    <ul className="text-sm space-y-1">
+                      {memo1.validation_points.map((point: string, index: number) => (
+                        <li key={index} className="flex items-start gap-2">
+                          <span className="text-green-500 mt-1">✓</span>
+                          <span>{point}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                <div>
+                  <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-2">
+                    Comprehensive Analysis
+                  </h4>
+                  <p className="text-sm leading-relaxed">{memo1.summary || 'No comprehensive analysis available'}</p>
+                </div>
                             </CardContent>
                         </Card>
 
@@ -1536,6 +1599,33 @@ export default function DealMemoPage() {
                         </Card>
                 </TabsContent>
             </Tabs>
+
+            {/* Debug Section - Remove this in production */}
+            {process.env.NODE_ENV === 'development' && memoData && (
+              <div className="mt-8 p-4 bg-gray-100 rounded-lg">
+                <h3 className="font-semibold mb-2">Debug Information</h3>
+                <div className="text-xs space-y-2">
+                  <div><strong>Document ID:</strong> {memoData.id}</div>
+                  <div><strong>Filename:</strong> {memoData.filename}</div>
+                  <div><strong>Has Memo Data:</strong> {memoData.memo_1 ? 'Yes' : 'No'}</div>
+                  <div><strong>Has Diligence Data:</strong> {diligenceData ? 'Yes' : 'No'}</div>
+                  <details className="mt-2">
+                    <summary className="cursor-pointer font-medium">Raw Memo Data</summary>
+                    <pre className="mt-2 p-2 bg-white rounded text-xs overflow-auto max-h-40">
+                      {JSON.stringify(memoData.memo_1, null, 2)}
+                    </pre>
+                  </details>
+                  {diligenceData && (
+                    <details className="mt-2">
+                      <summary className="cursor-pointer font-medium">Raw Diligence Data</summary>
+                      <pre className="mt-2 p-2 bg-white rounded text-xs overflow-auto max-h-40">
+                        {JSON.stringify(diligenceData, null, 2)}
+                      </pre>
+                    </details>
+                  )}
+                </div>
+              </div>
+            )}
         </div>
     );
 }

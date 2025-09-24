@@ -1,0 +1,58 @@
+{
+  "placeholderImages": [
+    {
+      "id": "user-avatar-1",
+      "description": "Avatar for Rohan Investor",
+      "imageUrl": "https://picsum.photos/seed/1/100/100",
+      "imageHint": "man face"
+    },
+    {
+      "id": "user-avatar-2",
+      "description": "Avatar for Priya Founder",
+      "imageUrl": "https://picsum.photos/seed/2/100/100",
+      "imageHint": "woman face"
+    },
+    {
+      "id": "user-avatar-bot",
+      "description": "Avatar for AI Assistant",
+      "imageUrl": "https://picsum.photos/seed/bot/100/100",
+      "imageHint": "robot"
+    },
+    {
+      "id": "company-logo-1",
+      "description": "Logo for QuantumLeap AI",
+      "imageUrl": "https://picsum.photos/seed/quantum/100/100",
+      "imageHint": "abstract tech"
+    },
+    {
+      "id": "company-logo-2",
+      "description": "Logo for BioSynth",
+      "imageUrl": "https://picsum.photos/seed/bio/100/100",
+      "imageHint": "science dna"
+    },
+    {
+      "id": "company-logo-3",
+      "description": "Logo for CarbonCapture Inc.",
+      "imageUrl": "https://picsum.photos/seed/carbon/100/100",
+      "imageHint": "leaf environment"
+    },
+    {
+      "id": "company-logo-4",
+      "description": "Logo for Fintech Solutions",
+      "imageUrl": "https://picsum.photos/seed/fintech/100/100",
+      "imageHint": "finance chart"
+    },
+    {
+      "id": "company-logo-5",
+      "description": "Logo for HealthWell",
+      "imageUrl": "https://picsum.photos/seed/health/100/100",
+      "imageHint": "medical cross"
+    },
+    {
+      "id": "company-logo-6",
+      "description": "Logo for DevTools X",
+      "imageUrl": "https://picsum.photos/seed/dev/100/100",
+      "imageHint": "code browser"
+    }
+  ]
+}

@@ -7,7 +7,7 @@
   },
   "functions": {
     "source": "functions",
-    "runtime": "python313",
+    "runtime": "python312",
     "region": "asia-south1",
     "memory": "512MB"
   },

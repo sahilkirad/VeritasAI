@@ -46,8 +46,7 @@ coordinator_agent = None
     memory=options.MemoryOption.GB_1,
     cors=options.CorsOptions(
         cors_origins=["*"],
-        cors_methods=["POST", "OPTIONS"],
-        cors_headers=["Content-Type", "Authorization"]
+        cors_methods=["POST", "OPTIONS"]
     )
 )
 def on_file_upload(req: https_fn.Request) -> https_fn.Response:
@@ -422,8 +421,7 @@ def process_diligence_task(event: pubsub_fn.CloudEvent) -> None:
     timeout_sec=900,
     cors=options.CorsOptions(
         cors_origins=["*"],
-        cors_methods=["POST", "OPTIONS"],
-        cors_headers=["Content-Type", "Authorization"]
+        cors_methods=["POST", "OPTIONS"]
     )
 )
 def trigger_diligence(req: https_fn.Request) -> https_fn.Response:
@@ -489,8 +487,7 @@ def trigger_diligence(req: https_fn.Request) -> https_fn.Response:
     memory=options.MemoryOption.GB_1,
     cors=options.CorsOptions(
         cors_origins=["*"],
-        cors_methods=["POST", "OPTIONS"],
-        cors_headers=["Content-Type", "Authorization"]
+        cors_methods=["POST", "OPTIONS"]
     )
 )
 def schedule_ai_interview(req: https_fn.Request) -> https_fn.Response:

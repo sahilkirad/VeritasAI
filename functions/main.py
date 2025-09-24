@@ -42,17 +42,47 @@ coordinator_agent = None
 
 
 # --- 2. Ingestion Pipeline: Stage 1 (File Upload) ---
-@https_fn.on_request(memory=options.MemoryOption.GB_1)
+@https_fn.on_request(
+    memory=options.MemoryOption.GB_1,
+    cors=options.CorsOptions(
+        cors_origins=["*"],
+        cors_methods=["POST", "OPTIONS"],
+        cors_headers=["Content-Type", "Authorization"]
+    )
+)
 def on_file_upload(req: https_fn.Request) -> https_fn.Response:
     """Handle file uploads from frontend"""
     try:
+        # Handle CORS preflight
+        if req.method == 'OPTIONS':
+            headers = {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'POST, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+                'Access-Control-Max-Age': '3600'
+            }
+            return https_fn.Response('', status=204, headers=headers)
+        
         # Get Firebase app
         app = get_firebase_app()
+        
+        # Check content type
+        content_type = req.headers.get('content-type', '')
+        if 'application/json' not in content_type:
+            return https_fn.Response(
+                json.dumps({"error": "Content-Type must be application/json"}),
+                status=415,
+                headers={'Content-Type': 'application/json'}
+            )
         
         # Parse request data
         data = req.get_json()
         if not data:
-            return https_fn.Response("No data provided", status=400)
+            return https_fn.Response(
+                json.dumps({"error": "No data provided"}),
+                status=400,
+                headers={'Content-Type': 'application/json'}
+            )
         
         file_name = data.get('file_name')
         file_type = data.get('file_type')
@@ -387,7 +417,15 @@ def process_diligence_task(event: pubsub_fn.CloudEvent) -> None:
         raise
 
 # --- 5. HTTP Endpoint for Manual Diligence Trigger ---
-@https_fn.on_request(memory=options.MemoryOption.GB_4, timeout_sec=900)  # INCREASED MEMORY
+@https_fn.on_request(
+    memory=options.MemoryOption.GB_4, 
+    timeout_sec=900,
+    cors=options.CorsOptions(
+        cors_origins=["*"],
+        cors_methods=["POST", "OPTIONS"],
+        cors_headers=["Content-Type", "Authorization"]
+    )
+)
 def trigger_diligence(req: https_fn.Request) -> https_fn.Response:
     """HTTP endpoint to manually trigger diligence analysis on a memo."""
     
@@ -395,8 +433,22 @@ def trigger_diligence(req: https_fn.Request) -> https_fn.Response:
     get_firebase_app()
     
     try:
+        # Handle CORS preflight
+        if req.method == 'OPTIONS':
+            headers = {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'POST, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+                'Access-Control-Max-Age': '3600'
+            }
+            return https_fn.Response('', status=204, headers=headers)
+        
         if req.method != 'POST':
-            return https_fn.Response('Method not allowed', status=405)
+            return https_fn.Response(
+                json.dumps({"error": "Method not allowed"}),
+                status=405,
+                headers={'Content-Type': 'application/json'}
+            )
 
         data = req.get_json()
         if not data or 'memo_1_id' not in data:
@@ -432,7 +484,15 @@ def trigger_diligence(req: https_fn.Request) -> https_fn.Response:
         print(f"Error in trigger_diligence: {e}")
         return https_fn.Response(f'Error: {str(e)}', status=500)
 
-@https_fn.on_request(region="asia-south1", memory=options.MemoryOption.GB_1)
+@https_fn.on_request(
+    region="asia-south1", 
+    memory=options.MemoryOption.GB_1,
+    cors=options.CorsOptions(
+        cors_origins=["*"],
+        cors_methods=["POST", "OPTIONS"],
+        cors_headers=["Content-Type", "Authorization"]
+    )
+)
 def schedule_ai_interview(req: https_fn.Request) -> https_fn.Response:
     """HTTP endpoint to trigger the CoordinatorAgent for scheduling the AI interview."""
     global coordinator_agent
@@ -446,12 +506,17 @@ def schedule_ai_interview(req: https_fn.Request) -> https_fn.Response:
             headers = {
                 'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Methods': 'POST, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+                'Access-Control-Max-Age': '3600'
             }
             return https_fn.Response('', status=204, headers=headers)
 
         if req.method != 'POST':
-            return https_fn.Response('Method not allowed', status=405)
+            return https_fn.Response(
+                json.dumps({"error": "Method not allowed"}),
+                status=405,
+                headers={'Content-Type': 'application/json'}
+            )
 
         # Extract and validate parameters
         data = req.get_json()

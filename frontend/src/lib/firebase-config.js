@@ -4,7 +4,7 @@ import { getAnalytics } from "firebase/analytics";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyDJuzygstsuvpYofxhwnipGTH-3DzAkVQM",
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "your_firebase_api_key",
   authDomain: "veritas-472301.firebaseapp.com",
   projectId: "veritas-472301",
   storageBucket: "veritas-472301.firebasestorage.app",

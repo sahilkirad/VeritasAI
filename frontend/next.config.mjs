@@ -6,7 +6,7 @@ const envConfig = {
   NEXT_PUBLIC_PROCESS_DILIGENCE_URL: 'https://asia-south1-veritas-472301.cloudfunctions.net/process_diligence_task',
   NEXT_PUBLIC_SCHEDULE_INTERVIEW_URL: 'https://asia-south1-veritas-472301.cloudfunctions.net/schedule_ai_interview',
   NEXT_PUBLIC_FIREBASE_PROJECT_ID: 'veritas-472301',
-  NEXT_PUBLIC_FIREBASE_API_KEY: 'AIzaSyDJuzygstsuvpYofxhwnipGTH-3DzAkVQM',
+  NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || 'your_firebase_api_key',
   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: 'veritas-472301.firebaseapp.com',
   NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: 'veritas-472301.firebasestorage.app',
   NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: '533015987350',

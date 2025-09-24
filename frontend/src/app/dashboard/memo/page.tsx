@@ -53,7 +53,7 @@ export default function DealMemoPage() {
   const fetchMemoData = async () => {
     try {
       console.log('Fetching memo data...');
-      const response = await fetch('/api/memo-data');
+      const response = await fetch('https://asia-south1-veritas-472301.cloudfunctions.net/memo-data');
       const data = await safeJsonResponse(response);
       console.log('API Response:', data);
       
@@ -69,7 +69,7 @@ export default function DealMemoPage() {
           
           // Fetch diligence data separately using the memo ID
           try {
-            const diligenceResponse = await fetch(`/api/check-diligence?memoId=${latestMemo.id}`);
+            const diligenceResponse = await fetch(`https://asia-south1-veritas-472301.cloudfunctions.net/check-diligence?memoId=${latestMemo.id}`);
             const diligenceData = await safeJsonResponse(diligenceResponse);
             console.log('Diligence Response:', diligenceData);
             

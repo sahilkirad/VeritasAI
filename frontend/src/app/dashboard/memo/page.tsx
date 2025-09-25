@@ -11,6 +11,7 @@ import { db } from '@/lib/firebase';
 import { collection, query, orderBy, limit, getDocs, where } from 'firebase/firestore';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
+import { API_ENDPOINTS } from '@/lib/api';
 
 // Import our new components
 import MemoHeader from '@/components/memo/MemoHeader';
@@ -368,6 +369,56 @@ export default function DealMemoPage() {
     }
   };
 
+  // Function to trigger diligence analysis
+  const handleTriggerDiligence = async () => {
+    if (!memoData?.id) {
+      toast({
+        title: "Error",
+        description: "No memo data available to trigger diligence",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch(API_ENDPOINTS.TRIGGER_DILIGENCE, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          memo_1_id: memoData.id,
+          timestamp: Date.now(),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to trigger diligence: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      toast({
+        title: "Diligence Triggered",
+        description: "Due diligence analysis has been started. This may take a few minutes.",
+      });
+
+      // Refresh the page after a short delay to show updated status
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+
+    } catch (error) {
+      console.error('Error triggering diligence:', error);
+      toast({
+        title: "Error",
+        description: "Failed to trigger diligence. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Test function to verify memo display
   const testMemoDisplay = () => {
     const testMemoData: MemoData = {
@@ -629,7 +680,7 @@ export default function DealMemoPage() {
       <MemoHeader 
         memoData={memoData}
         diligenceData={diligenceData}
-        onTriggerDiligence={() => {}}
+        onTriggerDiligence={handleTriggerDiligence}
       />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">

@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fetch Diligence Agent Output</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 5px;
+            font-size: 16px;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+        .output {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 20px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        .loading {
+            color: #007bff;
+            font-style: italic;
+        }
+        .error {
+            color: #dc3545;
+        }
+        .success {
+            color: #28a745;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Fetch Diligence Agent Output (AI Insight Memo 1)</h1>
+        <p>This tool will fetch the latest diligence agent output from your Firestore database.</p>
+        
+        <button class="button" onclick="fetchDiligenceResults()">Fetch Diligence Results</button>
+        <button class="button" onclick="fetchIngestionResults()">Fetch Ingestion Results</button>
+        <button class="button" onclick="clearOutput()">Clear Output</button>
+        
+        <div id="output" class="output" style="display: none;"></div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getFirestore, collection, query, orderBy, limit, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBvQvQvQvQvQvQvQvQvQvQvQvQvQvQvQvQ", // You'll need to replace this with your actual API key
+            authDomain: "veritas-472301.firebaseapp.com",
+            projectId: "veritas-472301",
+            storageBucket: "veritas-472301.firebasestorage.app",
+            messagingSenderId: "533015987350",
+            appId: "1:533015987350:web:d6080ff950f86137352eb7",
+            measurementId: "G-PRT33XGJNS"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        function log(message) {
+            const output = document.getElementById('output');
+            output.style.display = 'block';
+            output.textContent += message + '\n';
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function clearOutput() {
+            const output = document.getElementById('output');
+            output.style.display = 'none';
+            output.textContent = '';
+        }
+
+        async function fetchDiligenceResults() {
+            log('🔍 Fetching diligence results from Firestore...');
+            
+            try {
+                // Query the diligenceResults collection
+                const diligenceRef = collection(db, 'diligenceResults');
+                const q = query(diligenceRef, orderBy('timestamp', 'desc'), limit(10));
+                const querySnapshot = await getDocs(q);
+                
+                if (querySnapshot.empty) {
+                    log('❌ No diligence results found');
+                    return;
+                }
+                
+                log(`✅ Found ${querySnapshot.docs.length} diligence results`);
+                
+                querySnapshot.docs.forEach((doc, index) => {
+                    log(`\n📋 Result #${index + 1}`);
+                    log(`Document ID: ${doc.id}`);
+                    const data = doc.data();
+                    log(`Timestamp: ${data.timestamp}`);
+                    log(`Status: ${data.status}`);
+                    
+                    // Check if it has memo1_diligence structure
+                    const memo1Diligence = data.memo1_diligence || {};
+                    if (memo1Diligence) {
+                        log(`Investment Recommendation: ${memo1Diligence.investment_recommendation || 'N/A'}`);
+                        log(`Overall Score: ${memo1Diligence.overall_score || 'N/A'}`);
+                        
+                        // Show key sections
+                        const founderFit = memo1Diligence.founder_market_fit || {};
+                        if (founderFit.score) {
+                            log(`Founder-Market Fit Score: ${founderFit.score}`);
+                        }
+                        
+                        const teamExec = memo1Diligence.team_execution_capability || {};
+                        if (teamExec.score) {
+                            log(`Team Execution Score: ${teamExec.score}`);
+                        }
+                        
+                        const traction = memo1Diligence.traction_metrics_validation || {};
+                        if (traction.score) {
+                            log(`Traction Validation Score: ${traction.score}`);
+                        }
+                    }
+                    
+                    log('-'.repeat(40));
+                });
+                
+                // Show detailed analysis of the first result
+                if (querySnapshot.docs.length > 0) {
+                    const firstDoc = querySnapshot.docs[0];
+                    const firstData = firstDoc.data();
+                    const memo1Diligence = firstData.memo1_diligence || {};
+                    
+                    if (memo1Diligence) {
+                        log('\n' + '='.repeat(80));
+                        log('📋 DETAILED DILIGENCE ANALYSIS');
+                        log('='.repeat(80));
+                        
+                        log(`\n🎯 Investment Recommendation: ${memo1Diligence.investment_recommendation || 'N/A'}`);
+                        log(`📊 Overall Score: ${memo1Diligence.overall_score || 'N/A'}/10`);
+                        
+                        // Investment Thesis
+                        if (memo1Diligence.investment_thesis) {
+                            log(`\n💡 Investment Thesis:`);
+                            log(`   ${memo1Diligence.investment_thesis}`);
+                        }
+                        
+                        // Founder Market Fit
+                        const founderFit = memo1Diligence.founder_market_fit || {};
+                        if (founderFit.score) {
+                            log(`\n👤 Founder-Market Fit: ${founderFit.score}/10`);
+                            if (founderFit.analysis) {
+                                log(`   Analysis: ${founderFit.analysis}`);
+                            }
+                        }
+                        
+                        // Team Execution
+                        const teamExec = memo1Diligence.team_execution_capability || {};
+                        if (teamExec.score) {
+                            log(`\n⚡ Team Execution: ${teamExec.score}/10`);
+                            if (teamExec.analysis) {
+                                log(`   Analysis: ${teamExec.analysis}`);
+                            }
+                        }
+                        
+                        // Traction Validation
+                        const traction = memo1Diligence.traction_metrics_validation || {};
+                        if (traction.score) {
+                            log(`\n📈 Traction Validation: ${traction.score}/10`);
+                            if (traction.analysis) {
+                                log(`   Analysis: ${traction.analysis}`);
+                            }
+                        }
+                        
+                        // Key Risks
+                        if (memo1Diligence.key_risks && memo1Diligence.key_risks.length > 0) {
+                            log(`\n⚠️  Key Risks:`);
+                            memo1Diligence.key_risks.forEach((risk, i) => {
+                                log(`   ${i + 1}. ${risk}`);
+                            });
+                        }
+                        
+                        // Mitigation Strategies
+                        if (memo1Diligence.mitigation_strategies && memo1Diligence.mitigation_strategies.length > 0) {
+                            log(`\n🛡️  Mitigation Strategies:`);
+                            memo1Diligence.mitigation_strategies.forEach((strategy, i) => {
+                                log(`   ${i + 1}. ${strategy}`);
+                            });
+                        }
+                        
+                        // Due Diligence Next Steps
+                        if (memo1Diligence.due_diligence_next_steps && memo1Diligence.due_diligence_next_steps.length > 0) {
+                            log(`\n📋 Due Diligence Next Steps:`);
+                            memo1Diligence.due_diligence_next_steps.forEach((step, i) => {
+                                log(`   ${i + 1}. ${step}`);
+                            });
+                        }
+                        
+                        // Synthesis Notes
+                        if (memo1Diligence.synthesis_notes) {
+                            log(`\n🔍 Synthesis Notes:`);
+                            log(`   ${memo1Diligence.synthesis_notes}`);
+                        }
+                    }
+                }
+                
+            } catch (error) {
+                log(`❌ Error fetching diligence results: ${error.message}`);
+            }
+        }
+
+        async function fetchIngestionResults() {
+            log('\n🔍 Fetching ingestion results from Firestore...');
+            
+            try {
+                const ingestionRef = collection(db, 'ingestionResults');
+                const q = query(ingestionRef, orderBy('timestamp', 'desc'), limit(5));
+                const querySnapshot = await getDocs(q);
+                
+                if (querySnapshot.empty) {
+                    log('❌ No ingestion results found');
+                    return;
+                }
+                
+                log(`✅ Found ${querySnapshot.docs.length} ingestion results`);
+                
+                querySnapshot.docs.forEach((doc, index) => {
+                    log(`\n📋 Ingestion Result #${index + 1}`);
+                    log(`Document ID: ${doc.id}`);
+                    const data = doc.data();
+                    log(`Timestamp: ${data.timestamp}`);
+                    log(`Status: ${data.status}`);
+                    log(`Original Filename: ${data.original_filename || 'N/A'}`);
+                    
+                    const memo1 = data.memo_1 || {};
+                    if (memo1.title) {
+                        log(`Company: ${memo1.title}`);
+                        log(`Founder: ${memo1.founder_name || 'N/A'}`);
+                        log(`Problem: ${memo1.problem || 'N/A'}`);
+                        log(`Solution: ${memo1.solution || 'N/A'}`);
+                    }
+                    
+                    log('-'.repeat(40));
+                });
+                
+            } catch (error) {
+                log(`❌ Error fetching ingestion results: ${error.message}`);
+            }
+        }
+
+        // Make functions available globally
+        window.fetchDiligenceResults = fetchDiligenceResults;
+        window.fetchIngestionResults = fetchIngestionResults;
+        window.clearOutput = clearOutput;
+    </script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "name": "veritas-ai-diligence-fetcher",
+  "version": "1.0.0",
+  "description": "Script to fetch diligence agent output from Firestore",
+  "main": "fetch_diligence_simple.js",
+  "scripts": {
+    "fetch-diligence": "node fetch_diligence_simple.js",
+    "install-deps": "npm install firebase-admin"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.0.0"
+  },
+  "keywords": ["firebase", "firestore", "diligence", "ai", "memo"],
+  "author": "VeritasAI",
+  "license": "MIT"
+}

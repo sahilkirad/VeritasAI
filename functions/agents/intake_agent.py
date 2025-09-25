@@ -140,8 +140,9 @@ class IntakeCurationAgent:
         pdf_part = Part.from_data(data=file_data, mime_type="application/pdf")
         
         prompt = """
-        You are an AI Venture Capital Analyst. Analyze the attached pitch deck document.
-        Your task is to perform an initial summary and analysis and structure it as "Memo 1".
+        You are an AI Venture Capital Analyst specializing in comprehensive startup analysis. Analyze the attached pitch deck document and extract structured data for the Founders Checklist (Memo 1).
+        
+        Your task is to perform an initial summary and analysis, structuring it as "Memo 1" with comprehensive industry, market, technology, and financial analysis.
         
         Respond ONLY with a valid JSON object containing the following keys. Do not include any other text, explanations, or markdown formatting.
         If a specific piece of information is not found, return a relevant empty value (e.g., an empty string "" or an empty list []).
@@ -161,6 +162,22 @@ class IntakeCurationAgent:
         - "initial_flags": A list of 1-2 potential red flags or areas of concern based ONLY on the provided text.
         - "validation_points": A list of the top 2-3 most important claims from the text that an investor must validate.
         - "summary_analysis": A comprehensive 2-3 paragraph analysis that synthesizes the key findings, highlights the most compelling aspects of the opportunity, and provides an initial investment thesis with both strengths and potential concerns.
+        
+        Additional Fields for Comprehensive Analysis:
+        - "industry_category": The primary industry category (e.g., "EdTech", "HRTech", "FinTech", "AI/ML", "SaaS").
+        - "target_market": The specific target market or customer segment.
+        - "revenue_model": Detailed revenue model breakdown (subscription, commission, one-time, etc.).
+        - "pricing_strategy": Pricing tiers, models, or strategies mentioned.
+        - "technology_stack": Key technologies, platforms, or technical approaches mentioned.
+        - "go_to_market": Go-to-market strategy or customer acquisition approach.
+        - "funding_ask": Amount of funding being sought (if mentioned).
+        - "use_of_funds": How the funding will be used (if mentioned).
+        - "timeline": Key milestones, launch dates, or development timeline.
+        - "partnerships": Key partnerships, integrations, or collaborations mentioned.
+        - "regulatory_considerations": Any regulatory, compliance, or legal considerations.
+        - "scalability": Information about scalability, growth potential, or expansion plans.
+        - "intellectual_property": Patents, trademarks, or IP considerations mentioned.
+        - "exit_strategy": Potential exit strategies or acquisition targets mentioned.
         """
         
         response = self.gemini_model.generate_content([prompt, pdf_part])
@@ -196,8 +213,9 @@ class IntakeCurationAgent:
 
         self.logger.info(f"Generating Memo 1 from {context} text...")
         prompt = f"""
-        You are an AI Venture Capital Analyst. Analyze the following text extracted from a startup's {context}.
-        Your task is to perform an initial summary and analysis and structure it as "Memo 1".
+        You are an AI Venture Capital Analyst specializing in comprehensive startup analysis. Analyze the following text extracted from a startup's {context} and extract structured data for the Founders Checklist (Memo 1).
+        
+        Your task is to perform an initial summary and analysis, structuring it as "Memo 1" with comprehensive industry, market, technology, and financial analysis.
         
         Respond ONLY with a valid JSON object containing the following keys. Do not include any other text, explanations, or markdown formatting.
         If a specific piece of information is not found, return a relevant empty value (e.g., an empty string "" or an empty list []).
@@ -217,6 +235,22 @@ class IntakeCurationAgent:
         - "initial_flags": A list of 1-2 potential red flags or areas of concern based ONLY on the provided text.
         - "validation_points": A list of the top 2-3 most important claims from the text that an investor must validate.
         - "summary_analysis": A comprehensive 2-3 paragraph analysis that synthesizes the key findings, highlights the most compelling aspects of the opportunity, and provides an initial investment thesis with both strengths and potential concerns.
+        
+        Additional Fields for Comprehensive Analysis:
+        - "industry_category": The primary industry category (e.g., "EdTech", "HRTech", "FinTech", "AI/ML", "SaaS").
+        - "target_market": The specific target market or customer segment.
+        - "revenue_model": Detailed revenue model breakdown (subscription, commission, one-time, etc.).
+        - "pricing_strategy": Pricing tiers, models, or strategies mentioned.
+        - "technology_stack": Key technologies, platforms, or technical approaches mentioned.
+        - "go_to_market": Go-to-market strategy or customer acquisition approach.
+        - "funding_ask": Amount of funding being sought (if mentioned).
+        - "use_of_funds": How the funding will be used (if mentioned).
+        - "timeline": Key milestones, launch dates, or development timeline.
+        - "partnerships": Key partnerships, integrations, or collaborations mentioned.
+        - "regulatory_considerations": Any regulatory, compliance, or legal considerations.
+        - "scalability": Information about scalability, growth potential, or expansion plans.
+        - "intellectual_property": Patents, trademarks, or IP considerations mentioned.
+        - "exit_strategy": Potential exit strategies or acquisition targets mentioned.
         
         Text to analyze:
         {text[:20000]}

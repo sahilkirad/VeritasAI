@@ -21,10 +21,10 @@ class DiligenceAgent:
     """
 
     MEMO_2_PROMPT_TEMPLATE = """
-    You are a Senior Venture Capital Analyst with 15+ years of experience in early-stage investments. Your task is to synthesize three distinct sources of information about a startup into a single, comprehensive diligence report (Memo 1).
+    You are a Senior Venture Capital Analyst with 15+ years of experience in early-stage investments. Your task is to synthesize three distinct sources of information about a startup into a single, comprehensive diligence report (Memo 2).
 
     You have been given:
-    1.  **Curated Data (Memo 1):** The startup's claims, extracted from their pitch deck or transcript.
+    1.  **Curated Data (Memo 1):** The startup's claims, extracted from their pitch deck or transcript, including comprehensive Founders Checklist data.
     2.  **Live Google Analytics Data:** Verified, real-time user metrics from their Google Analytics property.
     3.  **Public Founder Data:** Detailed information scraped from the founder's public LinkedIn profile.
 
@@ -34,10 +34,28 @@ class DiligenceAgent:
     - If information is not available in the provided data, state "Information not available in provided data sources"
     - Use the LinkedIn data to analyze founder background and experience
     - Cross-reference all claims with the available data sources
+    - Focus on validating the comprehensive Founders Checklist data from Memo 1
+
+    **FOUNDERS CHECKLIST VALIDATION:**
+    The Memo 1 data now includes comprehensive analysis of:
+    - Industry & Market Size (Talent Acquisition, EdTech, Simulation Learning, AI in HR, etc.)
+    - Technology Stack (AI engine, simulation workflows, SaaS stack, security & infra)
+    - Revenue Streams & Pricing Models
+    - Unit Economics (CAC, LTV, recurring vs one-time)
+    - Competitor Analysis (Mercor, Degreed, Skillfully)
+    - Founders Profiles (Aditya Sambamoorthy, Abhishek Mehta)
+    - Provisional Financials & Valuation
+    - Risks & Mitigation
+    - Pipeline & Growth Projections
+    - Fundraise ask & round structure
 
     Your Instructions:
     - Cross-reference the 'traction' claims from Memo 1 with the live Google Analytics data to validate user metrics and growth claims.
     - Analyze the founder's background from Memo 1 against their detailed LinkedIn profile to assess founder-market fit and credibility.
+    - Validate market size claims against industry benchmarks and public datasets.
+    - Cross-check competitor information and funding data.
+    - Assess technology stack claims and technical feasibility.
+    - Evaluate revenue model and pricing strategy against industry standards.
     - Pay special attention to the founder's experience and domain expertise alignment with the startup's solution.
     - Evaluate the alignment between the startup's solution and the founder's domain expertise.
     - Based on ALL available information, provide a score (from 1 to 10) and a detailed analysis for each of the following diligence points:
@@ -102,6 +120,24 @@ class DiligenceAgent:
             "growth_indicators": "<trends and growth patterns from GA data>",
             "data_quality_assessment": "<assessment of data reliability and completeness>"
         }},
+        "industry_market_validation": {{
+            "market_size_validation": "<validation of market size claims against industry benchmarks>",
+            "industry_category_accuracy": "<assessment of industry categorization>",
+            "target_market_assessment": "<evaluation of target market definition>",
+            "competitive_landscape_validation": "<validation of competitive analysis>"
+        }},
+        "technology_stack_validation": {{
+            "technical_feasibility": "<assessment of technology claims>",
+            "scalability_analysis": "<evaluation of scalability claims>",
+            "security_infrastructure": "<assessment of security and infrastructure>",
+            "innovation_assessment": "<evaluation of technical innovation>"
+        }},
+        "financial_model_validation": {{
+            "revenue_model_viability": "<assessment of revenue model>",
+            "pricing_strategy_validation": "<evaluation of pricing strategy>",
+            "unit_economics_sanity_check": "<validation of CAC/LTV claims>",
+            "financial_projections_reasonableness": "<assessment of financial projections>"
+        }},
         "founder_market_fit": {{
             "score": <number 1-10>,
             "analysis": "<detailed analysis based on provided LinkedIn data>",
@@ -151,12 +187,15 @@ class DiligenceAgent:
             "competitive_threats": ["<threat1>", "<threat2>"]
         }},
         "investment_thesis": "<comprehensive 2-3 paragraph investment thesis>",
-        "confidence_score": <number 1-10>,
+        "overall_score": <number 1-10>,
         "key_risks": ["<risk1>", "<risk2>", "<risk3>"],
         "mitigation_strategies": ["<strategy1>", "<strategy2>"],
         "due_diligence_next_steps": ["<step1>", "<step2>", "<step3>"],
         "investment_recommendation": "<STRONG BUY/BUY/HOLD/PASS>",
-        "synthesis_notes": "<how the three data sources align or contradict each other>"
+        "synthesis_notes": "<how the three data sources align or contradict each other>",
+        "memo_1_id": "<reference to original memo 1 document>",
+        "processing_time_seconds": <number>,
+        "status": "SUCCESS"
     }}
 
     **JSON DATA INPUTS:**

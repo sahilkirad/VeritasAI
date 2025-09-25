@@ -3,7 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Target, CheckCircle, ThumbsUp, ThumbsDown, MessageCircle, Users, TrendingUp, DollarSign, BarChart3, AlertTriangle } from "lucide-react";
+import { Target, CheckCircle, ThumbsUp, ThumbsDown, MessageCircle, Users, TrendingUp, DollarSign, BarChart3, AlertTriangle, ExternalLink } from "lucide-react";
 import { useRouter } from 'next/navigation';
 
 interface DiligenceData {
@@ -37,13 +37,16 @@ export default function Memo3Tab({ diligenceData }: Memo3TabProps) {
 
   return (
     <div className="space-y-6">
-      {/* Competitor Analysis */}
+      {/* Competitor Analysis Framework */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <BarChart3 className="h-5 w-5" />
-            Competitor Analysis
+            Competitor Analysis Framework
           </CardTitle>
+          <CardDescription>
+            Cover 2-3 competitors operating in similar revenue model or advanced revenue model in comparison to your company
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-3">
@@ -55,6 +58,14 @@ export default function Memo3Tab({ diligenceData }: Memo3TabProps) {
                 <div><strong>ARR:</strong> $100M USD</div>
                 <div><strong>Model:</strong> Commission-based talent marketplace</div>
                 <div><strong>Focus:</strong> AI-powered hiring platform</div>
+                <div><strong>Revenue Model:</strong> Transaction fees from successful placements</div>
+                <div><strong>Market Position:</strong> Global talent acquisition platform</div>
+              </div>
+              <div className="mt-2">
+                <a href="https://www.mercor.ai" target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline flex items-center">
+                  Company Website
+                  <ExternalLink className="ml-1 h-2 w-2" />
+                </a>
               </div>
             </div>
 
@@ -66,6 +77,14 @@ export default function Memo3Tab({ diligenceData }: Memo3TabProps) {
                 <div><strong>ARR:</strong> $120M USD</div>
                 <div><strong>Model:</strong> Enterprise subscription</div>
                 <div><strong>Focus:</strong> Learning experience platform</div>
+                <div><strong>Revenue Model:</strong> SaaS subscriptions for enterprise clients</div>
+                <div><strong>Market Position:</strong> Enterprise learning and development</div>
+              </div>
+              <div className="mt-2">
+                <a href="https://www.degreed.com" target="_blank" rel="noopener noreferrer" className="text-xs text-green-500 hover:underline flex items-center">
+                  Company Website
+                  <ExternalLink className="ml-1 h-2 w-2" />
+                </a>
               </div>
             </div>
 
@@ -77,16 +96,33 @@ export default function Memo3Tab({ diligenceData }: Memo3TabProps) {
                 <div><strong>ARR:</strong> $8M USD</div>
                 <div><strong>Model:</strong> B2B SaaS subscriptions</div>
                 <div><strong>Focus:</strong> Pre-hire simulations</div>
+                <div><strong>Revenue Model:</strong> Subscription-based assessment platform</div>
+                <div><strong>Market Position:</strong> Skills assessment and simulation platform</div>
+              </div>
+              <div className="mt-2">
+                <a href="https://www.skillfully.com" target="_blank" rel="noopener noreferrer" className="text-xs text-purple-500 hover:underline flex items-center">
+                  Company Website
+                  <ExternalLink className="ml-1 h-2 w-2" />
+                </a>
               </div>
             </div>
           </div>
 
           <div className="p-4 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg border">
             <h4 className="font-semibold text-gray-800 mb-2">Competitive Positioning</h4>
-            <p className="text-sm text-gray-700">
+            <p className="text-sm text-gray-700 mb-2">
               InLustro/Syntra differentiates through experiential, simulation-based learning combined with hiring integration, 
               serving the full education-to-employment pipeline with both campus and corporate solutions.
             </p>
+            <div className="text-xs text-gray-600 space-y-1">
+              <p><strong>Key Differentiators:</strong></p>
+              <ul className="list-disc list-inside ml-4 space-y-1">
+                <li>Only platform combining AI-powered job simulations with L&D tools</li>
+                <li>Hands-on, contextual, and outcome-driven approach vs content-only competitors</li>
+                <li>Full education-to-employment pipeline coverage</li>
+                <li>High stickiness across stakeholders (students, institutions, employers)</li>
+              </ul>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -100,47 +136,70 @@ export default function Memo3Tab({ diligenceData }: Memo3TabProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Valuation Breakdown */}
-          <div>
-            <h4 className="font-semibold mb-2">Valuation Breakdown</h4>
-            <div className="grid gap-2 md:grid-cols-3">
-              <div className="p-2 bg-blue-50 rounded text-center">
-                <div className="text-lg font-bold text-blue-800">INR 18Cr</div>
-                <div className="text-xs text-blue-600">Product Business (15x revenue)</div>
+          {/* Key Problem Solved */}
+          <div className="p-4 bg-red-50 rounded-lg border border-red-200">
+            <h4 className="font-semibold text-red-800 mb-2">Key Problem Solved</h4>
+            <p className="text-sm text-red-700">
+              Hiring and training for early-career roles is broken. Manual interviews and generic assignments fail to assess or prepare candidates for the real job. Meanwhile, companies spend months and significant resources onboarding fresh talent who still struggle to perform.
+            </p>
+          </div>
+
+          {/* Business Model */}
+          <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <h4 className="font-semibold text-blue-800 mb-2">Business Model</h4>
+            <p className="text-sm text-blue-700">
+              InLustro operates on a B2B and B2B2C model, delivering high-impact, simulation-based learning and hiring solutions to academic institutions and corporates. Our primary revenue comes from institutional contracts where we design and deliver experiential training programs to bridge the employability gap. With the launch of our product Syntra, our job simulation platform, we will be transitioning toward a scalable SaaS model offering tiered and pay-per-use pricing to institutions and corporates. Our business combines high-touch service delivery with high-scale product adoption to drive recurring, high-margin revenue.
+            </p>
+          </div>
+
+          {/* Pipeline */}
+          <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+            <h4 className="font-semibold text-green-800 mb-2">Pipeline</h4>
+            <div className="text-sm text-green-700 space-y-2">
+              <div>
+                <strong>Sales Pipeline Value:</strong> As of July 2025, InLustro's qualified sales pipeline stands at INR 4.8 Cr+, spanning ongoing conversations with over 30 new academic institutions and 10 new corporate clients across India. These prospects are in various stages of the conversion funnel - ranging from pilot discussions to proposal negotiations and MoU finalization.
               </div>
-              <div className="p-2 bg-green-50 rounded text-center">
-                <div className="text-lg font-bold text-green-800">INR 4.8Cr</div>
-                <div className="text-xs text-green-600">Service Business (6x revenue)</div>
-              </div>
-              <div className="p-2 bg-purple-50 rounded text-center">
-                <div className="text-lg font-bold text-purple-800">INR 3Cr</div>
-                <div className="text-xs text-purple-600">Product IP (R&D)</div>
+              <div>
+                <strong>Projected Growth Opportunities:</strong> With the new NEP-aligned emphasis on employability and skill-based credits, colleges are actively seeking partners like InLustro to bridge the industry-readiness gap. We aim to expand from our current footprint of 45+ institutions to 100+ partner colleges over the next 12–15 months.
               </div>
             </div>
-            <div className="mt-3 p-3 bg-gray-50 rounded-lg text-center">
-              <div className="text-xl font-bold text-gray-800">Total Valuation: INR 25.8Cr</div>
+          </div>
+
+          {/* Why Now */}
+          <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+            <h4 className="font-semibold text-purple-800 mb-2">Why Now</h4>
+            <div className="text-sm text-purple-700 space-y-2">
+              <div>
+                <strong>Market Trends:</strong> AI adoption in HR and EdTech is accelerating. Companies are actively replacing manual assessments and training with automation and AI-powered tools. The NEP 2020 and UGC guidelines now emphasize experiential learning and industry alignment.
+              </div>
+              <div>
+                <strong>Competitive Edge:</strong> Syntra is the only experiential JobTech platform that combines AI-based job simulations, custom role evaluators, and L&D tools into a single platform.
+              </div>
+              <div>
+                <strong>Urgency/Opportunity:</strong> We are at the cusp of a major shift in how early talent is trained and hired. InLustro, through Syntra, is positioned to become the infrastructure layer for future-ready talent pipelines.
+              </div>
             </div>
           </div>
 
           {/* Fundraising Details */}
           <div>
-            <h4 className="font-semibold mb-2">Fundraising Round</h4>
+            <h4 className="font-semibold mb-2">Fundraising Details</h4>
             <div className="grid gap-3 md:grid-cols-2">
               <div className="p-3 bg-gray-50 rounded-lg">
                 <h5 className="font-medium text-gray-800">Round Structure</h5>
                 <div className="text-xs space-y-1 mt-2">
                   <div><strong>Funding Ask:</strong> INR 2.5 Crores</div>
-                  <div><strong>Dilution:</strong> 8-10%</div>
-                  <div><strong>Pre-Money:</strong> INR 25 Crores</div>
-                  <div><strong>Instrument:</strong> SAFE</div>
+                  <div><strong>Structure:</strong> We are raising our Seed round through a SAFE instrument, with a valuation cap and discount structure designed to align long-term interests with our early backers.</div>
+                  <div><strong>Valuation Cap and Floor:</strong> INR 20 Crores to 30 Crores</div>
+                  <div><strong>Current Commitments:</strong> INR 1 Crore from Soonicorn Ventures & Realtime Angel Fund</div>
                 </div>
               </div>
               <div className="p-3 bg-gray-50 rounded-lg">
                 <h5 className="font-medium text-gray-800">Investors</h5>
                 <div className="text-xs space-y-1 mt-2">
-                  <div><strong>Lead:</strong> Looking for lead investor</div>
-                  <div><strong>Committed:</strong> INR 1 Cr</div>
-                  <div><strong>From:</strong> Soonicorn Ventures, Realtime Angel Fund</div>
+                  <div><strong>Lead:</strong> We are looking for an investor to lead the round</div>
+                  <div><strong>Incoming Investors:</strong> Soonicorn Ventures, Realtime Angel Fund, & an Angel Investor</div>
+                  <div><strong>Existing Investors:</strong> N/A</div>
                 </div>
               </div>
             </div>
@@ -192,47 +251,45 @@ export default function Memo3Tab({ diligenceData }: Memo3TabProps) {
               </div>
 
               <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                <h4 className="font-semibold text-yellow-800 mb-2">Key Risks</h4>
-                <ul className="text-sm space-y-1">
-                  {diligenceData?.key_risks?.map((risk: string, index: number) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <AlertTriangle className="h-3 w-3 text-yellow-500 mt-1 flex-shrink-0" />
-                      <span>{risk}</span>
-                    </li>
-                  )) || [
-                    "Unverified traction metrics",
-                    "Scalability and reliability of authentication process",
-                    "Competition from established and unorganized players",
-                    "Reliance on Instagram marketing"
-                  ].map((risk, index) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <AlertTriangle className="h-3 w-3 text-yellow-500 mt-1 flex-shrink-0" />
-                      <span>{risk}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
-                <h4 className="font-semibold text-purple-800 mb-2">Mitigation Strategies</h4>
-                <ul className="text-sm space-y-1">
-                  {diligenceData?.mitigation_strategies?.map((strategy: string, index: number) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <CheckCircle className="h-3 w-3 text-purple-500 mt-1 flex-shrink-0" />
-                      <span>{strategy}</span>
-                    </li>
-                  )) || [
-                    "Obtain and verify Google Analytics data",
-                    "Conduct thorough due diligence on authentication process",
-                    "Develop a robust multi-channel marketing strategy",
-                    "Strengthen competitive positioning through unique value proposition"
-                  ].map((strategy, index) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <CheckCircle className="h-3 w-3 text-purple-500 mt-1 flex-shrink-0" />
-                      <span>{strategy}</span>
-                    </li>
-                  ))}
-                </ul>
+                <h4 className="font-semibold text-yellow-800 mb-2">Risks and Mitigation</h4>
+                <div className="text-sm space-y-3">
+                  <div>
+                    <p className="font-medium text-yellow-800 mb-2">Identified Risks</p>
+                    <p className="text-yellow-700 mb-2">As with any early-stage venture, we have proactively identified 5 risks and developed mitigation strategies to ensure sustainable growth.</p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="p-2 bg-white rounded border">
+                      <p className="font-medium text-gray-800">Adoption Resistance from Academic Institutions</p>
+                      <p className="text-xs text-gray-600">Traditional institutions may resist adopting new AI-based training and evaluation models due to legacy mindsets, slow decision cycles, or budgetary concerns.</p>
+                      <p className="text-xs text-green-600 mt-1"><strong>Mitigation:</strong> Offer freemium and pilot programs to demonstrate value and outcomes before upselling. Align Syntra's offerings with NEP 2020 and UGC guidelines to make it easier for institutions to adopt.</p>
+                    </div>
+                    
+                    <div className="p-2 bg-white rounded border">
+                      <p className="font-medium text-gray-800">Delayed Payment Cycles from Academic Institutions</p>
+                      <p className="text-xs text-gray-600">Payment delays from colleges can affect cash flow.</p>
+                      <p className="text-xs text-green-600 mt-1"><strong>Mitigation:</strong> Structure contracts with advance payments, milestone-based billing, or co-payments from students. Target a balanced mix of private, self-financed institutions with faster payment cycles.</p>
+                    </div>
+                    
+                    <div className="p-2 bg-white rounded border">
+                      <p className="font-medium text-gray-800">Competitive Market in Skilling & Hiring Tech</p>
+                      <p className="text-xs text-gray-600">Presence of large players (e.g., Unstop, Naukri, HackerRank) in the skilling and assessment space could impact market share in India.</p>
+                      <p className="text-xs text-green-600 mt-1"><strong>Mitigation:</strong> Differentiate through experiential, simulation-based learning, which few others offer. Focus on role-based job readiness + hiring integration, not just generic content or assessments.</p>
+                    </div>
+                    
+                    <div className="p-2 bg-white rounded border">
+                      <p className="font-medium text-gray-800">Technology & Platform Scalability</p>
+                      <p className="text-xs text-gray-600">As usage grows, the platform must scale reliably while maintaining quality, performance, and security.</p>
+                      <p className="text-xs text-green-600 mt-1"><strong>Mitigation:</strong> Built on modular architecture that enables scaling in phases. Partnering with trusted cloud providers (e.g., AWS) for infrastructure.</p>
+                    </div>
+                    
+                    <div className="p-2 bg-white rounded border">
+                      <p className="font-medium text-gray-800">Talent Acquisition & Retention in a Startup Environment</p>
+                      <p className="text-xs text-gray-600">Difficulty in attracting and retaining top talent, especially in tech and operations.</p>
+                      <p className="text-xs text-green-600 mt-1"><strong>Mitigation:</strong> Offer competitive ESOPs and flexible work culture to attract mission-aligned individuals. Build a culture of ownership and impact, especially for early hires.</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </CardContent>

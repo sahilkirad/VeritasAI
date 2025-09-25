@@ -105,6 +105,7 @@ export default function DealMemoPage() {
 
     try {
       console.log('Fetching memo data from Firestore...');
+      console.log('Current user:', user.uid);
 
       // First, try to fetch memos created by the current user
       let ingestionQuery = query(
@@ -115,6 +116,7 @@ export default function DealMemoPage() {
       );
 
       let ingestionSnapshot = await getDocs(ingestionQuery);
+      console.log('User-specific memos found:', ingestionSnapshot.docs.length);
 
       // If no memos found for current user, try to fetch all available memos
       // This allows investors to see memos created by founders
@@ -130,9 +132,11 @@ export default function DealMemoPage() {
         const allMemosSnapshot = await getDocs(allMemosQuery);
         
         if (!allMemosSnapshot.empty) {
+          console.log(`Found ${allMemosSnapshot.docs.length} memos in Firestore`);
           const memos: MemoData[] = [];
           allMemosSnapshot.docs.forEach((doc) => {
             const data = doc.data();
+            console.log('Processing memo doc:', doc.id, data);
             const memo1Data = data.memo_1 || {};
             const memo: MemoData = {
               id: doc.id,
@@ -162,6 +166,7 @@ export default function DealMemoPage() {
             };
             memos.push(memo);
           });
+          console.log('Setting available memos:', memos);
           setAvailableMemos(memos);
           setLoading(false);
           return;
@@ -409,6 +414,15 @@ export default function DealMemoPage() {
       </div>
     );
   }
+
+  // Debug logging
+  console.log('Render state:', { 
+    loading, 
+    hasRecentData, 
+    memoData: !!memoData, 
+    availableMemosLength: availableMemos.length,
+    availableMemos: availableMemos 
+  });
 
   // Show available memos selection if we have multiple memos
   if (availableMemos.length > 0) {

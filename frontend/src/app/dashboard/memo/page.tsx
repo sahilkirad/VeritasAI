@@ -381,23 +381,34 @@ export default function DealMemoPage() {
     }
 
     try {
+      const requestBody = {
+        memo_1_id: memoData.id,
+        timestamp: Date.now(),
+      };
+
+      console.log('Triggering diligence with data:', requestBody);
+      console.log('API Endpoint:', API_ENDPOINTS.TRIGGER_DILIGENCE);
+
       const response = await fetch(API_ENDPOINTS.TRIGGER_DILIGENCE, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: JSON.stringify({
-          memo_1_id: memoData.id,
-          timestamp: Date.now(),
-        }),
+        body: JSON.stringify(requestBody),
       });
 
+      console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers);
+
       if (!response.ok) {
-        throw new Error(`Failed to trigger diligence: ${response.status}`);
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
+        throw new Error(`Failed to trigger diligence: ${response.status} - ${errorText}`);
       }
 
       const result = await response.json();
+      console.log('Success result:', result);
       
       toast({
         title: "Diligence Triggered",
@@ -413,7 +424,7 @@ export default function DealMemoPage() {
       console.error('Error triggering diligence:', error);
       toast({
         title: "Error",
-        description: "Failed to trigger diligence. Please try again.",
+        description: `Failed to trigger diligence: ${error.message}`,
         variant: "destructive",
       });
     }

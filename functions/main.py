@@ -449,8 +449,17 @@ def trigger_diligence(req: https_fn.Request) -> https_fn.Response:
             )
 
         data = req.get_json()
-        if not data or 'memo_1_id' not in data:
-            return https_fn.Response('Missing memo_1_id in request body', status=400)
+        print(f"Received request data: {data}")
+        print(f"Request method: {req.method}")
+        print(f"Request headers: {dict(req.headers)}")
+        
+        if not data:
+            print("ERROR: No data in request body")
+            return https_fn.Response('No data in request body', status=400)
+            
+        if 'memo_1_id' not in data:
+            print(f"ERROR: Missing memo_1_id in request body. Available keys: {list(data.keys())}")
+            return https_fn.Response(f'Missing memo_1_id in request body. Available keys: {list(data.keys())}', status=400)
 
         memo_1_id = data['memo_1_id']
         ga_property_id = data.get('ga_property_id', '213025502')  # Updated to your correct Property ID

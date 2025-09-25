@@ -217,14 +217,27 @@ export default function DealMemoPage() {
 
         // Fetch diligence data from diligenceResults collection
         try {
-          const diligenceQuery = query(
+          // Try to find diligence data by memo_1_id first, then fallback to memoId
+          let diligenceQuery = query(
             collection(db, 'diligenceResults'),
-            where('memoId', '==', ingestionDoc.id),
+            where('memo_1_id', '==', ingestionDoc.id),
             orderBy('timestamp', 'desc'),
             limit(1)
           );
 
-          const diligenceSnapshot = await getDocs(diligenceQuery);
+          let diligenceSnapshot = await getDocs(diligenceQuery);
+
+          // If no results found with memo_1_id, try with memoId
+          if (diligenceSnapshot.empty) {
+            console.log('No diligence data found with memo_1_id, trying memoId...');
+            diligenceQuery = query(
+              collection(db, 'diligenceResults'),
+              where('memoId', '==', ingestionDoc.id),
+              orderBy('timestamp', 'desc'),
+              limit(1)
+            );
+            diligenceSnapshot = await getDocs(diligenceQuery);
+          }
 
           if (!diligenceSnapshot.empty) {
             const diligenceDoc = diligenceSnapshot.docs[0];
@@ -232,22 +245,27 @@ export default function DealMemoPage() {
 
             console.log('Diligence Data:', diligenceData);
 
-            // Map diligence data to our interface
+            // Extract data from memo1_diligence field (as shown in your Firestore structure)
+            const memo1Diligence = diligenceData.memo1_diligence || {};
+
+            console.log('Memo1 Diligence Data:', memo1Diligence);
+
+            // Map diligence data to our interface - using the exact structure from your Firestore
             const mappedDiligenceData: DiligenceData = {
-              investment_recommendation: diligenceData.investment_recommendation,
-              problem_validation: diligenceData.problem_validation,
-              solution_product_market_fit: diligenceData.solution_product_market_fit,
-              team_execution_capability: diligenceData.team_execution_capability,
-              founder_market_fit: diligenceData.founder_market_fit,
-              market_opportunity_competition: diligenceData.market_opportunity_competition,
-              benchmarking_analysis: diligenceData.benchmarking_analysis,
-              traction_metrics_validation: diligenceData.traction_metrics_validation,
-              key_risks: diligenceData.key_risks,
-              mitigation_strategies: diligenceData.mitigation_strategies,
-              due_diligence_next_steps: diligenceData.due_diligence_next_steps,
-              investment_thesis: diligenceData.investment_thesis,
-              synthesis_notes: diligenceData.synthesis_notes,
-              overall_score: diligenceData.overall_score
+              investment_recommendation: memo1Diligence.investment_recommendation,
+              problem_validation: memo1Diligence.problem_validation,
+              solution_product_market_fit: memo1Diligence.solution_product_market_fit,
+              team_execution_capability: memo1Diligence.team_execution_capability,
+              founder_market_fit: memo1Diligence.founder_market_fit,
+              market_opportunity_competition: memo1Diligence.market_opportunity_competition,
+              benchmarking_analysis: memo1Diligence.benchmarking_analysis,
+              traction_metrics_validation: memo1Diligence.traction_metrics_validation,
+              key_risks: memo1Diligence.key_risks,
+              mitigation_strategies: memo1Diligence.mitigation_strategies,
+              due_diligence_next_steps: memo1Diligence.due_diligence_next_steps,
+              investment_thesis: memo1Diligence.investment_thesis,
+              synthesis_notes: memo1Diligence.synthesis_notes,
+              overall_score: memo1Diligence.overall_score
             };
 
             setDiligenceData(mappedDiligenceData);
@@ -288,14 +306,27 @@ export default function DealMemoPage() {
   // Function to fetch diligence data for a specific memo
   const fetchDiligenceData = async (memoId: string) => {
     try {
-      const diligenceQuery = query(
+      // Try to find diligence data by memo_1_id first, then fallback to memoId
+      let diligenceQuery = query(
         collection(db, 'diligenceResults'),
-        where('memoId', '==', memoId),
+        where('memo_1_id', '==', memoId),
         orderBy('timestamp', 'desc'),
         limit(1)
       );
 
-      const diligenceSnapshot = await getDocs(diligenceQuery);
+      let diligenceSnapshot = await getDocs(diligenceQuery);
+
+      // If no results found with memo_1_id, try with memoId
+      if (diligenceSnapshot.empty) {
+        console.log('No diligence data found with memo_1_id, trying memoId...');
+        diligenceQuery = query(
+          collection(db, 'diligenceResults'),
+          where('memoId', '==', memoId),
+          orderBy('timestamp', 'desc'),
+          limit(1)
+        );
+        diligenceSnapshot = await getDocs(diligenceQuery);
+      }
 
       if (!diligenceSnapshot.empty) {
         const diligenceDoc = diligenceSnapshot.docs[0];
@@ -303,22 +334,27 @@ export default function DealMemoPage() {
 
         console.log('Diligence Data:', diligenceData);
 
-        // Map diligence data to our interface
+        // Extract data from memo1_diligence field (as shown in your Firestore structure)
+        const memo1Diligence = diligenceData.memo1_diligence || {};
+
+        console.log('Memo1 Diligence Data:', memo1Diligence);
+
+        // Map diligence data to our interface - using the exact structure from your Firestore
         const mappedDiligenceData: DiligenceData = {
-          investment_recommendation: diligenceData.investment_recommendation,
-          problem_validation: diligenceData.problem_validation,
-          solution_product_market_fit: diligenceData.solution_product_market_fit,
-          team_execution_capability: diligenceData.team_execution_capability,
-          founder_market_fit: diligenceData.founder_market_fit,
-          market_opportunity_competition: diligenceData.market_opportunity_competition,
-          benchmarking_analysis: diligenceData.benchmarking_analysis,
-          traction_metrics_validation: diligenceData.traction_metrics_validation,
-          key_risks: diligenceData.key_risks,
-          mitigation_strategies: diligenceData.mitigation_strategies,
-          due_diligence_next_steps: diligenceData.due_diligence_next_steps,
-          investment_thesis: diligenceData.investment_thesis,
-          synthesis_notes: diligenceData.synthesis_notes,
-          overall_score: diligenceData.overall_score
+          investment_recommendation: memo1Diligence.investment_recommendation,
+          problem_validation: memo1Diligence.problem_validation,
+          solution_product_market_fit: memo1Diligence.solution_product_market_fit,
+          team_execution_capability: memo1Diligence.team_execution_capability,
+          founder_market_fit: memo1Diligence.founder_market_fit,
+          market_opportunity_competition: memo1Diligence.market_opportunity_competition,
+          benchmarking_analysis: memo1Diligence.benchmarking_analysis,
+          traction_metrics_validation: memo1Diligence.traction_metrics_validation,
+          key_risks: memo1Diligence.key_risks,
+          mitigation_strategies: memo1Diligence.mitigation_strategies,
+          due_diligence_next_steps: memo1Diligence.due_diligence_next_steps,
+          investment_thesis: memo1Diligence.investment_thesis,
+          synthesis_notes: memo1Diligence.synthesis_notes,
+          overall_score: memo1Diligence.overall_score
         };
 
         setDiligenceData(mappedDiligenceData);
@@ -535,6 +571,39 @@ export default function DealMemoPage() {
               Refresh Data
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Debug Information */}
+      {process.env.NODE_ENV === 'development' && memoData && (
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+          <details className="text-xs">
+            <summary className="cursor-pointer font-medium text-gray-700 mb-2">
+              🔍 Debug: Raw Data Structure
+            </summary>
+            <div className="space-y-2">
+              <div>
+                <strong>Memo Data ID:</strong> {memoData.id}
+              </div>
+              <div>
+                <strong>Filename:</strong> {memoData.filename}
+              </div>
+              <div>
+                <strong>Has Diligence Data:</strong> {diligenceData ? 'Yes' : 'No'}
+              </div>
+              {diligenceData && (
+                <div>
+                  <strong>Diligence Data Keys:</strong> {Object.keys(diligenceData).join(', ')}
+                </div>
+              )}
+              <div className="mt-2">
+                <strong>Raw Memo1 Data:</strong>
+                <pre className="bg-white p-2 rounded border text-xs overflow-auto max-h-32">
+                  {JSON.stringify(memoData.memo_1, null, 2)}
+                </pre>
+              </div>
+            </div>
+          </details>
         </div>
       )}
 

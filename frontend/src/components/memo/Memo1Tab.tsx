@@ -38,8 +38,11 @@ export default function Memo1Tab({ memo1 }: Memo1TabProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Building2 className="h-5 w-5" />
-            Executive Summary
+            Pitch Deck Summary
           </CardTitle>
+          <CardDescription>
+            Summary of the founder's pitch deck PDF submission
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground leading-relaxed">
@@ -50,14 +53,17 @@ export default function Memo1Tab({ memo1 }: Memo1TabProps) {
       </Card>
 
       {/* INDUSTRY & MARKET SIZE */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
             <BarChart3 className="h-5 w-5" />
             Industry & Market Size Analysis
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+            </CardTitle>
+            <CardDescription>
+            Market analysis extracted from the pitch deck
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
           {/* Market Positioning */}
           <div>
             <h4 className="font-semibold mb-2">Market Positioning</h4>
@@ -73,7 +79,7 @@ export default function Memo1Tab({ memo1 }: Memo1TabProps) {
           </div>
 
           {/* Market Size Data with Sources */}
-          <div>
+            <div>
             <h4 className="font-semibold mb-2">Market Size Analysis</h4>
             <div className="grid gap-3 md:grid-cols-2">
               <div className="p-3 bg-blue-50 rounded-lg">
@@ -137,7 +143,7 @@ export default function Memo1Tab({ memo1 }: Memo1TabProps) {
                 </div>
               </div>
             </div>
-          </div>
+            </div>
 
           {/* Combined Market Opportunity */}
           <div className="p-4 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg border">
@@ -155,7 +161,7 @@ export default function Memo1Tab({ memo1 }: Memo1TabProps) {
                 <li>• Growing higher education SaaS subscriptions for employability-focused platforms ($1–2 billion)</li>
               </ul>
             </div>
-          </div>
+            </div>
 
           {/* Comprehensive References */}
           <div className="p-4 bg-gray-50 rounded-lg border">
@@ -235,7 +241,7 @@ export default function Memo1Tab({ memo1 }: Memo1TabProps) {
             </p>
           </CardContent>
         </Card>
-      </div>
+            </div>
 
       {/* Business Model & Revenue Streams */}
       <Card>
@@ -246,7 +252,7 @@ export default function Memo1Tab({ memo1 }: Memo1TabProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div>
+            <div>
             <h4 className="font-semibold mb-2">Current Revenue Streams</h4>
             <div className="space-y-3">
               <div className="p-3 bg-gray-50 rounded-lg">
@@ -262,9 +268,9 @@ export default function Memo1Tab({ memo1 }: Memo1TabProps) {
                 </p>
               </div>
             </div>
-          </div>
+            </div>
 
-          <div>
+            <div>
             <h4 className="font-semibold mb-2">Pricing Strategy - Syntra Product</h4>
             <div className="grid gap-2 md:grid-cols-2">
               <div className="p-2 bg-blue-50 rounded text-xs">
@@ -314,7 +320,7 @@ export default function Memo1Tab({ memo1 }: Memo1TabProps) {
                 )}
               </div>
             )}
-          </div>
+              </div>
         </CardContent>
       </Card>
 
@@ -348,8 +354,8 @@ export default function Memo1Tab({ memo1 }: Memo1TabProps) {
           <p className="text-sm text-muted-foreground">
             {memo1.traction || memo1.financial_projections || "No traction data provided"}
           </p>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
       {/* Initial Flags */}
       {memo1.initial_flags && memo1.initial_flags.length > 0 && (
@@ -368,7 +374,7 @@ export default function Memo1Tab({ memo1 }: Memo1TabProps) {
                   <span>{flag}</span>
                 </li>
               ))}
-            </ul>
+              </ul>
           </CardContent>
         </Card>
       )}
@@ -390,7 +396,7 @@ export default function Memo1Tab({ memo1 }: Memo1TabProps) {
                   <span>{point}</span>
                 </li>
               ))}
-            </ul>
+              </ul>
           </CardContent>
         </Card>
       )}

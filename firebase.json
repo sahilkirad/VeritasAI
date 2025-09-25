@@ -9,7 +9,9 @@
     "source": "functions",
     "runtime": "python312",
     "region": "asia-south1",
-    "memory": "512MB"
+    "memory": "256MB",
+    "cpu": 1,
+    "maxInstances": 1
   },
   "hosting": {
     "public": "frontend/out",

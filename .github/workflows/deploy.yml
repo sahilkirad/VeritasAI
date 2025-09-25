@@ -51,9 +51,15 @@ jobs:
       with:
         python-version: '3.12'
         
+    - name: Create Python virtual environment
+      run: |
+        cd functions
+        python3.12 -m venv venv
+        
     - name: Install Python dependencies
       run: |
         cd functions
+        source venv/bin/activate
         pip install -r requirements.txt
         
     - name: Install Firebase CLI
@@ -62,6 +68,9 @@ jobs:
         
     - name: Deploy to Firebase
       run: |
+        cd functions
+        source venv/bin/activate
+        cd ..
         firebase deploy --token ${{ secrets.FIREBASE_TOKEN }}
       env:
         FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}

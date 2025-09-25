@@ -66,6 +66,7 @@ interface DiligenceData {
 export default function DealMemoPage() {
   const [memoData, setMemoData] = useState<MemoData | null>(null);
   const [diligenceData, setDiligenceData] = useState<DiligenceData | null>(null);
+  const [availableMemos, setAvailableMemos] = useState<MemoData[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("memo1");
   const [hasRecentData, setHasRecentData] = useState(false);
@@ -90,15 +91,70 @@ export default function DealMemoPage() {
     try {
       console.log('Fetching memo data from Firestore...');
 
-      // Fetch from ingestionResults collection (Memo1 data)
-      const ingestionQuery = query(
+      // First, try to fetch memos created by the current user
+      let ingestionQuery = query(
         collection(db, 'ingestionResults'),
         where('userId', '==', user.uid),
         orderBy('timestamp', 'desc'),
         limit(1)
       );
 
-      const ingestionSnapshot = await getDocs(ingestionQuery);
+      let ingestionSnapshot = await getDocs(ingestionQuery);
+
+      // If no memos found for current user, try to fetch all available memos
+      // This allows investors to see memos created by founders
+      if (ingestionSnapshot.empty) {
+        console.log('No memos found for current user, fetching all available memos...');
+        
+        // Fetch multiple memos for selection
+        const allMemosQuery = query(
+          collection(db, 'ingestionResults'),
+          orderBy('timestamp', 'desc'),
+          limit(10)
+        );
+        const allMemosSnapshot = await getDocs(allMemosQuery);
+        
+        if (!allMemosSnapshot.empty) {
+          const memos: MemoData[] = [];
+          allMemosSnapshot.docs.forEach((doc) => {
+            const data = doc.data();
+            const memo1Data = data.memo_1 || {};
+            const memo: MemoData = {
+              id: doc.id,
+              filename: data.original_filename || 'Unknown File',
+              memo_1: {
+                title: memo1Data.title || 'Company Analysis',
+                summary: memo1Data.summary_analysis || 'No summary available',
+                business_model: memo1Data.business_model || 'No business model data',
+                market_analysis: memo1Data.market_size || 'No market analysis',
+                financial_projections: memo1Data.traction || 'No financial data',
+                team_info: memo1Data.team || 'No team information',
+                problem: memo1Data.problem || 'No problem statement',
+                solution: memo1Data.solution || 'No solution description',
+                competition: memo1Data.competition || [],
+                initial_flags: memo1Data.initial_flags || [],
+                validation_points: memo1Data.validation_points || [],
+                founder_name: memo1Data.founder_name || 'Unknown',
+                founder_linkedin_url: memo1Data.founder_linkedin_url || '',
+                company_linkedin_url: memo1Data.company_linkedin_url || '',
+                timestamp: data.timestamp
+              }
+            };
+            memos.push(memo);
+          });
+          setAvailableMemos(memos);
+          setLoading(false);
+          return;
+        }
+        
+        // Fallback to single memo if no multiple memos found
+        ingestionQuery = query(
+          collection(db, 'ingestionResults'),
+          orderBy('timestamp', 'desc'),
+          limit(1)
+        );
+        ingestionSnapshot = await getDocs(ingestionQuery);
+      }
 
       if (!ingestionSnapshot.empty) {
         const ingestionDoc = ingestionSnapshot.docs[0];
@@ -194,6 +250,63 @@ export default function DealMemoPage() {
     }
   };
 
+  // Function to select a memo from available memos
+  const selectMemo = (selectedMemo: MemoData) => {
+    setMemoData(selectedMemo);
+    setHasRecentData(true);
+    setAvailableMemos([]);
+    
+    // Fetch diligence data for the selected memo
+    fetchDiligenceData(selectedMemo.id);
+  };
+
+  // Function to fetch diligence data for a specific memo
+  const fetchDiligenceData = async (memoId: string) => {
+    try {
+      const diligenceQuery = query(
+        collection(db, 'diligenceResults'),
+        where('memoId', '==', memoId),
+        orderBy('timestamp', 'desc'),
+        limit(1)
+      );
+
+      const diligenceSnapshot = await getDocs(diligenceQuery);
+
+      if (!diligenceSnapshot.empty) {
+        const diligenceDoc = diligenceSnapshot.docs[0];
+        const diligenceData = diligenceDoc.data();
+
+        console.log('Diligence Data:', diligenceData);
+
+        // Map diligence data to our interface
+        const mappedDiligenceData: DiligenceData = {
+          investment_recommendation: diligenceData.investment_recommendation,
+          problem_validation: diligenceData.problem_validation,
+          solution_product_market_fit: diligenceData.solution_product_market_fit,
+          team_execution_capability: diligenceData.team_execution_capability,
+          founder_market_fit: diligenceData.founder_market_fit,
+          market_opportunity_competition: diligenceData.market_opportunity_competition,
+          benchmarking_analysis: diligenceData.benchmarking_analysis,
+          traction_metrics_validation: diligenceData.traction_metrics_validation,
+          key_risks: diligenceData.key_risks,
+          mitigation_strategies: diligenceData.mitigation_strategies,
+          due_diligence_next_steps: diligenceData.due_diligence_next_steps,
+          investment_thesis: diligenceData.investment_thesis,
+          synthesis_notes: diligenceData.synthesis_notes,
+          overall_score: diligenceData.overall_score
+        };
+
+        setDiligenceData(mappedDiligenceData);
+      } else {
+        console.log('No diligence data found');
+        setDiligenceData(null);
+      }
+    } catch (diligenceError) {
+      console.error('Error fetching diligence data:', diligenceError);
+      setDiligenceData(null);
+    }
+  };
+
   // Test function to verify memo display
   const testMemoDisplay = () => {
     const testMemoData: MemoData = {
@@ -236,6 +349,62 @@ export default function DealMemoPage() {
     );
   }
 
+  // Show available memos selection if we have multiple memos
+  if (availableMemos.length > 0) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Available Deal Memos</h1>
+            <p className="text-muted-foreground mt-1">
+              Select a deal memo to review and analyze
+            </p>
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {availableMemos.map((memo) => (
+            <Card key={memo.id} className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => selectMemo(memo)}>
+              <CardHeader>
+                <CardTitle className="text-lg">{memo.memo_1?.title || 'Company Analysis'}</CardTitle>
+                <CardDescription>
+                  {memo.memo_1?.founder_name || 'Unknown Founder'}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    <strong>File:</strong> {memo.filename}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    <strong>Company:</strong> {memo.memo_1?.title || 'Unknown Company'}
+                  </p>
+                  <p className="text-sm text-muted-foreground line-clamp-2">
+                    {memo.memo_1?.summary || 'No summary available'}
+                  </p>
+                </div>
+                <Button className="w-full mt-4" size="sm">
+                  View Memo
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        <div className="text-center">
+          <Button
+            onClick={() => window.location.href = '/dashboard/create-room'}
+            variant="outline"
+            className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
+          >
+            <Upload className="mr-2 h-4 w-4" />
+            Create New Investment Room
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   // Show upload prompt if no recent data
   if (!hasRecentData || !memoData) {
     return (
@@ -255,15 +424,15 @@ export default function DealMemoPage() {
           </div>
           <h3 className="text-2xl font-semibold mb-4">No Deal Memos Found</h3>
           <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-            Upload pitch decks, documents, or media files to generate AI-powered investment analysis and due diligence reports.
+            Create investment rooms to connect with founders and access AI-powered deal analysis and due diligence reports.
           </p>
           <div className="space-y-4">
             <Button
-              onClick={() => window.location.href = '/founder/dashboard/documents'}
+              onClick={() => window.location.href = '/dashboard/create-room'}
               className="bg-blue-600 hover:bg-blue-700"
             >
               <Upload className="mr-2 h-4 w-4" />
-              Upload Documents
+              Create Investment Room
             </Button>
             <div className="text-sm text-muted-foreground">
               <p>Supported formats: PDF, PowerPoint, Video (MP4), Audio (MP3)</p>

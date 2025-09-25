@@ -2,12 +2,15 @@
 
 import { Button } from "@/components/ui/button";
 
+// Updated to handle availableMemos prop
+
 interface MemoDebugProps {
   user: any;
   loading: boolean;
   hasRecentData: boolean;
   memoData: any;
   diligenceData: any;
+  availableMemos?: any[];
   onRefresh: () => void;
   onTestMemo: () => void;
 }
@@ -18,6 +21,7 @@ export default function MemoDebug({
   hasRecentData, 
   memoData, 
   diligenceData, 
+  availableMemos = [], 
   onRefresh, 
   onTestMemo 
 }: MemoDebugProps) {
@@ -32,6 +36,7 @@ export default function MemoDebug({
         <div><strong>User:</strong> {user ? user.email : 'Not logged in'}</div>
         <div><strong>Loading:</strong> {loading ? 'Yes' : 'No'}</div>
         <div><strong>Has Recent Data:</strong> {hasRecentData ? 'Yes' : 'No'}</div>
+        <div><strong>Available Memos:</strong> {availableMemos.length}</div>
         {memoData && (
           <>
             <div><strong>Document ID:</strong> {memoData.id}</div>

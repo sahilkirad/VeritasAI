@@ -29,7 +29,7 @@ class IntakeCurationAgent:
 
     def __init__(
         self,
-        model: str = "gemini-1.5-pro",
+        model: str = "gemini-2.5-pro",
         project: str = "",
         location: str = "asia-south1"
     ):

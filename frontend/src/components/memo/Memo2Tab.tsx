@@ -55,19 +55,19 @@ export default function Memo2Tab({ diligenceData }: Memo2TabProps) {
                 <ul className="text-sm space-y-1">
                   <li className="flex items-start gap-2">
                     <span className="text-green-500 mt-1">•</span>
-                    <span>Strong technical background and deep domain expertise</span>
+                    <span>{diligenceData?.founder_market_fit?.key_insights?.[0] || 'Strong technical background and deep domain expertise'}</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-green-500 mt-1">•</span>
-                    <span>Clear vision for market expansion and growth strategy</span>
+                    <span>{diligenceData?.founder_market_fit?.key_insights?.[1] || 'Clear vision for market expansion and growth strategy'}</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-green-500 mt-1">•</span>
-                    <span>Demonstrated ability to build and lead technical teams</span>
+                    <span>{diligenceData?.founder_market_fit?.key_insights?.[2] || 'Demonstrated ability to build and lead technical teams'}</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-green-500 mt-1">•</span>
-                    <span>Realistic understanding of market challenges and competition</span>
+                    <span>{diligenceData?.founder_market_fit?.key_insights?.[3] || 'Realistic understanding of market challenges and competition'}</span>
                   </li>
                 </ul>
               </div>

@@ -8,7 +8,7 @@ import { Calendar, FileText, TrendingUp, Users, Upload } from "lucide-react";
 import { useRouter } from 'next/navigation';
 import { useToast } from "@/hooks/use-toast";
 import { db } from '@/lib/firebase';
-import { collection, query, orderBy, limit, getDocs, where } from 'firebase/firestore';
+import { collection, query, orderBy, limit, getDocs, where, onSnapshot } from 'firebase/firestore';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
 
@@ -76,6 +76,84 @@ export default function DealMemoPage() {
   useEffect(() => {
     if (!loadingAuth && user) {
       fetchMemoData();
+      // Also subscribe for real-time updates
+      const ingestionQ = query(
+        collection(db, 'ingestionResults'),
+        where('userId', '==', user.uid),
+        orderBy('timestamp', 'desc'),
+        limit(1)
+      );
+      const unsubIngestion = onSnapshot(ingestionQ, (snapshot) => {
+        if (!snapshot.empty) {
+          const ingestionDoc = snapshot.docs[0];
+          const ingestionData = ingestionDoc.data();
+          const memo1Data = ingestionData.memo_1 || {};
+          setMemoData({
+            id: ingestionDoc.id,
+            filename: ingestionData.original_filename || 'Unknown File',
+            memo_1: {
+              title: memo1Data.title || 'Company Analysis',
+              summary: memo1Data.summary_analysis || 'No summary available',
+              business_model: memo1Data.business_model || 'No business model data',
+              market_analysis: memo1Data.market_size || 'No market analysis',
+              financial_projections: memo1Data.traction || 'No financial data',
+              team_info: memo1Data.team || 'No team information',
+              problem: memo1Data.problem || 'No problem statement',
+              solution: memo1Data.solution || 'No solution description',
+              competition: memo1Data.competition || [],
+              initial_flags: memo1Data.initial_flags || [],
+              validation_points: memo1Data.validation_points || [],
+              founder_name: memo1Data.founder_name || 'Unknown',
+              founder_linkedin_url: memo1Data.founder_linkedin_url || '',
+              company_linkedin_url: memo1Data.company_linkedin_url || '',
+              timestamp: ingestionData.timestamp
+            }
+          });
+          setHasRecentData(true);
+
+          // Subscribe to diligence results tied to this memo id
+          const diligenceQ = query(
+            collection(db, 'diligenceResults'),
+            where('memo_1_id', '==', ingestionDoc.id),
+            orderBy('timestamp', 'desc'),
+            limit(1)
+          );
+          const unsubDiligence = onSnapshot(diligenceQ, (dSnap) => {
+            if (!dSnap.empty) {
+              const dData = dSnap.docs[0].data();
+              const d = dData.memo1_diligence || dData; // support both shapes
+              const mapped = {
+                investment_recommendation: d.investment_recommendation,
+                problem_validation: d.problem_validation,
+                solution_product_market_fit: d.solution_product_market_fit,
+                team_execution_capability: d.team_execution_capability,
+                founder_market_fit: d.founder_market_fit,
+                market_opportunity_competition: d.market_opportunity_competition,
+                benchmarking_analysis: d.benchmarking_analysis,
+                traction_metrics_validation: d.traction_metrics_validation,
+                key_risks: d.key_risks,
+                mitigation_strategies: d.mitigation_strategies,
+                due_diligence_next_steps: d.due_diligence_next_steps,
+                investment_thesis: d.investment_thesis,
+                synthesis_notes: d.synthesis_notes,
+                overall_score: d.overall_score,
+                google_analytics_summary: d.google_analytics_summary,
+              } as DiligenceData;
+              setDiligenceData(mapped);
+            } else {
+              setDiligenceData(null);
+            }
+          });
+
+          // Clean up diligence subscription when memo changes/unmount
+          return () => unsubDiligence();
+        } else {
+          setMemoData(null);
+          setDiligenceData(null);
+          setHasRecentData(false);
+        }
+      });
+      return () => unsubIngestion();
     } else if (!loadingAuth && !user) {
       setLoading(false);
     }
@@ -329,8 +407,8 @@ export default function DealMemoPage() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="memo1">Memo 1: Initial Analysis</TabsTrigger>
-          <TabsTrigger value="memo2">Memo 2: Interview Analysis</TabsTrigger>
-          <TabsTrigger value="memo3">Memo 3: Final Decision</TabsTrigger>
+          <TabsTrigger value="memo2" disabled={!diligenceData}>Memo 2: Interview Analysis</TabsTrigger>
+          <TabsTrigger value="memo3" disabled={!diligenceData}>Memo 3: Final Decision</TabsTrigger>
         </TabsList>
 
         <TabsContent value="memo1">

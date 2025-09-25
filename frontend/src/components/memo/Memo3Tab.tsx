@@ -56,6 +56,20 @@ export default function Memo3Tab({ diligenceData }: Memo3TabProps) {
                   {diligenceData?.investment_recommendation ||
                    "RECOMMEND: Proceed with investment based on strong technical execution, validated market opportunity, and experienced founding team. Key risks are manageable with proper support and monitoring."}
                 </p>
+                {diligenceData?.overall_score && (
+                  <div className="mt-3 p-3 bg-white rounded-lg border">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-green-800">Overall Score</span>
+                      <span className="text-lg font-bold text-green-800">{diligenceData.overall_score}/10</span>
+                    </div>
+                    <div className="w-full bg-green-200 rounded-full h-2">
+                      <div 
+                        className="bg-green-600 h-2 rounded-full transition-all duration-300" 
+                        style={{ width: `${diligenceData.overall_score * 10}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">

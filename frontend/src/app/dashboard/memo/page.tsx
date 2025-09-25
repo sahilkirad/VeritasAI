@@ -77,6 +77,21 @@ export default function DealMemoPage() {
   useEffect(() => {
     if (!loadingAuth && user) {
       fetchMemoData();
+      
+      // Set up real-time listener for new data
+      const unsubscribe = () => {
+        // Refresh data every 30 seconds to catch new memos
+        const interval = setInterval(() => {
+          if (user) {
+            fetchMemoData();
+          }
+        }, 30000);
+        
+        return () => clearInterval(interval);
+      };
+      
+      const cleanup = unsubscribe();
+      return cleanup;
     } else if (!loadingAuth && !user) {
       setLoading(false);
     }
@@ -123,21 +138,26 @@ export default function DealMemoPage() {
               id: doc.id,
               filename: data.original_filename || 'Unknown File',
               memo_1: {
-                title: memo1Data.title || 'Company Analysis',
-                summary: memo1Data.summary_analysis || 'No summary available',
-                business_model: memo1Data.business_model || 'No business model data',
-                market_analysis: memo1Data.market_size || 'No market analysis',
-                financial_projections: memo1Data.traction || 'No financial data',
-                team_info: memo1Data.team || 'No team information',
-                problem: memo1Data.problem || 'No problem statement',
-                solution: memo1Data.solution || 'No solution description',
-                competition: memo1Data.competition || [],
-                initial_flags: memo1Data.initial_flags || [],
-                validation_points: memo1Data.validation_points || [],
-                founder_name: memo1Data.founder_name || 'Unknown',
-                founder_linkedin_url: memo1Data.founder_linkedin_url || '',
-                company_linkedin_url: memo1Data.company_linkedin_url || '',
-                timestamp: data.timestamp
+                title: memo1Data.title || memo1Data.company_name || 'Company Analysis',
+                summary: memo1Data.summary_analysis || memo1Data.summary || 'No summary available',
+                business_model: memo1Data.business_model || memo1Data.business_model_description || 'No business model data',
+                market_analysis: memo1Data.market_size || memo1Data.market_analysis || memo1Data.target_market || 'No market analysis',
+                financial_projections: memo1Data.traction || memo1Data.financial_projections || memo1Data.revenue_model || 'No financial data',
+                team_info: memo1Data.team || memo1Data.team_description || memo1Data.founding_team || 'No team information',
+                problem: memo1Data.problem || memo1Data.problem_statement || 'No problem statement',
+                solution: memo1Data.solution || memo1Data.solution_description || 'No solution description',
+                competition: memo1Data.competition || memo1Data.competitors || [],
+                initial_flags: memo1Data.initial_flags || memo1Data.red_flags || [],
+                validation_points: memo1Data.validation_points || memo1Data.key_validation_points || [],
+                founder_name: memo1Data.founder_name || memo1Data.founder || 'Unknown',
+                founder_linkedin_url: memo1Data.founder_linkedin_url || memo1Data.founder_linkedin || '',
+                company_linkedin_url: memo1Data.company_linkedin_url || memo1Data.company_linkedin || '',
+                timestamp: data.timestamp,
+                // Additional fields that might be in the data
+                summary_analysis: memo1Data.summary_analysis || memo1Data.executive_summary,
+                market_size: memo1Data.market_size || memo1Data.total_addressable_market,
+                traction: memo1Data.traction || memo1Data.key_metrics,
+                team: memo1Data.team || memo1Data.team_overview
               }
             };
             memos.push(memo);
@@ -169,21 +189,26 @@ export default function DealMemoPage() {
           id: ingestionDoc.id,
           filename: ingestionData.original_filename || 'Unknown File',
           memo_1: {
-            title: memo1Data.title || 'Company Analysis',
-            summary: memo1Data.summary_analysis || 'No summary available',
-            business_model: memo1Data.business_model || 'No business model data',
-            market_analysis: memo1Data.market_size || 'No market analysis',
-            financial_projections: memo1Data.traction || 'No financial data',
-            team_info: memo1Data.team || 'No team information',
-            problem: memo1Data.problem || 'No problem statement',
-            solution: memo1Data.solution || 'No solution description',
-            competition: memo1Data.competition || [],
-            initial_flags: memo1Data.initial_flags || [],
-            validation_points: memo1Data.validation_points || [],
-            founder_name: memo1Data.founder_name || 'Unknown',
-            founder_linkedin_url: memo1Data.founder_linkedin_url || '',
-            company_linkedin_url: memo1Data.company_linkedin_url || '',
-            timestamp: ingestionData.timestamp
+            title: memo1Data.title || memo1Data.company_name || 'Company Analysis',
+            summary: memo1Data.summary_analysis || memo1Data.summary || 'No summary available',
+            business_model: memo1Data.business_model || memo1Data.business_model_description || 'No business model data',
+            market_analysis: memo1Data.market_size || memo1Data.market_analysis || memo1Data.target_market || 'No market analysis',
+            financial_projections: memo1Data.traction || memo1Data.financial_projections || memo1Data.revenue_model || 'No financial data',
+            team_info: memo1Data.team || memo1Data.team_description || memo1Data.founding_team || 'No team information',
+            problem: memo1Data.problem || memo1Data.problem_statement || 'No problem statement',
+            solution: memo1Data.solution || memo1Data.solution_description || 'No solution description',
+            competition: memo1Data.competition || memo1Data.competitors || [],
+            initial_flags: memo1Data.initial_flags || memo1Data.red_flags || [],
+            validation_points: memo1Data.validation_points || memo1Data.key_validation_points || [],
+            founder_name: memo1Data.founder_name || memo1Data.founder || 'Unknown',
+            founder_linkedin_url: memo1Data.founder_linkedin_url || memo1Data.founder_linkedin || '',
+            company_linkedin_url: memo1Data.company_linkedin_url || memo1Data.company_linkedin || '',
+            timestamp: ingestionData.timestamp,
+            // Additional fields that might be in the data
+            summary_analysis: memo1Data.summary_analysis || memo1Data.executive_summary,
+            market_size: memo1Data.market_size || memo1Data.total_addressable_market,
+            traction: memo1Data.traction || memo1Data.key_metrics,
+            team: memo1Data.team || memo1Data.team_overview
           }
         };
 
@@ -489,6 +514,30 @@ export default function DealMemoPage() {
 
   return (
     <div className="space-y-6">
+      {/* Data Status Banner */}
+      {memoData && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span className="text-sm font-medium text-blue-800">Live Data</span>
+              <span className="text-xs text-blue-600">
+                Last updated: {memoData.memo_1?.timestamp ? 
+                  new Date(memoData.memo_1.timestamp.seconds * 1000).toLocaleString() : 
+                  'Recently'
+                }
+              </span>
+            </div>
+            <button 
+              onClick={fetchMemoData}
+              className="text-xs text-blue-600 hover:text-blue-800 underline"
+            >
+              Refresh Data
+            </button>
+          </div>
+        </div>
+      )}
+
       <MemoHeader 
         memoData={memoData}
         diligenceData={diligenceData}

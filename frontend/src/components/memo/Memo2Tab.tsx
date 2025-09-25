@@ -48,6 +48,19 @@ export default function Memo2Tab({ diligenceData }: Memo2TabProps) {
                   {diligenceData?.founder_market_fit?.analysis || 
                    "Conducted a comprehensive 45-minute AI interview with the founder. The interview covered business model validation, market strategy, team dynamics, and execution capabilities."}
                 </p>
+                {diligenceData?.founder_market_fit?.key_insights && (
+                  <div className="mt-3">
+                    <h5 className="font-medium text-blue-800 mb-2">Key Insights:</h5>
+                    <ul className="text-sm space-y-1">
+                      {diligenceData.founder_market_fit.key_insights.map((insight: string, index: number) => (
+                        <li key={index} className="flex items-start gap-2">
+                          <span className="text-blue-500 mt-1">•</span>
+                          <span>{insight}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
 
               <div className="p-4 bg-green-50 rounded-lg border border-green-200">
@@ -138,11 +151,19 @@ export default function Memo2Tab({ diligenceData }: Memo2TabProps) {
                 <p className="text-sm font-medium text-blue-800 mb-2">Team Execution Score</p>
                 <div className="flex items-center gap-2">
                   <div className="flex-1 bg-blue-200 rounded-full h-2">
-                    <div className="bg-blue-600 h-2 rounded-full" style={{ width: '80%' }}></div>
+                    <div 
+                      className="bg-blue-600 h-2 rounded-full" 
+                      style={{ width: `${(diligenceData?.team_execution_capability?.score || 8) * 10}%` }}
+                    ></div>
                   </div>
-                  <span className="text-sm font-medium text-blue-800">8.0/10</span>
+                  <span className="text-sm font-medium text-blue-800">
+                    {diligenceData?.team_execution_capability?.score || 8}/10
+                  </span>
                 </div>
-                <p className="text-xs text-blue-600 mt-1">Strong technical execution, needs business development support</p>
+                <p className="text-xs text-blue-600 mt-1">
+                  {diligenceData?.team_execution_capability?.analysis || 
+                   "Strong technical execution, needs business development support"}
+                </p>
               </div>
             </div>
           </CardContent>

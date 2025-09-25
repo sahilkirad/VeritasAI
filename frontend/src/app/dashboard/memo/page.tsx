@@ -75,16 +75,17 @@ export default function DealMemoPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!loadingAuth && user) {
+    console.log('useEffect triggered:', { loadingAuth, user: !!user });
+    if (!loadingAuth) {
+      console.log('Calling fetchMemoData...');
       fetchMemoData();
       
       // Set up real-time listener for new data
       const unsubscribe = () => {
         // Refresh data every 30 seconds to catch new memos
         const interval = setInterval(() => {
-          if (user) {
-            fetchMemoData();
-          }
+          console.log('Auto-refresh: calling fetchMemoData...');
+          fetchMemoData();
         }, 30000);
         
         return () => clearInterval(interval);
@@ -92,8 +93,6 @@ export default function DealMemoPage() {
       
       const cleanup = unsubscribe();
       return cleanup;
-    } else if (!loadingAuth && !user) {
-      setLoading(false);
     }
   }, [user, loadingAuth]);
 
@@ -107,6 +106,12 @@ export default function DealMemoPage() {
     try {
       console.log('Fetching memo data from Firestore...');
       console.log('Current user:', user?.uid || 'No user');
+      console.log('Firestore db object:', db);
+
+      // Test Firestore connection first
+      console.log('Testing Firestore connection...');
+      const testCollection = collection(db, 'ingestionResults');
+      console.log('Collection reference created:', testCollection);
 
       // Fetch all available memos directly
       console.log('Fetching all available memos directly...');
@@ -278,9 +283,11 @@ export default function DealMemoPage() {
       }
     } catch (error) {
       console.error('Error fetching memo data:', error);
+      console.error('Error details:', error);
       setMemoData(null);
       setDiligenceData(null);
       setHasRecentData(false);
+      setAvailableMemos([]);
     } finally {
       setLoading(false);
     }

@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, Building, Cpu, Database, Cloud, Shield, Zap, TrendingUp, DollarSign, BarChart3, ExternalLink } from "lucide-react";
+import { Users, Building, Cpu, Database, Shield, Zap, TrendingUp, DollarSign, BarChart3, ExternalLink } from "lucide-react";
 
 interface DiligenceData {
   investment_recommendation?: string;

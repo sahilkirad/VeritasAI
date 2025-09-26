@@ -17,10 +17,6 @@ from firebase_functions import storage_fn, pubsub_fn, https_fn, options
 # Set global options - THIS IS CRITICAL FOR YOUR REGION
 options.set_global_options(region="asia-south1")
 
-# Import our custom agent logic from the agents/ directory
-from agents.intake_agent import IntakeCurationAgent  # CORRECT CLASS NAME
-from agents.diligence_agent import DiligenceAgent
-from agents.coordinator_agent import CoordinatorAgent
 # --- 1. Global Initialization ---
 # Initialize Firebase Admin SDK only when needed (not during deployment analysis)
 def get_firebase_app():
@@ -38,12 +34,38 @@ publisher = None
 ingestion_agent = None
 diligence_agent = None
 coordinator_agent = None
-# ------------------------------------
 
+# Lazy import function to avoid import issues during deployment
+def get_intake_agent():
+    """Lazy import of IntakeCurationAgent"""
+    global ingestion_agent
+    if ingestion_agent is None:
+        from agents.intake_agent import IntakeCurationAgent
+        ingestion_agent = IntakeCurationAgent(project="veritas-472301")
+        ingestion_agent.set_up()
+    return ingestion_agent
+
+def get_diligence_agent():
+    """Lazy import of DiligenceAgent"""
+    global diligence_agent
+    if diligence_agent is None:
+        from agents.diligence_agent import DiligenceAgent
+        diligence_agent = DiligenceAgent(project="veritas-472301")
+        diligence_agent.set_up()
+    return diligence_agent
+
+def get_coordinator_agent():
+    """Lazy import of CoordinatorAgent"""
+    global coordinator_agent
+    if coordinator_agent is None:
+        from agents.coordinator_agent import CoordinatorAgent
+        coordinator_agent = CoordinatorAgent()
+        coordinator_agent.set_up()
+    return coordinator_agent
 
 # --- 2. Ingestion Pipeline: Stage 1 (File Upload) ---
 @https_fn.on_request(
-    memory=options.MemoryOption.MB_256,
+    memory=options.MemoryOption.MB_512,
     cors=options.CorsOptions(
         cors_origins=["*"],
         cors_methods=["POST", "OPTIONS"]
@@ -183,22 +205,19 @@ def on_file_upload(req: https_fn.Request) -> https_fn.Response:
 # --- 3. Ingestion Pipeline: Stage 2 (AI Processing) ---
 @pubsub_fn.on_message_published(
     topic="document-ingestion-topic",
-    memory=options.MemoryOption.MB_256,
+    memory=options.MemoryOption.MB_512,
     timeout_sec=540
 )
 def process_ingestion_task(event: pubsub_fn.CloudEvent) -> None:
     """Triggers on a Pub/Sub message and calls the IntakeCurationAgent."""
-    global ingestion_agent, publisher
+    global publisher
     
     # Initialize Firebase app when function runs
     get_firebase_app()
     
     try:
-        if ingestion_agent is None:
-            print("Initializing IntakeCurationAgent...")  # CORRECT NAME
-            ingestion_agent = IntakeCurationAgent(project="veritas-472301")  # CORRECT CLASS
-            ingestion_agent.set_up()
-            print("IntakeCurationAgent initialized.")  # CORRECT NAME
+        # Lazy load the agent
+        agent = get_intake_agent()
 
         # Extract and decode the Pub/Sub message data
         message_data = event.data.message.data
@@ -278,8 +297,8 @@ def process_ingestion_task(event: pubsub_fn.CloudEvent) -> None:
             print(f"Unsupported content type: {content_type}. Task ignored.")
             return
 
-        print(f"Invoking IntakeCurationAgent for file type: {file_type}...")  # CORRECT NAME
-        ingestion_result = ingestion_agent.run(
+        print(f"Invoking IntakeCurationAgent for file type: {file_type}...")
+        ingestion_result = agent.run(
             file_data=file_data, filename=file_path, file_type=file_type
         )
         
@@ -318,12 +337,11 @@ def process_ingestion_task(event: pubsub_fn.CloudEvent) -> None:
 # --- 4. Diligence Pipeline: Stage 3 (Deep Analysis) ---
 @pubsub_fn.on_message_published(
     topic="diligence-topic",
-    memory=options.MemoryOption.MB_256,  # Reduced memory to match firebase.json
+    memory=options.MemoryOption.MB_512,  # Reduced memory to match firebase.json
     timeout_sec=540  # Maximum allowed for event-triggered functions
 )
 def process_diligence_task(event: pubsub_fn.CloudEvent) -> None:
     """Triggers on a Pub/Sub message and calls the DiligenceAgent."""
-    global diligence_agent
     
     # Initialize Firebase app when function runs
     get_firebase_app()
@@ -331,11 +349,8 @@ def process_diligence_task(event: pubsub_fn.CloudEvent) -> None:
     start_time = datetime.now()
     
     try:
-        if diligence_agent is None:
-            print("Initializing DiligenceAgent...")
-            diligence_agent = DiligenceAgent(project="veritas-472301")
-            diligence_agent.set_up()
-            print("DiligenceAgent initialized.")
+        # Lazy load the agent
+        agent = get_diligence_agent()
 
         # Extract and decode the Pub/Sub message data
         message_data = event.data.message.data
@@ -390,7 +405,7 @@ def process_diligence_task(event: pubsub_fn.CloudEvent) -> None:
         memo_1 = memo_1_data.get("memo_1", {})
 
         print(f"Invoking DiligenceAgent for memo: {memo_1.get('title', 'Unknown')}")
-        memo_2_result = diligence_agent.run(
+        memo_2_result = agent.run(
             startup_id=memo_1_id,
             ga_property_id=ga_property_id,
             linkedin_url=linkedin_url
@@ -417,7 +432,7 @@ def process_diligence_task(event: pubsub_fn.CloudEvent) -> None:
 
 # --- 5. HTTP Endpoint for Manual Diligence Trigger ---
 @https_fn.on_request(
-    memory=options.MemoryOption.MB_256, 
+    memory=options.MemoryOption.MB_512, 
     timeout_sec=900,
     cors=options.CorsOptions(
         cors_origins=["*"],
@@ -493,7 +508,7 @@ def trigger_diligence(req: https_fn.Request) -> https_fn.Response:
 
 @https_fn.on_request(
     region="asia-south1", 
-    memory=options.MemoryOption.MB_256,
+    memory=options.MemoryOption.MB_512,
     cors=options.CorsOptions(
         cors_origins=["*"],
         cors_methods=["POST", "OPTIONS"]
@@ -501,8 +516,7 @@ def trigger_diligence(req: https_fn.Request) -> https_fn.Response:
 )
 def schedule_ai_interview(req: https_fn.Request) -> https_fn.Response:
     """HTTP endpoint to trigger the CoordinatorAgent for scheduling the AI interview."""
-    global coordinator_agent
-
+    
     # Initialize Firebase app when function runs
     get_firebase_app()
 
@@ -542,18 +556,14 @@ def schedule_ai_interview(req: https_fn.Request) -> https_fn.Response:
             return https_fn.Response('Missing required parameters: founder_email, investor_email, startup_name', status=400)
 
         # Lazy-initialize the agent
-        if coordinator_agent is None:
-            print("Initializing CoordinatorAgent...")
-            # Use pure ADC approach - no service account files needed
-            coordinator_agent = CoordinatorAgent()  # No parameters needed
-            coordinator_agent.set_up()
+        agent = get_coordinator_agent()
         
         print(f"Scheduling AI interview for {startup_name}")
         print(f"Founder: {founder_email}")
         print(f"Investor: {investor_email}")
         print(f"Calendar: {calendar_id}")
         
-        result = coordinator_agent.run(calendar_id, founder_email, investor_email, startup_name)
+        result = agent.run(calendar_id, founder_email, investor_email, startup_name)
         
         # Return JSON response
         headers = {

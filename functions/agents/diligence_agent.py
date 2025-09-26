@@ -21,11 +21,11 @@ class DiligenceAgent:
     """
 
     MEMO_2_PROMPT_TEMPLATE = """
-    You are a Senior Venture Capital Analyst with 15+ years of experience in early-stage investments. Your task is to synthesize three distinct sources of information about a startup into a single, comprehensive diligence report (Memo 2).
+    You are a Senior Venture Capital Analyst with 15+ years of experience in early-stage investments. Your task is to synthesize available information about a startup into a single, comprehensive diligence report (Memo 2).
 
     You have been given:
     1.  **Curated Data (Memo 1):** The startup's claims, extracted from their pitch deck or transcript, including comprehensive Founders Checklist data.
-    2.  **Live Google Analytics Data:** Verified, real-time user metrics from their Google Analytics property.
+    2.  **Google Analytics Data:** If available, verified user metrics from their Google Analytics property. If not available, skip GA-related analysis.
     3.  **Public Founder Data:** Detailed information scraped from the founder's public LinkedIn profile.
 
     **ANALYSIS INSTRUCTIONS:**
@@ -35,6 +35,7 @@ class DiligenceAgent:
     - Use the LinkedIn data to analyze founder background and experience
     - Cross-reference all claims with the available data sources
     - Focus on validating the comprehensive Founders Checklist data from Memo 1
+    - If Google Analytics data is not available or shows errors, focus analysis on Memo 1 data and LinkedIn data only
 
     **FOUNDERS CHECKLIST VALIDATION:**
     The Memo 1 data now includes comprehensive analysis of:
@@ -103,99 +104,63 @@ class DiligenceAgent:
     - Suggest "due_diligence_next_steps" for further investigation
     - Provide "investment_recommendation" (STRONG BUY, BUY, HOLD, PASS)
 
+    **IMPORTANT: Keep all analysis concise and under 200 characters per field to prevent JSON truncation.**
+
     Respond ONLY with a valid JSON object. Do not include any other text or markdown formatting.
 
-    **JSON SCHEMA:**
+    **JSON SCHEMA (KEEP ALL RESPONSES UNDER 200 CHARACTERS):**
     {{
         "google_analytics_summary": {{
-            "data_source": "Google Analytics Data API",
-            "property_id": "<GA property ID>",
-            "key_metrics": {{
-                "total_active_users": "<number>",
-                "time_period": "<period>",
-                "data_freshness": "<last updated>"
-            }},
-            "performance_analysis": "<detailed analysis of GA metrics and what they indicate>",
-            "user_behavior_insights": "<insights from GA data about user engagement and patterns>",
-            "growth_indicators": "<trends and growth patterns from GA data>",
-            "data_quality_assessment": "<assessment of data reliability and completeness>"
+            "data_source": "Not Available",
+            "property_id": "Not Available",
+            "performance_analysis": "GA data not available for analysis"
         }},
         "industry_market_validation": {{
-            "market_size_validation": "<validation of market size claims against industry benchmarks>",
-            "industry_category_accuracy": "<assessment of industry categorization>",
-            "target_market_assessment": "<evaluation of target market definition>",
-            "competitive_landscape_validation": "<validation of competitive analysis>"
+            "market_size_validation": "<brief validation under 200 chars>",
+            "competitive_landscape": "<brief assessment under 200 chars>"
         }},
-        "technology_stack_validation": {{
-            "technical_feasibility": "<assessment of technology claims>",
-            "scalability_analysis": "<evaluation of scalability claims>",
-            "security_infrastructure": "<assessment of security and infrastructure>",
-            "innovation_assessment": "<evaluation of technical innovation>"
+        "technology_validation": {{
+            "technical_feasibility": "<brief assessment under 200 chars>",
+            "innovation_level": "<brief assessment under 200 chars>"
         }},
-        "financial_model_validation": {{
-            "revenue_model_viability": "<assessment of revenue model>",
-            "pricing_strategy_validation": "<evaluation of pricing strategy>",
-            "unit_economics_sanity_check": "<validation of CAC/LTV claims>",
-            "financial_projections_reasonableness": "<assessment of financial projections>"
+        "financial_validation": {{
+            "revenue_model": "<brief assessment under 200 chars>",
+            "unit_economics": "<brief assessment under 200 chars>"
         }},
-        "founder_market_fit": {{
+        "founder_analysis": {{
             "score": <number 1-10>,
-            "analysis": "<detailed analysis based on provided LinkedIn data>",
-            "founder_profile": {{
-                "name": "<founder name from LinkedIn data>",
-                "company_founded": "<company name from LinkedIn data>",
-                "company_description": "<brief description from LinkedIn data>",
-                "role_and_contributions": "<key role and contributions from LinkedIn data>",
-                "recent_achievements": "<notable achievements from LinkedIn data>",
-                "data_source": "Provided LinkedIn Profile Data"
-            }},
-            "key_insights": ["<insight1>", "<insight2>"]
+            "background": "<brief founder background under 200 chars>",
+            "market_fit": "<brief market fit assessment under 200 chars>"
         }},
         "problem_validation": {{
             "score": <number 1-10>,
-            "analysis": "<detailed analysis based STRICTLY on Memo 1 data>",
-            "market_size_assessment": "<assessment from uploaded document>"
+            "severity": "<brief problem severity under 200 chars>",
+            "market_need": "<brief market need assessment under 200 chars>"
         }},
-        "solution_product_market_fit": {{
+        "solution_analysis": {{
             "score": <number 1-10>,
-            "analysis": "<detailed analysis based on Memo 1>",
-            "competitive_advantages": ["<advantage1>", "<advantage2>"]
+            "uniqueness": "<brief uniqueness assessment under 200 chars>",
+            "feasibility": "<brief feasibility assessment under 200 chars>"
         }},
-        "traction_metrics_validation": {{
+        "traction_analysis": {{
             "score": <number 1-10>,
-            "analysis": "<detailed analysis based on Memo 1 and GA data>",
-            "ga_data_correlation": "<correlation analysis between startup claims and GA data>",
-            "growth_trajectory": "<trajectory assessment>",
-            "metrics_validation": "<validation of specific metrics against GA data>"
+            "validation": "<brief traction validation under 200 chars>",
+            "growth_potential": "<brief growth assessment under 200 chars>"
         }},
-        "team_execution_capability": {{
+        "team_analysis": {{
             "score": <number 1-10>,
-            "analysis": "<detailed analysis based on Memo 1>",
-            "relevant_experience": ["<experience1>", "<experience2>"]
+            "composition": "<brief team composition under 200 chars>",
+            "capability": "<brief capability assessment under 200 chars>"
         }},
-        "market_opportunity_competition": {{
+        "market_analysis": {{
             "score": <number 1-10>,
-            "analysis": "<detailed analysis based on Memo 1 competition and market_size data>",
-            "competitive_landscape": "<landscape analysis from Memo 1>",
-            "market_opportunities": "<analysis based on Memo 1 market data>"
+            "opportunity": "<brief market opportunity under 200 chars>",
+            "competition": "<brief competition analysis under 200 chars>"
         }},
-        "benchmarking_analysis": {{
-            "score": <number 1-10>,
-            "analysis": "<comparison with competitors from Memo 1>",
-            "competitive_positioning": "<positioning analysis>",
-            "differentiation_factors": ["<factor1>", "<factor2>"],
-            "competitive_threats": ["<threat1>", "<threat2>"]
-        }},
-        "investment_thesis": "<comprehensive 2-3 paragraph investment thesis>",
-        "overall_score": <number 1-10>,
-        "key_risks": ["<risk1>", "<risk2>", "<risk3>"],
-        "mitigation_strategies": ["<strategy1>", "<strategy2>"],
-        "due_diligence_next_steps": ["<step1>", "<step2>", "<step3>"],
-        "investment_recommendation": "<STRONG BUY/BUY/HOLD/PASS>",
-        "synthesis_notes": "<how the three data sources align or contradict each other>",
-        "memo_1_id": "<reference to original memo 1 document>",
-        "processing_time_seconds": <number>,
-        "status": "SUCCESS"
+        "investment_thesis": "<comprehensive thesis under 200 chars>",
+        "confidence_score": <number 1-10>,
+        "key_risks": ["<risk 1 under 50 chars>", "<risk 2 under 50 chars>"],
+        "investment_recommendation": "<STRONG BUY, BUY, HOLD, or PASS>"
     }}
 
     **JSON DATA INPUTS:**
@@ -228,8 +193,8 @@ class DiligenceAgent:
             self.logger.info(f"Vertex AI initialized in project '{self.project}' and location '{self.location}'.")
             
             # Use Gemini 1.5 Pro for maximum accuracy in diligence analysis
-            self.gemini_model = GenerativeModel("gemini-1.5-pro")
-            self.logger.info("GenerativeModel ('gemini-1.5-pro') initialized for diligence analysis.")
+            self.gemini_model = GenerativeModel("gemini-2.5-flash")
+            self.logger.info("GenerativeModel ('gemini-2.5-flash') initialized for diligence analysis.")
             
             # Initialize Firestore client
             self.db = firestore.client()
@@ -448,30 +413,60 @@ class DiligenceAgent:
                 "temperature": 0.1,  # Lower temperature for more factual responses
                 "top_p": 0.8,
                 "top_k": 40,
-                "max_output_tokens": 8192,
+                "max_output_tokens": 8192,  # Reduced to prevent truncation with simpler schema
             }
         )
         self.logger.info("Memo 1 Diligence generation complete.")
         return self._parse_json_from_text(response.text)
 
     def _parse_json_from_text(self, text: str) -> Dict[str, Any]:
-        """Safely extracts a JSON object from a string."""
+        """Safely extracts a JSON object from a string, even with markdown wrappers."""
+        self.logger.debug(f"Attempting to parse JSON from model response: {text[:200]}...")
+        
+        # Remove markdown code blocks
+        text = text.replace('```json', '').replace('```', '')
+        
+        # Try direct parsing first
         try:
-            # Try direct parsing first
             return json.loads(text)
         except json.JSONDecodeError:
-            # Try with regex extraction
-            match = re.search(r'```(json)?\s*(\{.*?\})\s*```', text, re.DOTALL)
-            if match:
-                try:
-                    return json.loads(match.group(2))
-                except json.JSONDecodeError:
-                    pass
+            pass
+        
+        # Try to find JSON object in the text
+        start = text.find('{')
+        if start != -1:
+            # Find the matching closing brace
+            brace_count = 0
+            end = start
+            for i, char in enumerate(text[start:], start):
+                if char == '{':
+                    brace_count += 1
+                elif char == '}':
+                    brace_count -= 1
+                    if brace_count == 0:
+                        end = i + 1
+                        break
             
-            # Fallback: return error structure
-            self.logger.error(f"Failed to parse JSON from model response: {text[:500]}...")
+            if end > start:
+                json_str = text[start:end]
+                try:
+                    return json.loads(json_str)
+                except json.JSONDecodeError:
+                    self.logger.error(f"Failed to decode JSON: {json_str[:200]}...")
+        
+        # Check if JSON is truncated (common issue)
+        if text.count('{') > text.count('}'):
+            self.logger.error("JSON appears to be truncated - missing closing braces")
             return {
-                "error": "Failed to parse valid JSON from model response",
-                "raw_response": text[:1000],  # Truncate for storage
-                "status": "PARSE_ERROR"
+                "error": "JSON response appears to be truncated",
+                "raw_response": text,
+                "status": "TRUNCATED_JSON"
             }
+        
+        # Fallback: return error structure
+        self.logger.error(f"Failed to parse JSON from model response: {text[:500]}...")
+        return {
+            "error": "Failed to parse valid JSON from model response",
+            "raw_response": text[:1000],  # Truncate for storage
+            "status": "PARSE_ERROR"
+        }

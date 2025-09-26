@@ -32,7 +32,7 @@ class AgentConfig:
     """Configuration for all agents"""
     project: str
     location: str = "asia-south1"
-    model: str = "gemini-1.5-pro"
+    model: str = "gemini-2.5-flash"
 
 class ValidationAgent:
     """

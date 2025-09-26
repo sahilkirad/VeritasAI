@@ -9,7 +9,7 @@
     "source": "functions",
     "runtime": "python312",
     "region": "asia-south1",
-    "memory": "256MB",
+    "memory": "512MB",
     "cpu": 1,
     "maxInstances": 1
   },

@@ -353,13 +353,65 @@ class FinalDiligenceAgent:
         """
         
         response = self.gemini_model.generate_content(prompt)
-        memo_3_data = self._parse_json_from_text(response.text)
+        # Handle multiple content parts from Gemini response
+        response_text = self._extract_response_text(response)
+        memo_3_data = self._parse_json_from_text(response_text)
         
         return {
             "memo_3": memo_3_data,
             "timestamp": datetime.now().isoformat(),
             "status": "SUCCESS"
         }
+    
+    def _extract_response_text(self, response) -> str:
+        """
+        Safely extracts text from Gemini response, handling multiple content parts.
+        
+        Args:
+            response: The response object from Gemini model
+            
+        Returns:
+            str: The extracted text content
+        """
+        try:
+            # First try the standard .text property
+            if hasattr(response, 'text') and response.text:
+                return response.text
+        except Exception as e:
+            self.logger.warning(f"Failed to access response.text: {e}")
+        
+        try:
+            # Handle multiple content parts
+            if hasattr(response, 'candidates') and response.candidates:
+                candidate = response.candidates[0]
+                if hasattr(candidate, 'content') and hasattr(candidate.content, 'parts'):
+                    # Concatenate all text parts
+                    text_parts = []
+                    for part in candidate.content.parts:
+                        if hasattr(part, 'text') and part.text:
+                            text_parts.append(part.text)
+                    if text_parts:
+                        return ''.join(text_parts)
+        except Exception as e:
+            self.logger.warning(f"Failed to extract text from candidates: {e}")
+        
+        try:
+            # Fallback: try to get text from the response object directly
+            if hasattr(response, 'candidates') and response.candidates:
+                candidate = response.candidates[0]
+                if hasattr(candidate, 'content'):
+                    content = candidate.content
+                    if hasattr(content, 'parts') and content.parts:
+                        # Get the first part's text
+                        first_part = content.parts[0]
+                        if hasattr(first_part, 'text'):
+                            return first_part.text
+        except Exception as e:
+            self.logger.warning(f"Failed to extract text from first part: {e}")
+        
+        # If all else fails, return a descriptive error
+        self.logger.error("Failed to extract any text from Gemini response")
+        return '{"error": "Failed to extract text from Gemini response", "status": "EXTRACTION_ERROR"}'
     
     def _parse_json_from_text(self, text: str) -> Dict[str, Any]:
         """Safely extract JSON from text"""

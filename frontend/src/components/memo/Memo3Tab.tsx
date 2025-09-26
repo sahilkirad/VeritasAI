@@ -715,6 +715,52 @@ export default function Memo3Tab({ diligenceData }: Memo3TabProps) {
               <p>• Prepare investment committee presentation</p>
             </div>
           </div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-wrap gap-3 mt-6">
+            <Button 
+              className="bg-green-600 hover:bg-green-700 text-white"
+              onClick={() => {
+                // Handle Accept action
+                console.log('Investment Accepted');
+              }}
+            >
+              <CheckCircle className="mr-2 h-4 w-4" />
+              Accept Investment
+            </Button>
+            
+            <Button 
+              variant="destructive"
+              onClick={() => {
+                // Handle Decline action
+                console.log('Investment Declined');
+              }}
+            >
+              <AlertTriangle className="mr-2 h-4 w-4" />
+              Decline Investment
+            </Button>
+            
+            <Button 
+              variant="outline"
+              className="border-yellow-500 text-yellow-600 hover:bg-yellow-50"
+              onClick={() => {
+                // Handle Hold action
+                console.log('Investment on Hold');
+              }}
+            >
+              <Target className="mr-2 h-4 w-4" />
+              Hold Decision
+            </Button>
+            
+            <Button 
+              variant="outline"
+              className="border-blue-500 text-blue-600 hover:bg-blue-50"
+              onClick={handleCreateRoom}
+            >
+              <MessageCircle className="mr-2 h-4 w-4" />
+              Create Room
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>

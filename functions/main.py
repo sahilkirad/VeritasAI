@@ -43,7 +43,7 @@ coordinator_agent = None
 
 # --- 2. Ingestion Pipeline: Stage 1 (File Upload) ---
 @https_fn.on_request(
-    memory=options.MemoryOption.MB_256,
+    memory=options.MemoryOption.MB_512,
     cors=options.CorsOptions(
         cors_origins=["*"],
         cors_methods=["POST", "OPTIONS"]
@@ -183,7 +183,7 @@ def on_file_upload(req: https_fn.Request) -> https_fn.Response:
 # --- 3. Ingestion Pipeline: Stage 2 (AI Processing) ---
 @pubsub_fn.on_message_published(
     topic="document-ingestion-topic",
-    memory=options.MemoryOption.MB_256,
+    memory=options.MemoryOption.MB_512,
     timeout_sec=540
 )
 def process_ingestion_task(event: pubsub_fn.CloudEvent) -> None:
@@ -318,7 +318,7 @@ def process_ingestion_task(event: pubsub_fn.CloudEvent) -> None:
 # --- 4. Diligence Pipeline: Stage 3 (Deep Analysis) ---
 @pubsub_fn.on_message_published(
     topic="diligence-topic",
-    memory=options.MemoryOption.MB_256,  # Reduced memory to match firebase.json
+    memory=options.MemoryOption.MB_512,  # Increased memory to prevent out-of-memory errors
     timeout_sec=540  # Maximum allowed for event-triggered functions
 )
 def process_diligence_task(event: pubsub_fn.CloudEvent) -> None:

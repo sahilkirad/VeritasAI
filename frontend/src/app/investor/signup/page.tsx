@@ -10,39 +10,39 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Logo } from "@/components/icons/logo"
-import { AvengersLoader } from "@/components/ui/avengers-loader"
-import { useState } from "react"
 import { useAuth } from "@/contexts/AuthContext"
+import { useState } from "react"
 
-export default function FounderLoginPage() {
+export default function InvestorSignupPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [fullName, setFullName] = useState("")
   const [error, setError] = useState("")
-  const { user, signIn, loading } = useAuth()
+  const { user, signUp, loading } = useAuth()
   const router = useRouter()
 
   // Redirect if already authenticated
   useEffect(() => {
     if (user && !loading) {
-      if (user.role === 'founder') {
-        router.push("/founder/dashboard")
-      } else {
+      if (user.role === 'investor') {
         router.push("/dashboard")
+      } else {
+        router.push("/founder/dashboard")
       }
     }
   }, [user, loading, router])
 
-  const handleEmailSignIn = async (e: React.FormEvent) => {
+  const handleEmailSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setError("")
     
     try {
-      await signIn(email, password, 'founder')
-      router.push("/founder/dashboard")
+      await signUp(email, password, fullName, 'investor')
+      router.push("/dashboard")
     } catch (error: any) {
-      setError(error.message || "Failed to sign in")
+      setError(error.message || "Failed to create account")
     } finally {
       setIsLoading(false)
     }
@@ -50,25 +50,33 @@ export default function FounderLoginPage() {
 
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="absolute top-4 left-4">
-        <Link href="/" className="flex items-center gap-2 text-foreground">
-          <Logo className="h-8 w-8 text-primary" />
-          <span className="font-headline text-xl font-semibold">Veritas</span>
-        </Link>
-      </div>
-      <Card className="mx-auto w-full max-w-sm">
+    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12">
+      <div className="w-full max-w-md space-y-4">
+        <Card className="mx-auto w-full">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-headline">Founder Login</CardTitle>
-          <CardDescription>Sign in to your Founder dashboard.</CardDescription>
+          <div className="mb-4 flex justify-center">
+            <Logo className="h-12 w-12 text-primary" />
+          </div>
+          <CardTitle className="text-2xl font-headline">Create Investor Account</CardTitle>
+          <CardDescription>Join Veritas as an investor to discover promising startups.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleEmailSignIn} className="grid gap-4">
+          <form onSubmit={handleEmailSignUp} className="grid gap-4">
             {error && (
               <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
                 {error}
               </div>
             )}
+            <div className="grid gap-2">
+              <Label htmlFor="full-name">Full Name</Label>
+              <Input 
+                id="full-name" 
+                placeholder="Enter your full name" 
+                required 
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+              />
+            </div>
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
               <Input 
@@ -81,12 +89,7 @@ export default function FounderLoginPage() {
               />
             </div>
             <div className="grid gap-2">
-              <div className="flex items-center">
-                <Label htmlFor="password">Password</Label>
-                <Link href="#" className="ml-auto inline-block text-sm underline" prefetch={false}>
-                  Forgot password?
-                </Link>
-              </div>
+              <Label htmlFor="password">Password</Label>
               <Input 
                 id="password" 
                 type="password" 
@@ -95,22 +98,16 @@ export default function FounderLoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
+            
             <Button type="submit" className="w-full" disabled={isLoading || loading}>
-              {isLoading ? (
-                <>
-                  <AvengersLoader size="sm" className="mr-2" />
-                  Signing In...
-                </>
-              ) : (
-                "Sign In"
-              )}
+              {isLoading ? "Creating Account..." : "Create Investor Account"}
             </Button>
           </form>
           <div className="mt-4 text-center text-sm space-y-2">
             <div>
-              Don't have a founder account?{" "}
-              <Link href="/founder/signup" className="underline" prefetch={false}>
-                Sign up
+              Already have an investor account?{" "}
+              <Link href="/investor/login" className="underline" prefetch={false}>
+                Log in
               </Link>
             </div>
             <div>
@@ -120,7 +117,8 @@ export default function FounderLoginPage() {
             </div>
           </div>
         </CardContent>
-      </Card>
+        </Card>
+      </div>
     </div>
   )
 }

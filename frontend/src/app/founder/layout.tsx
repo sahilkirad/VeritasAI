@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import type React from "react"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -27,13 +27,7 @@ import {
 } from "@/components/ui/sidebar"
 import { Bot, FileText, LayoutDashboard, LogOut, MoreVertical, Settings, Users, Shield } from "lucide-react"
 import { Logo } from "@/components/icons/logo"
-
-// Mock founder data
-const founder = {
-  name: "Priya Founder",
-  email: "priya@quantumleap.ai",
-  avatar: "https://picsum.photos/seed/2/100/100",
-}
+import { useAuth } from "@/contexts/AuthContext"
 
 const navItems = [
   { href: "/founder/dashboard", icon: LayoutDashboard, label: "Home" },
@@ -44,31 +38,26 @@ const navItems = [
   { href: "/founder/dashboard/settings", icon: Settings, label: "Settings" },
 ]
 
-export default function FounderDashboardLayout({ children }: { children: React.ReactNode }) {
+function FounderDashboardContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const router = useRouter()
+  const { user, userProfile, logout } = useAuth()
 
-  const isLoginPage = pathname === "/founder/login"
-
-  const pageTitle = isLoginPage
-    ? "Founder Login"
-    : navItems.find((item) => pathname.startsWith(item.href))?.label || "Dashboard"
-
-  if (isLoginPage) {
-    return (
-      <div className="bg-background">
-        <header className="flex h-14 items-center gap-4 border-b bg-card px-4 lg:h-[60px] lg:px-6">
-          <Link href="/" className="flex items-center gap-2 font-semibold">
-            <Logo className="h-6 w-6 text-primary" />
-            <span className="font-headline">Veritas</span>
-          </Link>
-          <div className="flex-1">
-            <h1 className="text-lg font-semibold md:text-2xl font-headline">{pageTitle}</h1>
-          </div>
-        </header>
-        <main className="flex-1 p-4 md:p-6 lg:p-8">{children}</main>
-      </div>
-    )
+  const handleLogout = async () => {
+    try {
+      await logout()
+      console.log('✅ Logged out successfully from founder dashboard')
+      // Redirect to main page after logout
+      router.push('/')
+    } catch (error) {
+      console.error('❌ Logout error:', error)
+      // Still redirect even if logout fails
+      router.push('/')
+    }
   }
+
+  const pageTitle = navItems.find((item) => pathname.startsWith(item.href))?.label || "Dashboard"
+
 
   return (
     <SidebarProvider>
@@ -99,15 +88,15 @@ export default function FounderDashboardLayout({ children }: { children: React.R
               <div className="flex w-full cursor-pointer items-center gap-2 rounded-md p-2 text-left text-sm text-sidebar-foreground outline-none ring-sidebar-ring transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2">
                 <Avatar className="h-8 w-8">
                   <AvatarImage
-                    src={founder.avatar || "/placeholder.svg"}
-                    alt={founder.name}
-                    data-ai-hint="woman face"
+                    src="/placeholder.svg"
+                    alt={userProfile?.displayName || "User"}
+                    data-ai-hint="user face"
                   />
-                  <AvatarFallback>{founder.name.charAt(0)}</AvatarFallback>
+                  <AvatarFallback>{userProfile?.displayName?.charAt(0) || user?.email?.charAt(0) || "U"}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 overflow-hidden">
-                  <p className="truncate font-medium">{founder.name}</p>
-                  <p className="truncate text-xs text-sidebar-foreground/70">{founder.email}</p>
+                  <p className="truncate font-medium">{userProfile?.displayName || "User"}</p>
+                  <p className="truncate text-xs text-sidebar-foreground/70">{user?.email}</p>
                 </div>
                 <MoreVertical className="ml-auto size-4" />
               </div>
@@ -120,11 +109,9 @@ export default function FounderDashboardLayout({ children }: { children: React.R
                 <Link href="/founder/dashboard/settings">Settings</Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link href="/">
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
-                </Link>
+              <DropdownMenuItem onClick={handleLogout}>
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Log out</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -142,13 +129,13 @@ export default function FounderDashboardLayout({ children }: { children: React.R
                 <button className="flex items-center gap-2 text-sm font-medium">
                   <Avatar className="h-8 w-8">
                     <AvatarImage
-                      src={founder.avatar || "/placeholder.svg"}
-                      alt={founder.name}
-                      data-ai-hint="woman face"
+                      src="/placeholder.svg"
+                      alt={userProfile?.displayName || "User"}
+                      data-ai-hint="user face"
                     />
-                    <AvatarFallback>{founder.name.charAt(0)}</AvatarFallback>
+                    <AvatarFallback>{userProfile?.displayName?.charAt(0) || user?.email?.charAt(0) || "U"}</AvatarFallback>
                   </Avatar>
-                  <span className="hidden md:inline">{founder.name}</span>
+                  <span className="hidden md:inline">{userProfile?.displayName || "User"}</span>
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -159,11 +146,9 @@ export default function FounderDashboardLayout({ children }: { children: React.R
                 </DropdownMenuItem>
                 <DropdownMenuItem>Support</DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Log out</span>
-                  </Link>
+                <DropdownMenuItem onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Log out</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -173,4 +158,15 @@ export default function FounderDashboardLayout({ children }: { children: React.R
       </SidebarInset>
     </SidebarProvider>
   )
+}
+
+export default function FounderDashboardLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname()
+  
+  // Only show sidebar for dashboard pages, not for signup/login
+  if (pathname === '/founder/signup' || pathname === '/founder/login') {
+    return <>{children}</>
+  }
+  
+  return <FounderDashboardContent>{children}</FounderDashboardContent>
 }

@@ -1,4 +1,6 @@
-import { placeholderImages } from './placeholder-images.json';
+import placeholderImagesData from './placeholder-images.json';
+
+const placeholderImages = placeholderImagesData.placeholderImages;
 
 export const user = {
   name: 'Rohan Investor',

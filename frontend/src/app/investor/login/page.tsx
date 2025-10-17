@@ -14,7 +14,7 @@ import { AvengersLoader } from "@/components/ui/avengers-loader"
 import { useState } from "react"
 import { useAuth } from "@/contexts/AuthContext"
 
-export default function FounderLoginPage() {
+export default function InvestorLoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -25,10 +25,10 @@ export default function FounderLoginPage() {
   // Redirect if already authenticated
   useEffect(() => {
     if (user && !loading) {
-      if (user.role === 'founder') {
-        router.push("/founder/dashboard")
-      } else {
+      if (user.role === 'investor') {
         router.push("/dashboard")
+      } else {
+        router.push("/founder/dashboard")
       }
     }
   }, [user, loading, router])
@@ -39,8 +39,8 @@ export default function FounderLoginPage() {
     setError("")
     
     try {
-      await signIn(email, password, 'founder')
-      router.push("/founder/dashboard")
+      await signIn(email, password, 'investor')
+      router.push("/dashboard")
     } catch (error: any) {
       setError(error.message || "Failed to sign in")
     } finally {
@@ -59,8 +59,8 @@ export default function FounderLoginPage() {
       </div>
       <Card className="mx-auto w-full max-w-sm">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-headline">Founder Login</CardTitle>
-          <CardDescription>Sign in to your Founder dashboard.</CardDescription>
+          <CardTitle className="text-2xl font-headline">Investor Login</CardTitle>
+          <CardDescription>Sign in to your Investor dashboard.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleEmailSignIn} className="grid gap-4">
@@ -108,8 +108,8 @@ export default function FounderLoginPage() {
           </form>
           <div className="mt-4 text-center text-sm space-y-2">
             <div>
-              Don't have a founder account?{" "}
-              <Link href="/founder/signup" className="underline" prefetch={false}>
+              Don't have an investor account?{" "}
+              <Link href="/investor/signup" className="underline" prefetch={false}>
                 Sign up
               </Link>
             </div>

@@ -5,10 +5,41 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Logo } from "../components/icons/logo"
 import { ArrowRight } from "lucide-react"
+import { useAuth } from "@/contexts/AuthContext"
+import { useRouter } from "next/navigation"
 
 export default function LandingPage() {
+  const { user, logout } = useAuth()
+  const router = useRouter()
+
+  const handleLogout = async () => {
+    try {
+      await logout()
+      console.log('✅ Logged out successfully')
+      // Refresh the page to clear any cached state
+      window.location.reload()
+    } catch (error) {
+      console.error('❌ Logout error:', error)
+      // Still refresh the page
+      window.location.reload()
+    }
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-[#eef5ff]">
+      {user && (
+        <div className="bg-blue-100 p-2 text-center text-sm">
+          <span>Logged in as: {user.email} ({user.role})</span>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleLogout}
+            className="ml-2"
+          >
+            Logout
+          </Button>
+        </div>
+      )}
       <main className="flex-1">
         <div className="container mx-auto flex max-w-5xl flex-col items-center justify-center px-4 py-16 text-center md:py-24">
           <div className="mb-6">
@@ -39,7 +70,7 @@ export default function LandingPage() {
                 </div>
                 <div className="space-y-2">
                   <Button className="w-full" asChild>
-                    <Link href="/signup">Start Building Your Profile</Link>
+                    <Link href="/founder/signup">Start Building Your Profile</Link>
                   </Button>
                   <Button variant="outline" className="w-full bg-transparent" asChild>
                     <Link href="/founder/login">
@@ -65,10 +96,10 @@ export default function LandingPage() {
                 </div>
                 <div className="space-y-2">
                   <Button className="w-full" asChild>
-                    <Link href="/signup">Create Your Investor Profile</Link>
+                    <Link href="/investor/signup">Create Your Investor Profile</Link>
                   </Button>
                   <Button variant="outline" className="w-full bg-transparent" asChild>
-                    <Link href="/login">
+                    <Link href="/investor/login">
                       <ArrowRight className="mr-2 h-4 w-4" /> Log In
                     </Link>
                   </Button>

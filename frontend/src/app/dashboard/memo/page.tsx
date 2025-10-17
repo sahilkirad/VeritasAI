@@ -7,10 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Calendar, FileText, TrendingUp, Users, Upload } from "lucide-react";
 import { useRouter } from 'next/navigation';
 import { useToast } from "@/hooks/use-toast";
-import { db } from '@/lib/firebase';
+import { db } from '@/lib/firebase-new';
 import { collection, query, orderBy, limit, getDocs, where } from 'firebase/firestore';
-import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth } from '@/lib/firebase';
+import { useAuth } from '@/contexts/AuthContext';
 import { API_ENDPOINTS } from '@/lib/api';
 
 // Import our new components
@@ -71,7 +70,7 @@ export default function DealMemoPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("memo1");
   const [hasRecentData, setHasRecentData] = useState(false);
-  const [user, loadingAuth] = useAuthState(auth);
+  const { user, loading: loadingAuth } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -81,19 +80,8 @@ export default function DealMemoPage() {
       console.log('Calling fetchMemoData...');
       fetchMemoData();
       
-      // Set up real-time listener for new data
-      const unsubscribe = () => {
-        // Refresh data every 30 seconds to catch new memos
-        const interval = setInterval(() => {
-          console.log('Auto-refresh: calling fetchMemoData...');
-          fetchMemoData();
-        }, 30000);
-        
-        return () => clearInterval(interval);
-      };
-      
-      const cleanup = unsubscribe();
-      return cleanup;
+      // Auto-refresh disabled to prevent clearing viewed memos
+      // Users can manually refresh if needed
     }
   }, [user, loadingAuth]);
 
@@ -424,7 +412,7 @@ export default function DealMemoPage() {
       console.error('Error triggering diligence:', error);
       toast({
         title: "Error",
-        description: `Failed to trigger diligence: ${error.message}`,
+        description: `Failed to trigger diligence: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive",
       });
     }
@@ -702,7 +690,16 @@ export default function DealMemoPage() {
         </TabsList>
 
         <TabsContent value="memo1">
-          <Memo1Tab memo1={memoData.memo_1 || {}} />
+          <Memo1Tab 
+            memo1={memoData.memo_1 || {}} 
+            onInterviewScheduled={(result) => {
+              console.log('Interview scheduled:', result);
+              toast({
+                title: "Interview Scheduled",
+                description: "The AI interview has been successfully scheduled in your calendar.",
+              });
+            }}
+          />
         </TabsContent>
 
         <TabsContent value="memo2">

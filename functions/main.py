@@ -4,6 +4,7 @@
 import firebase_admin
 from firebase_admin import initialize_app, storage, firestore
 from google.cloud import pubsub_v1
+from google.cloud import bigquery
 import json
 import os
 from datetime import datetime
@@ -13,9 +14,23 @@ import time
 
 # Firebase Functions SDK imports
 from firebase_functions import storage_fn, pubsub_fn, https_fn, options
+from firebase_admin import auth as firebase_auth
 
 # Set global options - THIS IS CRITICAL FOR YOUR REGION
 options.set_global_options(region="asia-south1")
+
+def get_cors_headers(request):
+    """Get CORS headers based on request origin"""
+    origin = request.headers.get('Origin', 'https://veritas-472301.web.app')
+    allowed_origins = ['http://localhost:3000', 'https://veritas-472301.web.app']
+    cors_origin = origin if origin in allowed_origins else 'https://veritas-472301.web.app'
+    
+    return {
+        'Access-Control-Allow-Origin': cors_origin,
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Content-Type': 'application/json'
+    }
 
 # --- 1. Global Initialization ---
 # Initialize Firebase Admin SDK only when needed (not during deployment analysis)
@@ -34,6 +49,8 @@ publisher = None
 ingestion_agent = None
 diligence_agent = None
 coordinator_agent = None
+feedback_agent = None
+bigquery_client = None
 
 # Lazy import function to avoid import issues during deployment
 def get_intake_agent():
@@ -63,46 +80,224 @@ def get_coordinator_agent():
         coordinator_agent.set_up()
     return coordinator_agent
 
+def get_bigquery_client():
+    """Lazy import of BigQuery client"""
+    global bigquery_client
+    if bigquery_client is None:
+        bigquery_client = bigquery.Client(project="veritas-472301")
+    return bigquery_client
+
+def save_to_bigquery(upload_id: str, founder_email: str, ingestion_result: dict):
+    """Save pitch deck data to BigQuery"""
+    try:
+        client = get_bigquery_client()
+        table_id = "veritas-472301.veritas_pitch_data.pitch_deck_data"
+        
+        # Prepare row data
+        row_data = {
+            "upload_id": upload_id,
+            "founder_email": founder_email,
+            "upload_timestamp": datetime.now().isoformat(),
+            "original_filename": ingestion_result.get("original_filename", ""),
+            "memo_1": json.dumps(ingestion_result.get("memo_1", {})),
+            "processing_time_seconds": ingestion_result.get("processing_time_seconds", 0.0),
+            "status": ingestion_result.get("status", "SUCCESS")
+        }
+        
+        # Insert row
+        errors = client.insert_rows_json(table_id, [row_data])
+        if errors:
+            print(f"BigQuery insert errors: {errors}")
+        else:
+            print(f"Successfully saved to BigQuery: {upload_id}")
+            
+    except Exception as e:
+        print(f"BigQuery save failed (non-blocking): {e}")
+        # Don't raise - this is fire-and-forget
+
+def verify_firebase_token(auth_header: str) -> dict:
+    """Verify Firebase ID token and return user info"""
+    if not auth_header or not auth_header.startswith('Bearer '):
+        raise ValueError("Missing or invalid authorization header")
+    
+    # Extract the token
+    token = auth_header.split('Bearer ')[1]
+    
+    try:
+        # Verify the token
+        decoded_token = firebase_auth.verify_id_token(token)
+        return decoded_token
+    except Exception as e:
+        raise ValueError(f"Invalid token: {str(e)}")
+
 # --- 2. Ingestion Pipeline: Stage 1 (File Upload) ---
 @https_fn.on_request(
-    memory=options.MemoryOption.MB_512,
-    cors=options.CorsOptions(
-        cors_origins=["*"],
-        cors_methods=["POST", "OPTIONS"]
-    )
+    memory=options.MemoryOption.MB_512
 )
 def on_file_upload(req: https_fn.Request) -> https_fn.Response:
     """Handle file uploads from frontend"""
     try:
         # Handle CORS preflight
         if req.method == 'OPTIONS':
-            headers = {
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'POST, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-                'Access-Control-Max-Age': '3600'
-            }
+            headers = get_cors_headers(req)
+            headers['Access-Control-Max-Age'] = '3600'
             return https_fn.Response('', status=204, headers=headers)
+        
+        # Skip Firebase authentication for now - using custom auth system
+        # TODO: Implement proper authentication verification
+        print("File upload request received (authentication bypassed)")
         
         # Get Firebase app
         app = get_firebase_app()
         
-        # Check content type
+        # Check content type - allow multipart/form-data for file uploads
         content_type = req.headers.get('content-type', '')
-        if 'application/json' not in content_type:
+        if 'multipart/form-data' not in content_type and 'application/json' not in content_type:
+            headers = get_cors_headers(req)
             return https_fn.Response(
-                json.dumps({"error": "Content-Type must be application/json"}),
+                json.dumps({"error": "Content-Type must be multipart/form-data or application/json"}),
                 status=415,
-                headers={'Content-Type': 'application/json'}
+                headers=headers
             )
         
-        # Parse request data
+        # Handle file uploads (multipart/form-data)
+        if 'multipart/form-data' in content_type:
+            try:
+                # Parse multipart form data
+                from werkzeug.datastructures import FileStorage
+                import io
+                
+                # Get the file from the request
+                file = None
+                file_type = 'deck'
+                original_name = ''
+                
+                # Parse multipart data
+                if hasattr(req, 'files') and req.files:
+                    for key, file_storage in req.files.items():
+                        if key == 'file':
+                            file = file_storage
+                            break
+                
+                if not file:
+                    headers = get_cors_headers(req)
+                    return https_fn.Response(
+                        json.dumps({"error": "No file provided"}),
+                        status=400,
+                        headers=headers
+                    )
+                
+                # Get file info
+                original_name = file.filename or 'unknown'
+                file_content = file.read()
+                file_type = req.form.get('file_type', 'deck')
+                founder_email = req.form.get('founder_email', 'unknown@example.com')
+                
+                print(f"Processing file: {original_name} ({file.content_type}, {len(file_content)} bytes)")
+                
+                # Upload to Firebase Storage
+                bucket = storage.bucket('veritas-472301.firebasestorage.app')
+                timestamp = int(time.time() * 1000)
+                blob_name = f"deck/{timestamp}-{original_name}"
+                blob = bucket.blob(blob_name)
+                
+                # Upload the file
+                blob.upload_from_string(file_content, content_type=file.content_type)
+                
+                # Make the file publicly accessible
+                blob.make_public()
+                
+                # Get download URL
+                download_url = blob.public_url
+                
+                print(f"File uploaded to storage: {blob_name}")
+                print(f"Download URL: {download_url}")
+                
+                # Save metadata to Firestore
+                db = firestore.client()
+                upload_doc = {
+                    'fileName': blob_name,
+                    'originalName': original_name,
+                    'downloadURL': download_url,
+                    'contentType': file.content_type,
+                    'size': len(file_content),
+                    'type': file_type,
+                    'status': 'uploaded',
+                    'uploadedAt': firestore.SERVER_TIMESTAMP,
+                    'uploadedBy': 'user',
+                    'founderEmail': founder_email
+                }
+                
+                # Add to uploads collection
+                upload_ref = db.collection('uploads').add(upload_doc)
+                print(f"File metadata stored in Firestore: {upload_ref[1].id}")
+                
+                # Create message for Pub/Sub to trigger processing
+                message_data = {
+                    "bucket_name": "veritas-472301.firebasestorage.app",
+                    "file_path": blob_name,
+                    "content_type": file.content_type,
+                    "download_url": download_url,
+                    "original_name": original_name,
+                    "file_size": len(file_content),
+                    "file_type": file_type,
+                    "upload_id": upload_ref[1].id,
+                    "founder_email": founder_email,
+                    "triggered_by": "http_upload"
+                }
+                
+                # Publish to Pub/Sub for processing
+                global publisher
+                if publisher is None:
+                    publisher = pubsub_v1.PublisherClient()
+                topic_path = publisher.topic_path("veritas-472301", "document-ingestion-topic")
+                
+                message_json = json.dumps(message_data)
+                message_bytes = message_json.encode('utf-8')
+                
+                future = publisher.publish(topic_path, message_bytes)
+                message_id = future.result()
+                
+                print(f"Published message to document-ingestion-topic: {message_id}")
+                
+                # Update upload document with processing status
+                upload_ref[1].update({
+                    'status': 'processing',
+                    'processing_started_at': firestore.SERVER_TIMESTAMP,
+                    'message_id': message_id
+                })
+                
+                headers = get_cors_headers(req)
+                return https_fn.Response(
+                    json.dumps({
+                        "message": "File uploaded and processing initiated", 
+                        "status": "success",
+                        "upload_id": upload_ref[1].id,
+                        "download_url": download_url
+                    }),
+                    status=200,
+                    headers=headers
+                )
+                
+            except Exception as e:
+                print(f"Error processing multipart upload: {e}")
+                import traceback
+                traceback.print_exc()
+                headers = get_cors_headers(req)
+                return https_fn.Response(
+                    json.dumps({"error": f"Upload processing failed: {str(e)}"}),
+                    status=500,
+                    headers=headers
+                )
+        
+        # Parse request data for JSON requests
         data = req.get_json()
         if not data:
+            headers = get_cors_headers(req)
             return https_fn.Response(
                 json.dumps({"error": "No data provided"}),
                 status=400,
-                headers={'Content-Type': 'application/json'}
+                headers=headers
             )
         
         file_name = data.get('file_name')
@@ -112,14 +307,16 @@ def on_file_upload(req: https_fn.Request) -> https_fn.Response:
         file_data = data.get('file_data')  # Base64 encoded file data
         
         if not all([file_name, file_type, file_data]):
-            return https_fn.Response("Missing required fields", status=400)
+            headers = get_cors_headers(req)
+            return https_fn.Response("Missing required fields", status=400, headers=headers)
         
         # Decode base64 file data
         try:
             file_bytes = base64.b64decode(file_data)
         except Exception as e:
             print(f"Error decoding base64: {e}")
-            return https_fn.Response("Invalid file data", status=400)
+            headers = get_cors_headers(req)
+            return https_fn.Response("Invalid file data", status=400, headers=headers)
         
         # Create a temporary file
         with tempfile.NamedTemporaryFile(delete=False, suffix=f"_{file_name}") as temp_file:
@@ -183,13 +380,14 @@ def on_file_upload(req: https_fn.Request) -> https_fn.Response:
                 print(f"Error triggering processing: {e}")
                 # Don't fail the upload if processing trigger fails
             
+            headers = get_cors_headers(req)
             return https_fn.Response(json.dumps({
                 'success': True,
                 'download_url': download_url,
                 'file_name': blob_name,
                 'message': 'File uploaded successfully',
                 'memo_id': doc_ref[1].id  # Add this line
-            }), status=200, headers={'Content-Type': 'application/json'})
+            }), status=200, headers=headers)
             
         finally:
             # Clean up temporary file
@@ -200,7 +398,8 @@ def on_file_upload(req: https_fn.Request) -> https_fn.Response:
                 
     except Exception as e:
         print(f"Error in on_file_upload: {e}")
-        return https_fn.Response(f"Internal server error: {str(e)}", status=500)
+        headers = get_cors_headers(req)
+        return https_fn.Response(f"Internal server error: {str(e)}", status=500, headers=headers)
 
 # --- 3. Ingestion Pipeline: Stage 2 (AI Processing) ---
 @pubsub_fn.on_message_published(
@@ -307,6 +506,10 @@ def process_ingestion_task(event: pubsub_fn.CloudEvent) -> None:
             db = firestore.client()
             doc_ref = db.collection("ingestionResults").add(ingestion_result)
             print(f"Successfully saved results for {file_path} to Firestore with ID: {doc_ref[1].id}")
+            
+            # Save to BigQuery (fire-and-forget)
+            founder_email = task_data.get("founder_email", "unknown@example.com")
+            save_to_bigquery(doc_ref[1].id, founder_email, ingestion_result)
             
             # Auto-trigger diligence analysis ONLY after successful save
             print(f"Auto-triggering diligence analysis for memo ID: {doc_ref[1].id}")
@@ -433,11 +636,7 @@ def process_diligence_task(event: pubsub_fn.CloudEvent) -> None:
 # --- 5. HTTP Endpoint for Manual Diligence Trigger ---
 @https_fn.on_request(
     memory=options.MemoryOption.MB_512, 
-    timeout_sec=900,
-    cors=options.CorsOptions(
-        cors_origins=["*"],
-        cors_methods=["POST", "OPTIONS"]
-    )
+    timeout_sec=900
 )
 def trigger_diligence(req: https_fn.Request) -> https_fn.Response:
     """HTTP endpoint to manually trigger diligence analysis on a memo."""
@@ -448,12 +647,8 @@ def trigger_diligence(req: https_fn.Request) -> https_fn.Response:
     try:
         # Handle CORS preflight
         if req.method == 'OPTIONS':
-            headers = {
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'POST, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-                'Access-Control-Max-Age': '3600'
-            }
+            headers = get_cors_headers(req)
+            headers['Access-Control-Max-Age'] = '3600'
             return https_fn.Response('', status=204, headers=headers)
         
         if req.method != 'POST':
@@ -462,6 +657,10 @@ def trigger_diligence(req: https_fn.Request) -> https_fn.Response:
                 status=405,
                 headers={'Content-Type': 'application/json'}
             )
+
+        # Skip Firebase authentication for now - using custom auth system
+        # TODO: Implement proper authentication verification
+        print("Diligence trigger request received (authentication bypassed)")
 
         data = req.get_json()
         print(f"Received request data: {data}")
@@ -508,11 +707,7 @@ def trigger_diligence(req: https_fn.Request) -> https_fn.Response:
 
 @https_fn.on_request(
     region="asia-south1", 
-    memory=options.MemoryOption.MB_512,
-    cors=options.CorsOptions(
-        cors_origins=["*"],
-        cors_methods=["POST", "OPTIONS"]
-    )
+    memory=options.MemoryOption.MB_512
 )
 def schedule_ai_interview(req: https_fn.Request) -> https_fn.Response:
     """HTTP endpoint to trigger the CoordinatorAgent for scheduling the AI interview."""
@@ -523,12 +718,8 @@ def schedule_ai_interview(req: https_fn.Request) -> https_fn.Response:
     try:
         # Handle CORS for testing
         if req.method == 'OPTIONS':
-            headers = {
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'POST, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-                'Access-Control-Max-Age': '3600'
-            }
+            headers = get_cors_headers(req)
+            headers['Access-Control-Max-Age'] = '3600'
             return https_fn.Response('', status=204, headers=headers)
 
         if req.method != 'POST':
@@ -566,16 +757,85 @@ def schedule_ai_interview(req: https_fn.Request) -> https_fn.Response:
         result = agent.run(calendar_id, founder_email, investor_email, startup_name)
         
         # Return JSON response
-        headers = {
-            'Access-Control-Allow-Origin': '*',
-            'Content-Type': 'application/json'
-        }
+        headers = get_cors_headers(req)
         return https_fn.Response(json.dumps(result), status=200, headers=headers)
         
     except Exception as e:
         print(f"Error in schedule_ai_interview: {e}")
-        headers = {
-            'Access-Control-Allow-Origin': '*',
-            'Content-Type': 'application/json'
-        }
+        headers = get_cors_headers(req)
         return https_fn.Response(json.dumps({"status": "FAILED", "error": str(e)}), status=500, headers=headers)
+
+def get_feedback_agent():
+    """Lazy import of FeedbackAgent"""
+    global feedback_agent
+    if feedback_agent is None:
+        from agents.feedback_agent import FeedbackAgent
+        feedback_agent = FeedbackAgent(project="veritas-472301")
+        feedback_agent.set_up()
+    return feedback_agent
+
+@https_fn.on_request(
+    region="asia-south1", 
+    memory=options.MemoryOption.MB_512
+)
+def ai_feedback(req: https_fn.Request) -> https_fn.Response:
+    """HTTP endpoint for AI-powered feedback and recommendations."""
+    
+    # Initialize Firebase app when function runs
+    get_firebase_app()
+
+    try:
+        # Handle CORS for testing
+        if req.method == 'OPTIONS':
+            headers = get_cors_headers(req)
+            headers['Access-Control-Max-Age'] = '3600'
+            return https_fn.Response('', status=204, headers=headers)
+
+        if req.method != 'POST':
+            return https_fn.Response(
+                json.dumps({"error": "Method not allowed"}),
+                status=405,
+                headers={'Content-Type': 'application/json'}
+            )
+
+        # Extract and validate parameters
+        data = req.get_json()
+        if not data:
+            return https_fn.Response('No JSON data provided', status=400)
+
+        founder_email = data.get("founder_email")
+        action = data.get("action")  # "recommendations" or "question"
+        question = data.get("question", "")
+
+        # Validate required parameters
+        if not founder_email:
+            return https_fn.Response('Missing required parameter: founder_email', status=400)
+        
+        if not action:
+            return https_fn.Response('Missing required parameter: action', status=400)
+        
+        if action not in ["recommendations", "question"]:
+            return https_fn.Response('Invalid action. Must be "recommendations" or "question"', status=400)
+        
+        if action == "question" and not question:
+            return https_fn.Response('Missing required parameter: question', status=400)
+
+        # Lazy-initialize the agent
+        agent = get_feedback_agent()
+        
+        print(f"AI Feedback request for founder: {founder_email}, action: {action}")
+        
+        # Process the request
+        if action == "recommendations":
+            result = agent.get_recommendations(founder_email)
+        else:  # action == "question"
+            result = agent.answer_question(founder_email, question)
+        
+        # Return data directly (frontend API client will wrap it with success: true)
+        headers = get_cors_headers(req)
+        return https_fn.Response(json.dumps(result), status=200, headers=headers)
+        
+    except Exception as e:
+        print(f"Error in ai_feedback: {e}")
+        headers = get_cors_headers(req)
+        return https_fn.Response(json.dumps({"error": str(e)}), status=500, headers=headers)

@@ -2,7 +2,12 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Building2, Users, TrendingUp, Target, AlertTriangle, CheckCircle, BarChart3, Globe, DollarSign, FileText, ExternalLink } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Building2, Users, TrendingUp, Target, AlertTriangle, CheckCircle, BarChart3, Globe, DollarSign, FileText, ExternalLink, Calendar, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { apiClient } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Memo1Data {
   title?: string;
@@ -28,21 +33,112 @@ interface Memo1Data {
 
 interface Memo1TabProps {
   memo1: Memo1Data;
+  onInterviewScheduled?: (result: any) => void;
 }
 
-export default function Memo1Tab({ memo1 }: Memo1TabProps) {
+export default function Memo1Tab({ memo1, onInterviewScheduled }: Memo1TabProps) {
+  const [isScheduling, setIsScheduling] = useState(false);
+  const { toast } = useToast();
+  const { user } = useAuth();
+
+  const handleScheduleInterview = async () => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to schedule an interview.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Extract founder email from memo data or use a placeholder
+    const founderEmail = memo1.founder_linkedin_url 
+      ? `founder@${memo1.title?.toLowerCase().replace(/\s+/g, '') || 'startup'}.com`
+      : 'founder@startup.com';
+
+    const startupName = memo1.title || 'Startup';
+
+    setIsScheduling(true);
+    
+    try {
+      console.log('🔄 Scheduling AI interview...', {
+        founder_email: founderEmail,
+        investor_email: user.email,
+        startup_name: startupName
+      });
+
+      const result = await apiClient.scheduleInterview({
+        founder_email: founderEmail,
+        investor_email: user.email,
+        startup_name: startupName,
+        calendar_id: '93fe7cf38ab2552f7c40f0a9e3584f3fab5bbe5e006011eac718ca8e7cc34e4f@group.calendar.google.com'
+      });
+
+      if (result.success && result.data?.status === 'SUCCESS') {
+        console.log('✅ Interview scheduled successfully:', result.data);
+        
+        toast({
+          title: "Interview Scheduled Successfully!",
+          description: `AI interview for ${startupName} has been scheduled. Check your calendar for details.`,
+        });
+
+        // Call the callback if provided
+        if (onInterviewScheduled) {
+          onInterviewScheduled(result.data);
+        }
+      } else {
+        console.error('❌ Failed to schedule interview:', result.error);
+        toast({
+          title: "Failed to Schedule Interview",
+          description: result.error || "An error occurred while scheduling the interview.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('❌ Interview scheduling error:', error);
+      toast({
+        title: "Scheduling Error",
+        description: "An unexpected error occurred while scheduling the interview.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsScheduling(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Executive Summary */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Building2 className="h-5 w-5" />
-            Pitch Deck Summary
-          </CardTitle>
-          <CardDescription>
-            Summary of the founder's pitch deck PDF submission
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Building2 className="h-5 w-5" />
+                Pitch Deck Summary
+              </CardTitle>
+              <CardDescription>
+                Summary of the founder's pitch deck PDF submission
+              </CardDescription>
+            </div>
+            <Button
+              onClick={handleScheduleInterview}
+              disabled={isScheduling}
+              className="flex items-center gap-2"
+            >
+              {isScheduling ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Scheduling...
+                </>
+              ) : (
+                <>
+                  <Calendar className="h-4 w-4" />
+                  Schedule Interview
+                </>
+              )}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground leading-relaxed">
@@ -117,7 +213,7 @@ export default function Memo1Tab({ memo1 }: Memo1TabProps) {
               <div className="p-3 bg-purple-50 rounded-lg">
                 <h5 className="font-medium text-purple-800">Simulation-Based Learning</h5>
                 <p className="text-xs text-purple-600 mt-1">
-                  Global market: $14.3B (2023) → $44B (2032) at >15% CAGR
+                  Global market: $14.3B (2023) → $44B (2032) at &gt;15% CAGR
                 </p>
                 <div className="mt-2 space-y-1">
                   <a href="https://www.marketgrowthreports.com/simulation-based-learning-market" target="_blank" rel="noopener noreferrer" className="text-xs text-purple-500 hover:underline flex items-center">

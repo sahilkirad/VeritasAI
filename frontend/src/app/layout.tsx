@@ -5,6 +5,13 @@ import { Toaster } from "@/components/ui/toaster"
 import { Suspense } from "react"
 import { AuthProvider } from "@/contexts/AuthContext"
 
+// Initialize Firebase early to avoid initialization issues
+if (typeof window !== 'undefined') {
+  import('@/lib/firebase-new').then(() => {
+    console.log('Firebase initialized in layout');
+  });
+}
+
 export const metadata: Metadata = {
   title: "Veritas",
   description: "AI-Powered Due Diligence Platform",
@@ -25,6 +32,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
         <link href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&display=swap" rel="stylesheet" />
+        <script src="https://accounts.google.com/gsi/client" async defer></script>
       </head>
       <body className="font-body antialiased" suppressHydrationWarning>
         <AuthProvider>

@@ -1,3 +1,5 @@
+"use client"
+
 import type React from "react"
 import { Suspense } from "react"
 
@@ -18,13 +20,20 @@ import {
   SidebarInset,
   SidebarProvider,
 } from "@/components/ui/sidebar"
-import { user } from "@/lib/data"
 import { LogOut, MoreVertical } from "lucide-react"
 import { Logo } from "@/components/icons/logo"
 import { DashboardNav, DashboardNavHeader } from "./nav"
 import Link from "next/link"
+import ProtectedRoute from "@/components/ProtectedRoute"
+import { useAuth } from "@/contexts/AuthContext"
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+function DashboardContent({ children }: { children: React.ReactNode }) {
+  const { user, userProfile, logout } = useAuth();
+
+  const handleLogout = async () => {
+    await logout();
+  };
+
   return (
     <SidebarProvider>
       <Sidebar>
@@ -42,12 +51,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <DropdownMenuTrigger asChild>
               <div className="flex w-full cursor-pointer items-center gap-2 rounded-md p-2 text-left text-sm text-sidebar-foreground outline-none ring-sidebar-ring transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.name} />
-                  <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                  <AvatarImage src="/placeholder.svg" alt={userProfile?.displayName || "User"} />
+                  <AvatarFallback>{userProfile?.displayName?.charAt(0) || user?.email?.charAt(0) || "U"}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 overflow-hidden">
-                  <p className="truncate font-medium">{user.name}</p>
-                  <p className="truncate text-xs text-sidebar-foreground/70">{user.email}</p>
+                  <p className="truncate font-medium">{userProfile?.displayName || "User"}</p>
+                  <p className="truncate text-xs text-sidebar-foreground/70">
+                    {userProfile?.role ? userProfile.role.charAt(0).toUpperCase() + userProfile.role.slice(1) : 'User'} • {user?.email}
+                  </p>
                 </div>
                 <MoreVertical className="ml-auto size-4" />
               </div>
@@ -59,11 +70,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <DropdownMenuItem>Billing</DropdownMenuItem>
               <DropdownMenuItem>Settings</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link href="/">
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
-                </Link>
+              <DropdownMenuItem onClick={handleLogout}>
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Log out</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -76,5 +85,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <main className="flex-1 p-4 md:p-6 lg:p-8">{children}</main>
       </SidebarInset>
     </SidebarProvider>
-  )
+  );
+}
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <ProtectedRoute>
+      <DashboardContent>{children}</DashboardContent>
+    </ProtectedRoute>
+  );
 }

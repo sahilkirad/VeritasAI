@@ -11236,3 +11236,271 @@ specVersion: v1alpha1
 [error] /bin/sh: line 1: 92601 Terminated: 15          python3.12 "/Users/swaroopthakare/Downloads/veritasAI/VeritasAI/functions/venv/lib/python3.12/site-packages/firebase_functions/private/serving.py"
 
 [info] ✔  functions: Loaded functions definitions from source: on_file_upload, process_diligence_task, process_ingestion_task, schedule_ai_interview, trigger_diligence. {"metadata":{"emulator":{"name":"functions"},"message":"Loaded functions definitions from source: on_file_upload, process_diligence_task, process_ingestion_task, schedule_ai_interview, trigger_diligence."}}
+[debug] [2025-10-17T20:37:04.607Z] File /Users/swaroopthakare/Downloads/veritasAI/VeritasAI/functions/agents/coordinator_agent.py changed, reloading triggers {"metadata":{"emulator":{"name":"functions"},"message":"File /Users/swaroopthakare/Downloads/veritasAI/VeritasAI/functions/agents/coordinator_agent.py changed, reloading triggers"}}
+[debug] [2025-10-17T20:37:04.608Z] File /Users/swaroopthakare/Downloads/veritasAI/VeritasAI/functions/main.py changed, reloading triggers {"metadata":{"emulator":{"name":"functions"},"message":"File /Users/swaroopthakare/Downloads/veritasAI/VeritasAI/functions/main.py changed, reloading triggers"}}
+[debug] [2025-10-17T20:37:05.609Z] Customer code is not Node
+[debug] [2025-10-17T20:37:05.609Z] Validating python source
+[debug] [2025-10-17T20:37:05.609Z] Building python source
+[debug] [2025-10-17T20:37:05.610Z] Could not find functions.yaml. Must use http discovery
+[debug] [2025-10-17T20:37:05.611Z] Running command with virtualenv: command=., args=["\"/Users/swaroopthakare/Downloads/veritasAI/VeritasAI/functions/venv/bin/activate\"","&&","python3.12","-c","\"import firebase_functions; import os; print(os.path.dirname(firebase_functions.__file__))\""]
+[debug] [2025-10-17T20:37:05.680Z] stdout: /Users/swaroopthakare/Downloads/veritasAI/VeritasAI/functions/venv/lib/python3.12/site-packages/firebase_functions
+
+[debug] [2025-10-17T20:37:05.684Z] Running admin server with args: ["python3.12","\"/Users/swaroopthakare/Downloads/veritasAI/VeritasAI/functions/venv/lib/python3.12/site-packages/firebase_functions/private/serving.py\""] and env: {"GCLOUD_PROJECT":"veritas-472301","K_REVISION":"1","PORT":"80","GOOGLE_CLOUD_QUOTA_PROJECT":"veritas-472301","FUNCTIONS_EMULATOR":"true","TZ":"UTC","FIREBASE_DEBUG_MODE":"true","FIREBASE_DEBUG_FEATURES":"{\"skipTokenVerification\":true,\"enableCors\":true}","FIREBASE_EMULATOR_HUB":"127.0.0.1:4400","CLOUD_EVENTARC_EMULATOR_HOST":"http://127.0.0.1:9299","CLOUD_TASKS_EMULATOR_HOST":"127.0.0.1:9499","FIREBASE_CONFIG":"{\"storageBucket\":\"veritas-472301.firebasestorage.app\",\"projectId\":\"veritas-472301\"}","GOOGLE_APPLICATION_CREDENTIALS":"/Users/swaroopthakare/.config/firebase/swaroopthakare797_gmail_com_application_default_credentials.json","ADMIN_PORT":"8081"} in /Users/swaroopthakare/Downloads/veritasAI/VeritasAI/functions
+[debug] [2025-10-17T20:37:05.684Z] Running command with virtualenv: command=., args=["\"/Users/swaroopthakare/Downloads/veritasAI/VeritasAI/functions/venv/bin/activate\"","&&","python3.12","\"/Users/swaroopthakare/Downloads/veritasAI/VeritasAI/functions/venv/lib/python3.12/site-packages/firebase_functions/private/serving.py\""]
+[info]  * Serving Flask app 'serving'
+ * Debug mode: off
+
+[error] WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on http://127.0.0.1:8081
+Press CTRL+C to quit
+
+[debug] [2025-10-17T20:37:07.457Z] File /Users/swaroopthakare/Downloads/veritasAI/VeritasAI/functions/__pycache__/main.cpython-312.pyc changed, reloading triggers {"metadata":{"emulator":{"name":"functions"},"message":"File /Users/swaroopthakare/Downloads/veritasAI/VeritasAI/functions/__pycache__/main.cpython-312.pyc changed, reloading triggers"}}
+[debug] [2025-10-17T20:37:08.459Z] Customer code is not Node
+[debug] [2025-10-17T20:37:08.459Z] Validating python source
+[debug] [2025-10-17T20:37:08.459Z] Building python source
+[debug] [2025-10-17T20:37:08.460Z] Could not find functions.yaml. Must use http discovery
+[debug] [2025-10-17T20:37:08.461Z] Running command with virtualenv: command=., args=["\"/Users/swaroopthakare/Downloads/veritasAI/VeritasAI/functions/venv/bin/activate\"","&&","python3.12","-c","\"import firebase_functions; import os; print(os.path.dirname(firebase_functions.__file__))\""]
+[debug] [2025-10-17T20:37:08.504Z] stdout: /Users/swaroopthakare/Downloads/veritasAI/VeritasAI/functions/venv/lib/python3.12/site-packages/firebase_functions
+
+[debug] [2025-10-17T20:37:08.507Z] Running admin server with args: ["python3.12","\"/Users/swaroopthakare/Downloads/veritasAI/VeritasAI/functions/venv/lib/python3.12/site-packages/firebase_functions/private/serving.py\""] and env: {"GCLOUD_PROJECT":"veritas-472301","K_REVISION":"1","PORT":"80","GOOGLE_CLOUD_QUOTA_PROJECT":"veritas-472301","FUNCTIONS_EMULATOR":"true","TZ":"UTC","FIREBASE_DEBUG_MODE":"true","FIREBASE_DEBUG_FEATURES":"{\"skipTokenVerification\":true,\"enableCors\":true}","FIREBASE_EMULATOR_HUB":"127.0.0.1:4400","CLOUD_EVENTARC_EMULATOR_HOST":"http://127.0.0.1:9299","CLOUD_TASKS_EMULATOR_HOST":"127.0.0.1:9499","FIREBASE_CONFIG":"{\"storageBucket\":\"veritas-472301.firebasestorage.app\",\"projectId\":\"veritas-472301\"}","GOOGLE_APPLICATION_CREDENTIALS":"/Users/swaroopthakare/.config/firebase/swaroopthakare797_gmail_com_application_default_credentials.json","ADMIN_PORT":"8082"} in /Users/swaroopthakare/Downloads/veritasAI/VeritasAI/functions
+[debug] [2025-10-17T20:37:08.507Z] Running command with virtualenv: command=., args=["\"/Users/swaroopthakare/Downloads/veritasAI/VeritasAI/functions/venv/bin/activate\"","&&","python3.12","\"/Users/swaroopthakare/Downloads/veritasAI/VeritasAI/functions/venv/lib/python3.12/site-packages/firebase_functions/private/serving.py\""]
+[info]  * Serving Flask app 'serving'
+ * Debug mode: off
+
+[error] WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on http://127.0.0.1:8082
+Press CTRL+C to quit
+
+[error] 127.0.0.1 - - [17/Oct/2025 20:37:10] "GET /__/functions.yaml HTTP/1.1" 200 -
+
+[debug] [2025-10-17T20:37:10.260Z] Got response from /__/functions.yaml endpoints:
+  ai_feedback:
+    availableMemoryMb: 512
+    concurrency: null
+    cpu: gcf_gen1
+    entryPoint: ai_feedback
+    httpsTrigger: {}
+    ingressSettings: null
+    labels: {}
+    maxInstances: null
+    minInstances: null
+    platform: gcfv2
+    region:
+    - asia-south1
+    secretEnvironmentVariables: []
+    serviceAccountEmail: null
+    timeoutSeconds: null
+  on_file_upload:
+    availableMemoryMb: 512
+    concurrency: null
+    cpu: gcf_gen1
+    entryPoint: on_file_upload
+    httpsTrigger: {}
+    ingressSettings: null
+    labels: {}
+    maxInstances: null
+    minInstances: null
+    platform: gcfv2
+    region:
+    - asia-south1
+    secretEnvironmentVariables: []
+    serviceAccountEmail: null
+    timeoutSeconds: null
+  process_diligence_task:
+    availableMemoryMb: 512
+    concurrency: null
+    cpu: gcf_gen1
+    entryPoint: process_diligence_task
+    eventTrigger:
+      eventFilters:
+        topic: diligence-topic
+      eventType: google.cloud.pubsub.topic.v1.messagePublished
+      retry: false
+    ingressSettings: null
+    labels: {}
+    maxInstances: null
+    minInstances: null
+    platform: gcfv2
+    region:
+    - asia-south1
+    secretEnvironmentVariables: []
+    serviceAccountEmail: null
+    timeoutSeconds: 540
+  process_ingestion_task:
+    availableMemoryMb: 512
+    concurrency: null
+    cpu: gcf_gen1
+    entryPoint: process_ingestion_task
+    eventTrigger:
+      eventFilters:
+        topic: document-ingestion-topic
+      eventType: google.cloud.pubsub.topic.v1.messagePublished
+      retry: false
+    ingressSettings: null
+    labels: {}
+    maxInstances: null
+    minInstances: null
+    platform: gcfv2
+    region:
+    - asia-south1
+    secretEnvironmentVariables: []
+    serviceAccountEmail: null
+    timeoutSeconds: 540
+  schedule_ai_interview:
+    availableMemoryMb: 512
+    concurrency: null
+    cpu: gcf_gen1
+    entryPoint: schedule_ai_interview
+    httpsTrigger: {}
+    ingressSettings: null
+    labels: {}
+    maxInstances: null
+    minInstances: null
+    platform: gcfv2
+    region:
+    - asia-south1
+    secretEnvironmentVariables: []
+    serviceAccountEmail: null
+    timeoutSeconds: null
+  trigger_diligence:
+    availableMemoryMb: 512
+    concurrency: null
+    cpu: gcf_gen1
+    entryPoint: trigger_diligence
+    httpsTrigger: {}
+    ingressSettings: null
+    labels: {}
+    maxInstances: null
+    minInstances: null
+    platform: gcfv2
+    region:
+    - asia-south1
+    secretEnvironmentVariables: []
+    serviceAccountEmail: null
+    timeoutSeconds: 900
+params: []
+requiredAPIs: []
+specVersion: v1alpha1
+
+[error] 127.0.0.1 - - [17/Oct/2025 20:37:10] "GET /__/quitquitquit HTTP/1.1" 200 -
+
+[error] /bin/sh: line 1: 93173 Terminated: 15          python3.12 "/Users/swaroopthakare/Downloads/veritasAI/VeritasAI/functions/venv/lib/python3.12/site-packages/firebase_functions/private/serving.py"
+
+[info] ✔  functions: Loaded functions definitions from source: ai_feedback, on_file_upload, process_diligence_task, process_ingestion_task, schedule_ai_interview, trigger_diligence. {"metadata":{"emulator":{"name":"functions"},"message":"Loaded functions definitions from source: ai_feedback, on_file_upload, process_diligence_task, process_ingestion_task, schedule_ai_interview, trigger_diligence."}}
+[info] ✔  functions[asia-south1-ai_feedback]: http function initialized (http://127.0.0.1:5001/veritas-472301/asia-south1/ai_feedback). {"metadata":{"emulator":{"name":"functions"},"message":"http function initialized (http://127.0.0.1:5001/veritas-472301/asia-south1/ai_feedback)."}}
+[error] 127.0.0.1 - - [17/Oct/2025 20:37:11] "GET /__/functions.yaml HTTP/1.1" 200 -
+
+[debug] [2025-10-17T20:37:11.196Z] Got response from /__/functions.yaml endpoints:
+  ai_feedback:
+    availableMemoryMb: 512
+    concurrency: null
+    cpu: gcf_gen1
+    entryPoint: ai_feedback
+    httpsTrigger: {}
+    ingressSettings: null
+    labels: {}
+    maxInstances: null
+    minInstances: null
+    platform: gcfv2
+    region:
+    - asia-south1
+    secretEnvironmentVariables: []
+    serviceAccountEmail: null
+    timeoutSeconds: null
+  on_file_upload:
+    availableMemoryMb: 512
+    concurrency: null
+    cpu: gcf_gen1
+    entryPoint: on_file_upload
+    httpsTrigger: {}
+    ingressSettings: null
+    labels: {}
+    maxInstances: null
+    minInstances: null
+    platform: gcfv2
+    region:
+    - asia-south1
+    secretEnvironmentVariables: []
+    serviceAccountEmail: null
+    timeoutSeconds: null
+  process_diligence_task:
+    availableMemoryMb: 512
+    concurrency: null
+    cpu: gcf_gen1
+    entryPoint: process_diligence_task
+    eventTrigger:
+      eventFilters:
+        topic: diligence-topic
+      eventType: google.cloud.pubsub.topic.v1.messagePublished
+      retry: false
+    ingressSettings: null
+    labels: {}
+    maxInstances: null
+    minInstances: null
+    platform: gcfv2
+    region:
+    - asia-south1
+    secretEnvironmentVariables: []
+    serviceAccountEmail: null
+    timeoutSeconds: 540
+  process_ingestion_task:
+    availableMemoryMb: 512
+    concurrency: null
+    cpu: gcf_gen1
+    entryPoint: process_ingestion_task
+    eventTrigger:
+      eventFilters:
+        topic: document-ingestion-topic
+      eventType: google.cloud.pubsub.topic.v1.messagePublished
+      retry: false
+    ingressSettings: null
+    labels: {}
+    maxInstances: null
+    minInstances: null
+    platform: gcfv2
+    region:
+    - asia-south1
+    secretEnvironmentVariables: []
+    serviceAccountEmail: null
+    timeoutSeconds: 540
+  schedule_ai_interview:
+    availableMemoryMb: 512
+    concurrency: null
+    cpu: gcf_gen1
+    entryPoint: schedule_ai_interview
+    httpsTrigger: {}
+    ingressSettings: null
+    labels: {}
+    maxInstances: null
+    minInstances: null
+    platform: gcfv2
+    region:
+    - asia-south1
+    secretEnvironmentVariables: []
+    serviceAccountEmail: null
+    timeoutSeconds: null
+  trigger_diligence:
+    availableMemoryMb: 512
+    concurrency: null
+    cpu: gcf_gen1
+    entryPoint: trigger_diligence
+    httpsTrigger: {}
+    ingressSettings: null
+    labels: {}
+    maxInstances: null
+    minInstances: null
+    platform: gcfv2
+    region:
+    - asia-south1
+    secretEnvironmentVariables: []
+    serviceAccountEmail: null
+    timeoutSeconds: 900
+params: []
+requiredAPIs: []
+specVersion: v1alpha1
+
+[error] 127.0.0.1 - - [17/Oct/2025 20:37:11] "GET /__/quitquitquit HTTP/1.1" 200 -
+
+[error] /bin/sh: line 1: 93217 Terminated: 15          python3.12 "/Users/swaroopthakare/Downloads/veritasAI/VeritasAI/functions/venv/lib/python3.12/site-packages/firebase_functions/private/serving.py"
+
+[info] ✔  functions: Loaded functions definitions from source: ai_feedback, on_file_upload, process_diligence_task, process_ingestion_task, schedule_ai_interview, trigger_diligence. {"metadata":{"emulator":{"name":"functions"},"message":"Loaded functions definitions from source: ai_feedback, on_file_upload, process_diligence_task, process_ingestion_task, schedule_ai_interview, trigger_diligence."}}

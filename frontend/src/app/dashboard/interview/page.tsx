@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import React, { useState, useTransition, useEffect } from "react";
 import { useSearchParams } from 'next/navigation';
-import { API_ENDPOINTS, safeJsonResponse } from '@/lib/api';
+import { API_ENDPOINTS} from '@/lib/api';
 
 type ConductAiInterviewOutput = {
     interviewSummary: string;
@@ -33,7 +33,7 @@ const conductAiInterview = async (params: any): Promise<ConductAiInterviewOutput
             }),
         });
 
-        const data = await safeJsonResponse(response);
+        const data = await response.json();
         
         return {
             interviewSummary: data.interviewSummary || "Interview summary not available",

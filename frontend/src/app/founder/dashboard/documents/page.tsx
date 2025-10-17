@@ -9,6 +9,7 @@ import React, { useRef, useState, useEffect } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { uploadFile, API_ENDPOINTS } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Enhanced file type with processing status and scores
 interface UploadedFile {
@@ -23,11 +24,17 @@ interface UploadedFile {
 
 export default function DocumentsPage() {
     const { toast } = useToast();
+    const { user } = useAuth();
     const videoRef = useRef<HTMLVideoElement>(null);
     const audioRef = useRef<HTMLAudioElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const videoFileInputRef = useRef<HTMLInputElement>(null);
-    const audioFileInputRef = useRef<HTMLAudioElement>(null);
+    const audioFileInputRef = useRef<HTMLInputElement>(null);
+    
+    // Helper function to update file status with proper typing
+    const updateFileStatus = (files: UploadedFile[], targetFile: File, updates: Partial<UploadedFile>): UploadedFile[] => {
+        return files.map(f => f.file === targetFile ? { ...f, ...updates } : f);
+    };
     
     const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
     const [hasMicrophonePermission, setHasMicrophonePermission] = useState<boolean | null>(null);
@@ -70,28 +77,32 @@ export default function DocumentsPage() {
                 
                 if (diligenceData.status === 'completed') {
                     // Update file status to processed (without score)
-                    const updateFile = (files: UploadedFile[]) => 
-                        files.map(f => f.file === uploadedFile.file ? { 
-                            ...f, 
-                            status: 'processed', 
-                            diligenceId: diligenceData.diligenceId
-                        } : f);
-                    
-                    setUploadedFiles(updateFile);
-                    setUploadedVideoFiles(updateFile);
-                    setUploadedAudioFiles(updateFile);
+                    setUploadedFiles(prev => updateFileStatus(prev, uploadedFile.file, { 
+                        status: 'processed', 
+                        diligenceId: diligenceData.diligenceId
+                    }));
+                    setUploadedVideoFiles(prev => updateFileStatus(prev, uploadedFile.file, { 
+                        status: 'processed', 
+                        diligenceId: diligenceData.diligenceId
+                    }));
+                    setUploadedAudioFiles(prev => updateFileStatus(prev, uploadedFile.file, { 
+                        status: 'processed', 
+                        diligenceId: diligenceData.diligenceId
+                    }));
                 } else if (diligenceData.status === 'error') {
                     // Update file status to error
-                    const updateFile = (files: UploadedFile[]) => 
-                        files.map(f => f.file === uploadedFile.file ? { 
-                            ...f, 
-                            status: 'error',
-                            error: diligenceData.error
-                        } : f);
-                    
-                    setUploadedFiles(updateFile);
-                    setUploadedVideoFiles(updateFile);
-                    setUploadedAudioFiles(updateFile);
+                    setUploadedFiles(prev => updateFileStatus(prev, uploadedFile.file, { 
+                        status: 'error',
+                        error: diligenceData.error
+                    }));
+                    setUploadedVideoFiles(prev => updateFileStatus(prev, uploadedFile.file, { 
+                        status: 'error',
+                        error: diligenceData.error
+                    }));
+                    setUploadedAudioFiles(prev => updateFileStatus(prev, uploadedFile.file, { 
+                        status: 'error',
+                        error: diligenceData.error
+                    }));
                 }
             }
         } catch (error) {
@@ -161,18 +172,15 @@ export default function DocumentsPage() {
 
                 if (!allowedTypes.includes(file.type)) {
                     // Update status to error
-                    const updateFile = (files: UploadedFile[]) => 
-                        files.map(f => f.file === file ? { ...f, status: 'error', error: 'Invalid file type' } : f);
-                    
                     switch (type) {
                         case 'deck':
-                            setUploadedFiles(updateFile);
+                            setUploadedFiles(prev => updateFileStatus(prev, file, { status: 'error', error: 'Invalid file type' }));
                             break;
                         case 'video':
-                            setUploadedVideoFiles(updateFile);
+                            setUploadedVideoFiles(prev => updateFileStatus(prev, file, { status: 'error', error: 'Invalid file type' }));
                             break;
                         case 'audio':
-                            setUploadedAudioFiles(updateFile);
+                            setUploadedAudioFiles(prev => updateFileStatus(prev, file, { status: 'error', error: 'Invalid file type' }));
                             break;
                     }
                     
@@ -186,18 +194,15 @@ export default function DocumentsPage() {
 
                 if (file.size > maxSize) {
                     // Update status to error
-                    const updateFile = (files: UploadedFile[]) => 
-                        files.map(f => f.file === file ? { ...f, status: 'error', error: 'File too large' } : f);
-                    
                     switch (type) {
                         case 'deck':
-                            setUploadedFiles(updateFile);
+                            setUploadedFiles(prev => updateFileStatus(prev, file, { status: 'error', error: 'File too large' }));
                             break;
                         case 'video':
-                            setUploadedVideoFiles(updateFile);
+                            setUploadedVideoFiles(prev => updateFileStatus(prev, file, { status: 'error', error: 'File too large' }));
                             break;
                         case 'audio':
-                            setUploadedAudioFiles(updateFile);
+                            setUploadedAudioFiles(prev => updateFileStatus(prev, file, { status: 'error', error: 'File too large' }));
                             break;
                     }
                     
@@ -210,26 +215,28 @@ export default function DocumentsPage() {
                 }
 
                 // Upload to Firebase Storage via API
-                const result = await uploadFile(file, type);
+                const result = await uploadFile(file, user?.email || 'unknown@example.com');
                 
                 if (result.success) {
                     // Update status to processing with filename
-                    const updateFile = (files: UploadedFile[]) => 
-                        files.map(f => f.file === file ? { 
-                            ...f, 
-                            status: 'processing', 
-                            fileName: result.fileName 
-                        } : f);
-                    
                     switch (type) {
                         case 'deck':
-                            setUploadedFiles(updateFile);
+                            setUploadedFiles(prev => updateFileStatus(prev, file, { 
+                                status: 'processing', 
+                                fileName: result.fileName 
+                            }));
                             break;
                         case 'video':
-                            setUploadedVideoFiles(updateFile);
+                            setUploadedVideoFiles(prev => updateFileStatus(prev, file, { 
+                                status: 'processing', 
+                                fileName: result.fileName 
+                            }));
                             break;
                         case 'audio':
-                            setUploadedAudioFiles(updateFile);
+                            setUploadedAudioFiles(prev => updateFileStatus(prev, file, { 
+                                status: 'processing', 
+                                fileName: result.fileName 
+                            }));
                             break;
                     }
                     
@@ -239,22 +246,24 @@ export default function DocumentsPage() {
                     });
                 } else {
                     // Update status to error
-                    const updateFile = (files: UploadedFile[]) => 
-                        files.map(f => f.file === file ? { 
-                            ...f, 
-                            status: 'error', 
-                            error: result.error || 'Upload failed' 
-                        } : f);
-                    
                     switch (type) {
                         case 'deck':
-                            setUploadedFiles(updateFile);
+                            setUploadedFiles(prev => updateFileStatus(prev, file, { 
+                                status: 'error', 
+                                error: result.error || 'Upload failed' 
+                            }));
                             break;
                         case 'video':
-                            setUploadedVideoFiles(updateFile);
+                            setUploadedVideoFiles(prev => updateFileStatus(prev, file, { 
+                                status: 'error', 
+                                error: result.error || 'Upload failed' 
+                            }));
                             break;
                         case 'audio':
-                            setUploadedAudioFiles(updateFile);
+                            setUploadedAudioFiles(prev => updateFileStatus(prev, file, { 
+                                status: 'error', 
+                                error: result.error || 'Upload failed' 
+                            }));
                             break;
                     }
                     
@@ -379,7 +388,7 @@ export default function DocumentsPage() {
                 const file = new File([blob], `video-pitch-${Date.now()}.webm`, { type: 'video/webm' });
                 
                 // Upload to Firebase Storage via API
-                const result = await uploadFile(file, 'video');
+                const result = await uploadFile(file, user?.email || 'unknown@example.com');
                 
                 if (result.success) {
                     // Create uploaded file object with initial status
@@ -442,7 +451,7 @@ export default function DocumentsPage() {
                 const file = new File([blob], `audio-pitch-${Date.now()}.webm`, { type: 'audio/webm' });
                 
                 // Upload to Firebase Storage via API
-                const result = await uploadFile(file, 'audio');
+                const result = await uploadFile(file, user?.email || 'unknown@example.com');
                 
                 if (result.success) {
                     // Create uploaded file object with initial status

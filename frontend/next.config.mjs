@@ -19,6 +19,7 @@ const envConfig = {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'export',  // ← ADD THIS LINE
   eslint: {
     ignoreDuringBuilds: true,
   },

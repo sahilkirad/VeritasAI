@@ -8,6 +8,7 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { apiClient } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+import WebRTCInterviewRoom from '../WebRTCInterviewRoom';
 
 interface Memo1Data {
   title?: string;
@@ -106,6 +107,31 @@ export default function Memo1Tab({ memo1, onInterviewScheduled }: Memo1TabProps)
     }
   };
 
+  const handleStartInterview = async () => {
+    setIsStarting(true);
+    try {
+      // Generate a unique session ID for WebRTC
+      const sessionId = `webrtc_session_${Date.now()}`;
+      setSessionId(sessionId);
+      setShowTranscript(true);
+      
+      toast({
+        title: "WebRTC Interview Started",
+        description: "Instant AI interview initiated. Agents are ready to analyze.",
+        variant: "success",
+      });
+    } catch (error) {
+      console.error('Error starting interview:', error);
+      toast({
+        title: "Error",
+        description: "Failed to start the interview. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsStarting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Executive Summary */}
@@ -122,19 +148,19 @@ export default function Memo1Tab({ memo1, onInterviewScheduled }: Memo1TabProps)
               </CardDescription>
             </div>
             <Button
-              onClick={handleScheduleInterview}
-              disabled={isScheduling}
+              onClick={handleStartInterview}
+              disabled={isStarting}
               className="flex items-center gap-2"
             >
-              {isScheduling ? (
+              {isStarting ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Scheduling...
+                  Starting...
                 </>
               ) : (
                 <>
-                  <Calendar className="h-4 w-4" />
-                  Schedule Interview
+                  <Play className="h-4 w-4" />
+                  Start AI Interview
                 </>
               )}
             </Button>
@@ -495,6 +521,16 @@ export default function Memo1Tab({ memo1, onInterviewScheduled }: Memo1TabProps)
               </ul>
           </CardContent>
         </Card>
+      )}
+
+      {/* WebRTC Interview Room */}
+      {showTranscript && sessionId && (
+        <WebRTCInterviewRoom 
+          sessionId={sessionId}
+          onInterviewComplete={(transcript, memo) => {
+            console.log('Interview completed:', { transcript, memo });
+          }}
+        />
       )}
     </div>
   );

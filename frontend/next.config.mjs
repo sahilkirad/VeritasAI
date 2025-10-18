@@ -14,12 +14,13 @@ const envConfig = {
   NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID: 'G-PRT33XGJNS',
   NEXT_PUBLIC_GA_PROPERTY_ID: '213025502',
   NEXT_PUBLIC_APP_NAME: 'Veritas',
-  NEXT_PUBLIC_APP_URL: 'http://localhost:3000'
+  NEXT_PUBLIC_APP_URL: 'https://veritas-472301.web.app'
 };
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',  // ← ADD THIS LINE
+  output: 'export',  // Required for Firebase static hosting
+  trailingSlash: true,  // Required for Firebase hosting
   eslint: {
     ignoreDuringBuilds: true,
   },

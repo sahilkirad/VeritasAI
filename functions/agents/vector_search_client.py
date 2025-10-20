@@ -70,15 +70,32 @@ class VectorSearchClient:
                 result = {
                     'company_id': company_id,
                     'memo1': data.get('memo_1', {}),
-                    'pitch_deck_text': data.get('extracted_text', ''),
+                    'pitch_deck_text': data.get('extracted_text', '') or data.get('pitch_deck_text', '') or json.dumps(data.get('memo_1', {}), indent=2),
                     'founder_profile': {},
                     'created_at': data.get('created_at')
                 }
                 
-                # Get founder profile if founder_email exists
+                # Log what data we're getting for debugging
+                logger.info(f"Retrieved data for {company_id}:")
+                logger.info(f"  - memo_1 keys: {list(data.get('memo_1', {}).keys()) if data.get('memo_1') else 'None'}")
+                logger.info(f"  - extracted_text length: {len(data.get('extracted_text', ''))}")
+                logger.info(f"  - pitch_deck_text length: {len(data.get('pitch_deck_text', ''))}")
+                logger.info(f"  - Final pitch_deck_text length: {len(result['pitch_deck_text'])}")
+                
+                # Get founder profile from multiple sources
                 founder_email = data.get('founder_email')
-                if founder_email:
-                    # Query by email field since document ID is UID, not email
+                founder_profile = {}
+                
+                # First, check if founder_profile exists directly in companyVectorData
+                company_vector_ref = self.db.collection('companyVectorData').document(company_id)
+                company_vector_doc = company_vector_ref.get()
+                if company_vector_doc.exists:
+                    company_vector_data = company_vector_doc.to_dict()
+                    if 'founder_profile' in company_vector_data:
+                        founder_profile = company_vector_data['founder_profile']
+                
+                # If not found in companyVectorData, check founderProfiles collection
+                if not founder_profile and founder_email:
                     profiles_ref = self.db.collection('founderProfiles')
                     query = profiles_ref.where('email', '==', founder_email).limit(1)
                     docs = query.get()
@@ -90,7 +107,7 @@ class VectorSearchClient:
                         # Use top-level fields if nested profile exists (handle old data)
                         if 'profile' in profile_data and profile_data['profile']:
                             # Merge: prefer top-level, fallback to nested
-                            result['founder_profile'] = {
+                            founder_profile = {
                                 'fullName': profile_data.get('fullName') or profile_data['profile'].get('fullName', ''),
                                 'linkedinUrl': profile_data.get('linkedinUrl') or profile_data['profile'].get('linkedinUrl', ''),
                                 'professionalBackground': profile_data.get('professionalBackground') or profile_data['profile'].get('professionalBackground', ''),
@@ -102,7 +119,24 @@ class VectorSearchClient:
                             }
                         else:
                             # New structure: use top-level fields directly
-                            result['founder_profile'] = profile_data
+                            founder_profile = profile_data
+                
+                # Normalize founder profile fields for consistency
+                if founder_profile:
+                    result['founder_profile'] = {
+                        'fullName': founder_profile.get('fullName', ''),
+                        'email': founder_profile.get('email', founder_email or ''),
+                        'linkedinUrl': founder_profile.get('linkedinUrl', ''),
+                        'professionalBackground': founder_profile.get('professionalBackground', ''),
+                        'education': founder_profile.get('education', []),
+                        'previousCompanies': founder_profile.get('previousCompanies', []),
+                        'yearsOfExperience': founder_profile.get('yearsOfExperience', ''),
+                        'teamSize': founder_profile.get('teamSize', ''),
+                        'expertise': founder_profile.get('expertise', []),
+                        'companyName': founder_profile.get('companyName', ''),
+                        'companyWebsite': founder_profile.get('companyWebsite', ''),
+                        'completionStatus': founder_profile.get('completionStatus', 'incomplete')
+                    }
                 
                 return result
             

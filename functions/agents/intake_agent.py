@@ -282,19 +282,43 @@ class IntakeCurationAgent:
         
     def _parse_json_from_text(self, text: str) -> Dict[str, Any]:
         """Safely extracts a JSON object from a string, even with markdown wrappers."""
-        self.logger.debug(f"Attempting to parse JSON from model response: {text}")
-        # Use a regex to find the JSON block, which is more robust
-        match = re.search(r'```(?:json)?\s*(\{.*\})\s*```', text, re.DOTALL)
+        self.logger.debug(f"Attempting to parse JSON from model response: {text[:200]}...")
+        
+        # Clean up the text first
+        cleaned_text = text.strip()
+        
+        # Remove any leading/trailing non-JSON characters
+        if cleaned_text.startswith('⁠ '):
+            cleaned_text = cleaned_text[2:]  # Remove the invisible character and space
+        
+        # Try to find JSON in markdown code blocks
+        match = re.search(r'```(?:json)?\s*(\{.*\})\s*```', cleaned_text, re.DOTALL)
         if match:
             json_str = match.group(1)
         else:
-            # Fallback for plain JSON without markdown
-            json_str = text
+            # Try to find JSON object boundaries
+            start_idx = cleaned_text.find('{')
+            if start_idx != -1:
+                # Find matching closing brace
+                brace_count = 0
+                end_idx = start_idx
+                for i, char in enumerate(cleaned_text[start_idx:], start_idx):
+                    if char == '{':
+                        brace_count += 1
+                    elif char == '}':
+                        brace_count -= 1
+                        if brace_count == 0:
+                            end_idx = i + 1
+                            break
+                json_str = cleaned_text[start_idx:end_idx]
+            else:
+                json_str = cleaned_text
             
         try:
             return json.loads(json_str)
-        except json.JSONDecodeError:
-            self.logger.error(f"Failed to decode JSON from model response: {json_str}")
+        except json.JSONDecodeError as e:
+            self.logger.error(f"Failed to decode JSON from model response: {e}")
+            self.logger.error(f"JSON string (first 500 chars): {json_str[:500]}")
             return {"error": "Failed to parse valid JSON from model response.", "raw_response": text}
 
     def get_founder_profile(self, founder_email: str) -> Optional[Dict[str, Any]]:

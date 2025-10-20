@@ -205,13 +205,23 @@ export default function DiligencePage() {
         throw new Error('Failed to run diligence');
       }
       
-      const result = await response.json();
+      const raw = await response.text();
+      let result: any;
+      try {
+        result = JSON.parse(raw);
+      } catch (e) {
+        console.error('Invalid JSON from run_diligence (first 1000 chars):', raw.slice(0, 1000));
+        throw e;
+      }
       
       if (result.error) {
         throw new Error(result.error);
       }
       
       // Set results directly from response
+      console.log('Diligence results received:', result);
+      console.log('Founder analysis score:', result?.founder_analysis?.score);
+      console.log('Agent validations:', result?.agent_validations);
       setDiligenceResults(result);
       
       toast({
@@ -862,27 +872,41 @@ export default function DiligencePage() {
                       </CardHeader>
                       <CardContent className="space-y-4">
                         {/* Key Metrics */}
-                        {diligenceResults.agent_validations.founder_profile?.credibility_score !== undefined && (
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="p-4 bg-muted rounded-lg">
-                              <p className="text-sm text-muted-foreground mb-1">Credibility Score</p>
-                              <p className="text-3xl font-bold">{diligenceResults.agent_validations.founder_profile.credibility_score}/100</p>
-                            </div>
-                            {diligenceResults.agent_validations.founder_profile?.risk_level && (
-                              <div className="p-4 bg-muted rounded-lg">
-                                <p className="text-sm text-muted-foreground mb-1">Risk Level</p>
-                                <Badge className="text-lg">{diligenceResults.agent_validations.founder_profile.risk_level}</Badge>
-                              </div>
-                            )}
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="p-4 bg-muted rounded-lg">
+                            <p className="text-sm text-muted-foreground mb-1">Credibility Score</p>
+                            <p className="text-3xl font-bold">
+                              {(() => {
+                                // Try multiple score sources in order of preference
+                                const score = diligenceResults?.founder_analysis?.score ?? 
+                                            diligenceResults?.agent_validations?.founder_profile?.credibility_score ?? 
+                                            diligenceResults?.overall_score ?? 0;
+                                const numScore = Number(score) || 0;
+                                // Convert to 0-100 scale if it's on 0-10 scale
+                                const displayScore = numScore <= 10 ? (numScore * 10) : numScore;
+                                return `${displayScore}/100`;
+                              })()}
+                            </p>
                           </div>
-                        )}
+                          <div className="p-4 bg-muted rounded-lg">
+                            <p className="text-sm text-muted-foreground mb-1">Validation Status</p>
+                            <Badge variant={
+                              diligenceResults?.agent_validations?.founder_profile?.validation_status === 'verified' ? 'default' :
+                              diligenceResults?.agent_validations?.founder_profile?.validation_status === 'inconsistent' ? 'destructive' : 'secondary'
+                            }>
+                              {diligenceResults?.agent_validations?.founder_profile?.validation_status || 
+                               diligenceResults?.founder_analysis?.score > 7 ? 'verified' : 'unverified'}
+                            </Badge>
+                          </div>
+                        </div>
                         
                         {/* Detailed Analysis */}
-                        {diligenceResults.agent_validations.founder_profile?.detailed_analysis && (
+                        {(diligenceResults.agent_validations.founder_profile?.detailed_analysis || diligenceResults.founder_analysis) && (
                           <div>
                             <h4 className="font-semibold mb-2">Analysis</h4>
                             <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                              {diligenceResults.agent_validations.founder_profile.detailed_analysis}
+                              {diligenceResults.agent_validations.founder_profile?.detailed_analysis || 
+                               `Background: ${diligenceResults.founder_analysis?.background || 'N/A'}\n\nMarket Fit: ${diligenceResults.founder_analysis?.market_fit || 'N/A'}`}
                             </p>
                           </div>
                         )}
@@ -935,7 +959,7 @@ export default function DiligencePage() {
                         {diligenceResults.agent_validations.pitch_consistency?.consistency_score !== undefined && (
                           <div className="p-4 bg-muted rounded-lg">
                             <p className="text-sm text-muted-foreground mb-1">Consistency Score</p>
-                            <p className="text-3xl font-bold">{diligenceResults.agent_validations.pitch_consistency.consistency_score}/100</p>
+                            <p className="text-3xl font-bold">{(Number(diligenceResults?.agent_validations?.pitch_consistency?.consistency_score ?? diligenceResults?.overall_score ?? 0) || 0)}/100</p>
                           </div>
                         )}
                         
@@ -983,7 +1007,7 @@ export default function DiligencePage() {
                         {diligenceResults.agent_validations.memo1_accuracy?.accuracy_score !== undefined && (
                           <div className="p-4 bg-muted rounded-lg">
                             <p className="text-sm text-muted-foreground mb-1">Accuracy Score</p>
-                            <p className="text-3xl font-bold">{diligenceResults.agent_validations.memo1_accuracy.accuracy_score}/100</p>
+                            <p className="text-3xl font-bold">{(Number(diligenceResults?.agent_validations?.memo1_accuracy?.accuracy_score ?? diligenceResults?.overall_score ?? 0) || 0)}/100</p>
                           </div>
                         )}
                         

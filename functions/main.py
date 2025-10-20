@@ -11,6 +11,14 @@ from datetime import datetime
 import base64
 import tempfile
 import time
+import warnings
+
+# Suppress Vertex AI SDK deprecation warning noise in logs
+warnings.filterwarnings(
+    "ignore",
+    category=UserWarning,
+    module="vertexai.generative_models"
+)
 
 # Firebase Functions SDK imports
 from firebase_functions import storage_fn, pubsub_fn, https_fn, options
@@ -926,6 +934,17 @@ def run_diligence(req: https_fn.Request):
         print(f"Diligence completed. Result keys: {list(result.keys())}")
         print(f"Result size: {len(json.dumps(result))} bytes")
         
+        # Debug: log score presence to detect zero rendering issues
+        try:
+            overall = result.get('overall_score')
+            av = result.get('agent_validations', {})
+            fp = (av.get('founder_profile') or {}).get('credibility_score')
+            pc = (av.get('pitch_consistency') or {}).get('consistency_score')
+            ma = (av.get('memo1_accuracy') or {}).get('accuracy_score')
+            print(f"Score summary -> overall:{overall}, fp:{fp}, pc:{pc}, ma:{ma}")
+        except Exception as _e:
+            print(f"Score summary logging failed: {_e}")
+
         # Return results with proper JSON content type
         headers = {
             **get_cors_headers(req),

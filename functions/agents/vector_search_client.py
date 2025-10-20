@@ -78,10 +78,31 @@ class VectorSearchClient:
                 # Get founder profile if founder_email exists
                 founder_email = data.get('founder_email')
                 if founder_email:
-                    profile_ref = self.db.collection('founderProfiles').document(founder_email)
-                    profile_doc = profile_ref.get()
-                    if profile_doc.exists:
-                        result['founder_profile'] = profile_doc.to_dict()
+                    # Query by email field since document ID is UID, not email
+                    profiles_ref = self.db.collection('founderProfiles')
+                    query = profiles_ref.where('email', '==', founder_email).limit(1)
+                    docs = query.get()
+                    
+                    if docs:
+                        profile_doc = docs[0]
+                        profile_data = profile_doc.to_dict()
+                        
+                        # Use top-level fields if nested profile exists (handle old data)
+                        if 'profile' in profile_data and profile_data['profile']:
+                            # Merge: prefer top-level, fallback to nested
+                            result['founder_profile'] = {
+                                'fullName': profile_data.get('fullName') or profile_data['profile'].get('fullName', ''),
+                                'linkedinUrl': profile_data.get('linkedinUrl') or profile_data['profile'].get('linkedinUrl', ''),
+                                'professionalBackground': profile_data.get('professionalBackground') or profile_data['profile'].get('professionalBackground', ''),
+                                'education': profile_data.get('education') or profile_data['profile'].get('education', []),
+                                'previousCompanies': profile_data.get('previousCompanies') or profile_data['profile'].get('previousCompanies', []),
+                                'yearsOfExperience': profile_data.get('yearsOfExperience') or profile_data['profile'].get('yearsOfExperience', ''),
+                                'teamSize': profile_data.get('teamSize') or profile_data['profile'].get('teamSize', ''),
+                                'expertise': profile_data.get('expertise') or profile_data['profile'].get('expertise', [])
+                            }
+                        else:
+                            # New structure: use top-level fields directly
+                            result['founder_profile'] = profile_data
                 
                 return result
             

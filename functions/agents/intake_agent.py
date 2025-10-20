@@ -397,6 +397,10 @@ class IntakeCurationAgent:
             
             # Add embedding status to result
             result["embeddings_stored"] = embedding_success
+            
+            # Add extracted text and founder email to result for diligence agents
+            result["extracted_text"] = pitch_deck_text
+            result["founder_email"] = founder_email
             result["company_id"] = company_id
             
             if embedding_success:

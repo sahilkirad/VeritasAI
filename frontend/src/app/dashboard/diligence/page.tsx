@@ -836,45 +836,183 @@ export default function DiligencePage() {
           <TabsContent value="agents">
             <Card>
               <CardHeader>
-                <CardTitle>Individual Agent Validations</CardTitle>
-                <CardDescription>Detailed results from each validation agent</CardDescription>
+                <CardTitle>Agent Validation Results</CardTitle>
+                <CardDescription>Detailed analysis from each validation agent</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                {diligenceResults.agent_validations && (
-                  <>
-                    {/* Founder Profile Agent */}
-                    <div className="border-b pb-4">
-                      <h3 className="font-semibold mb-2 flex items-center gap-2">
-                        <CheckCircle className="h-5 w-5 text-green-500" />
-                        Founder Profile Validation
-                      </h3>
-                      <pre className="bg-muted p-4 rounded text-xs overflow-auto">
-                        {JSON.stringify(diligenceResults.agent_validations.founder_profile, null, 2)}
-                      </pre>
-                    </div>
-                    
-                    {/* Pitch Consistency Agent */}
-                    <div className="border-b pb-4">
-                      <h3 className="font-semibold mb-2 flex items-center gap-2">
-                        <CheckCircle className="h-5 w-5 text-green-500" />
-                        Pitch Consistency Validation
-                      </h3>
-                      <pre className="bg-muted p-4 rounded text-xs overflow-auto">
-                        {JSON.stringify(diligenceResults.agent_validations.pitch_consistency, null, 2)}
-                      </pre>
-                    </div>
-                    
-                    {/* Memo Accuracy Agent */}
-                    <div className="border-b pb-4">
-                      <h3 className="font-semibold mb-2 flex items-center gap-2">
-                        <CheckCircle className="h-5 w-5 text-green-500" />
-                        Memo Accuracy Validation
-                      </h3>
-                      <pre className="bg-muted p-4 rounded text-xs overflow-auto">
-                        {JSON.stringify(diligenceResults.agent_validations.memo1_accuracy, null, 2)}
-                      </pre>
-                    </div>
-                  </>
+                {diligenceResults?.agent_validations ? (
+                  <div className="space-y-6">
+                    {/* Founder Profile Validation */}
+                    <Card className="border-l-4 border-l-blue-500">
+                      <CardHeader>
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-lg font-semibold flex items-center gap-2">
+                            <CheckCircle className="h-5 w-5 text-blue-500" />
+                            Founder Profile Validation
+                          </h3>
+                          {diligenceResults.agent_validations.founder_profile?.validation_status && (
+                            <Badge variant={
+                              diligenceResults.agent_validations.founder_profile.validation_status === 'verified' ? 'default' :
+                              diligenceResults.agent_validations.founder_profile.validation_status === 'inconsistent' ? 'destructive' : 'secondary'
+                            }>
+                              {diligenceResults.agent_validations.founder_profile.validation_status}
+                            </Badge>
+                          )}
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        {/* Key Metrics */}
+                        {diligenceResults.agent_validations.founder_profile?.credibility_score !== undefined && (
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="p-4 bg-muted rounded-lg">
+                              <p className="text-sm text-muted-foreground mb-1">Credibility Score</p>
+                              <p className="text-3xl font-bold">{diligenceResults.agent_validations.founder_profile.credibility_score}/100</p>
+                            </div>
+                            {diligenceResults.agent_validations.founder_profile?.risk_level && (
+                              <div className="p-4 bg-muted rounded-lg">
+                                <p className="text-sm text-muted-foreground mb-1">Risk Level</p>
+                                <Badge className="text-lg">{diligenceResults.agent_validations.founder_profile.risk_level}</Badge>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        
+                        {/* Detailed Analysis */}
+                        {diligenceResults.agent_validations.founder_profile?.detailed_analysis && (
+                          <div>
+                            <h4 className="font-semibold mb-2">Analysis</h4>
+                            <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                              {diligenceResults.agent_validations.founder_profile.detailed_analysis}
+                            </p>
+                          </div>
+                        )}
+                        
+                        {/* Red Flags & Verified Claims */}
+                        <div className="grid grid-cols-2 gap-4">
+                          {diligenceResults.agent_validations.founder_profile?.verified_claims?.length > 0 && (
+                            <div>
+                              <h4 className="font-semibold mb-2 text-green-600">✓ Verified Claims</h4>
+                              <ul className="text-sm space-y-1">
+                                {diligenceResults.agent_validations.founder_profile.verified_claims.map((claim: string, i: number) => (
+                                  <li key={i} className="text-muted-foreground">• {claim}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          {diligenceResults.agent_validations.founder_profile?.red_flags?.length > 0 && (
+                            <div>
+                              <h4 className="font-semibold mb-2 text-red-600">⚠ Red Flags</h4>
+                              <ul className="text-sm space-y-1">
+                                {diligenceResults.agent_validations.founder_profile.red_flags.map((flag: string, i: number) => (
+                                  <li key={i} className="text-muted-foreground">• {flag}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Pitch Consistency Validation */}
+                    <Card className="border-l-4 border-l-green-500">
+                      <CardHeader>
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-lg font-semibold flex items-center gap-2">
+                            <CheckCircle className="h-5 w-5 text-green-500" />
+                            Pitch Consistency Validation
+                          </h3>
+                          {diligenceResults.agent_validations.pitch_consistency?.risk_level && (
+                            <Badge variant={
+                              diligenceResults.agent_validations.pitch_consistency.risk_level === 'low' ? 'default' :
+                              diligenceResults.agent_validations.pitch_consistency.risk_level === 'high' ? 'destructive' : 'secondary'
+                            }>
+                              {diligenceResults.agent_validations.pitch_consistency.risk_level} risk
+                            </Badge>
+                          )}
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        {diligenceResults.agent_validations.pitch_consistency?.consistency_score !== undefined && (
+                          <div className="p-4 bg-muted rounded-lg">
+                            <p className="text-sm text-muted-foreground mb-1">Consistency Score</p>
+                            <p className="text-3xl font-bold">{diligenceResults.agent_validations.pitch_consistency.consistency_score}/100</p>
+                          </div>
+                        )}
+                        
+                        {diligenceResults.agent_validations.pitch_consistency?.detailed_analysis && (
+                          <div>
+                            <h4 className="font-semibold mb-2">Analysis</h4>
+                            <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                              {diligenceResults.agent_validations.pitch_consistency.detailed_analysis}
+                            </p>
+                          </div>
+                        )}
+                        
+                        {diligenceResults.agent_validations.pitch_consistency?.internal_contradictions?.length > 0 && (
+                          <div>
+                            <h4 className="font-semibold mb-2 text-yellow-600">Internal Contradictions</h4>
+                            <ul className="text-sm space-y-1">
+                              {diligenceResults.agent_validations.pitch_consistency.internal_contradictions.map((item: string, i: number) => (
+                                <li key={i} className="text-muted-foreground">• {item}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    {/* Memo Accuracy Validation */}
+                    <Card className="border-l-4 border-l-purple-500">
+                      <CardHeader>
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-lg font-semibold flex items-center gap-2">
+                            <CheckCircle className="h-5 w-5 text-purple-500" />
+                            Memo Accuracy Validation
+                          </h3>
+                          {diligenceResults.agent_validations.memo1_accuracy?.risk_level && (
+                            <Badge variant={
+                              diligenceResults.agent_validations.memo1_accuracy.risk_level === 'low' ? 'default' :
+                              diligenceResults.agent_validations.memo1_accuracy.risk_level === 'high' ? 'destructive' : 'secondary'
+                            }>
+                              {diligenceResults.agent_validations.memo1_accuracy.risk_level} risk
+                            </Badge>
+                          )}
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        {diligenceResults.agent_validations.memo1_accuracy?.accuracy_score !== undefined && (
+                          <div className="p-4 bg-muted rounded-lg">
+                            <p className="text-sm text-muted-foreground mb-1">Accuracy Score</p>
+                            <p className="text-3xl font-bold">{diligenceResults.agent_validations.memo1_accuracy.accuracy_score}/100</p>
+                          </div>
+                        )}
+                        
+                        {diligenceResults.agent_validations.memo1_accuracy?.detailed_analysis && (
+                          <div>
+                            <h4 className="font-semibold mb-2">Analysis</h4>
+                            <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                              {diligenceResults.agent_validations.memo1_accuracy.detailed_analysis}
+                            </p>
+                          </div>
+                        )}
+                        
+                        {diligenceResults.agent_validations.memo1_accuracy?.discrepancies?.length > 0 && (
+                          <div>
+                            <h4 className="font-semibold mb-2 text-red-600">Discrepancies Found</h4>
+                            <ul className="text-sm space-y-1">
+                              {diligenceResults.agent_validations.memo1_accuracy.discrepancies.map((item: string, i: number) => (
+                                <li key={i} className="text-muted-foreground">• {item}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p>No agent validation data available</p>
+                  </div>
                 )}
               </CardContent>
             </Card>

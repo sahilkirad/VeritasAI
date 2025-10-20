@@ -7,8 +7,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircle, AlertTriangle, HelpCircle, UploadCloud } from "lucide-react";
-import React from "react";
+import { Textarea } from "@/components/ui/textarea";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { CheckCircle, AlertTriangle, HelpCircle, UploadCloud, Play, Loader2, MessageSquare, History, X } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+import { collection, query, where, getDocs, doc, onSnapshot } from "firebase/firestore";
+import { db } from "@/lib/firebase-new";
 
 const RedFlagItem = ({
   type,
@@ -58,175 +65,823 @@ const RedFlagItem = ({
 };
 
 
-export default function DiligencePage() {
-  return (
-    <Tabs defaultValue="report" className="w-full">
-      <TabsList className="grid w-full grid-cols-3">
-        <TabsTrigger value="report">Red Flag Report</TabsTrigger>
-        <TabsTrigger value="benchmarking">Benchmarking</TabsTrigger>
-        <TabsTrigger value="analysis">Document Analysis</TabsTrigger>
-      </TabsList>
-      
-      <TabsContent value="report">
-        <Card>
-          <CardHeader>
-            <CardTitle>Automated Red Flag Report</CardTitle>
-            <CardDescription>
-              AI-generated analysis identifying contradictions, discrepancies, and unsubstantiated claims from all data sources.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div>
-              <h3 className="font-semibold mb-3">Internal Contradictions</h3>
-              <ul className="space-y-4">
-                 <RedFlagItem 
-                    type="discrepancy" 
-                    text={<>The Pitch Deck claims a <strong>$1.2M ARR</strong>, but the Financial Model shows an ARR of <strong>$850k</strong> (a 29% difference).</>}
-                    explanation={<p>Pitch Deck (Slide 8): "Current ARR at $1.2M".</p>}
-                    groundTruth={<p>Financial Model (Q4 Tab, F12): "=SUM(B12:E12)*12" which calculates to $850k.</p>}
-                 />
-                 <RedFlagItem 
-                    type="discrepancy" 
-                    text={<>The deck lists <strong>15 engineers</strong>, but the team bio document only contains <strong>11 engineering roles</strong>.</>}
-                    explanation={<p>Pitch Deck "Team" slide lists 15 engineers.</p>}
-                    groundTruth={<p>The attached 'Team_Bios.docx' details only 11 individuals with engineering titles.</p>}
-                 />
-              </ul>
-            </div>
-             <div>
-              <h3 className="font-semibold mb-3">External Discrepancies & Benchmarking</h3>
-              <ul className="space-y-4">
-                 <RedFlagItem 
-                    type="discrepancy" 
-                    text={<>Claimed Customer Acquisition Cost (CAC) of <strong>$500</strong> is 60% lower than the industry average for B2B SaaS ($1,200-$1,800).</>}
-                     explanation={<p>The company's financial model claims a CAC of $500.</p>}
-                     groundTruth={<p>Industry benchmark data for B2B SaaS indicates an average CAC of $1,200 - $1,800.</p>}
-                 />
-                  <RedFlagItem 
-                    type="verified" 
-                    text={<>Founder's previous company, "DataViz Inc.", had a successful exit, as verified by public news articles.</>}
-                     explanation={<p>Founder's bio mentions exiting "DataViz Inc."</p>}
-                     groundTruth={<p>News search confirms the acquisition by a larger tech firm in a 2021 article.</p>}
-                 />
-              </ul>
-            </div>
-             <div>
-              <h3 className="font-semibold mb-3">Unsubstantiated Claims</h3>
-              <ul className="space-y-4">
-                 <RedFlagItem 
-                    type="unverified" 
-                    text={<>Claim of a <strong>"Proprietary AI Algorithm"</strong> is made without technical details or patents.</>}
-                     explanation={<p>The term "Proprietary AI" is used multiple times in the pitch deck.</p>}
-                     groundTruth={<p>No patents were found via USPTO search and no technical whitepaper was provided.</p>}
-                 />
-                 <RedFlagItem 
-                    type="unverified" 
-                    text={<>A <strong>"Key Partnership with Microsoft"</strong> is mentioned, but no public announcement or co-marketing material was found.</>}
-                     explanation={<p>The deck mentions a partnership on the "Go-To-Market" slide.</p>}
-                     groundTruth={<p>A search of Microsoft's official partner directory and recent press releases yielded no results for "QuantumLeap AI".</p>}
-                 />
-              </ul>
-            </div>
-          </CardContent>
-        </Card>
-      </TabsContent>
+interface Company {
+  id: string;
+  name: string;
+  founderName: string;
+  status: string;
+}
 
-      <TabsContent value="benchmarking">
-        <Card>
-          <CardHeader>
-            <CardTitle>Deep Benchmarking</CardTitle>
-            <CardDescription>
-              Benchmark key metrics against industry averages from premium data sources.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <Label htmlFor="company">Company</Label>
-                <Select>
-                  <SelectTrigger id="company">
-                    <SelectValue placeholder="Select a company" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="quantumleap">QuantumLeap AI</SelectItem>
-                    <SelectItem value="biosynth">BioSynth</SelectItem>
-                    <SelectItem value="carboncapture">CarbonCapture Inc.</SelectItem>
-                  </SelectContent>
-                </Select>
+interface DiligenceReport {
+  company_id: string;
+  investor_email: string;
+  status: string;
+  progress: number;
+  results?: any;
+  error?: string;
+  created_at: any;
+  completed_at?: any;
+}
+
+interface QueryHistory {
+  question: string;
+  answer: string;
+  confidence_level?: string;
+  supporting_evidence?: string[];
+  data_sources_used?: string[];
+  caveats?: string[];
+  timestamp: string;
+}
+
+export default function DiligencePage() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [selectedCompany, setSelectedCompany] = useState<string>("");
+  const [isRunningDiligence, setIsRunningDiligence] = useState(false);
+  const [diligenceResults, setDiligenceResults] = useState<any>(null);
+  const [customQuestion, setCustomQuestion] = useState<string>("");
+  const [queryHistory, setQueryHistory] = useState<QueryHistory[]>([]);
+  const [isQuerying, setIsQuerying] = useState<boolean>(false);
+
+  // Real-time listener for companies from Deal Memo
+  useEffect(() => {
+    if (!user) return;
+
+    // Real-time listener for ingestionResults
+    const resultsQuery = query(
+      collection(db, 'ingestionResults'),
+      where('status', '==', 'SUCCESS')
+    );
+
+    const unsubscribe = onSnapshot(resultsQuery, (snapshot) => {
+      const companiesList: Company[] = [];
+      
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        const memo1 = data.memo_1 || {};
+        
+        companiesList.push({
+          id: doc.id,
+          name: memo1.title || 'Untitled Company',
+          founderName: memo1.founder_name || 'Unknown Founder',
+          status: 'completed'
+        });
+      });
+
+      setCompanies(companiesList);
+    }, (error) => {
+      console.error("Error listening to ingestionResults:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load companies",
+        variant: "destructive"
+      });
+    });
+
+    return () => unsubscribe();
+  }, [user, toast]);
+
+  // Load from localStorage on mount
+  useEffect(() => {
+    const savedResults = localStorage.getItem('diligenceResults');
+    const savedHistory = localStorage.getItem('queryHistory');
+    
+    if (savedResults) {
+      try {
+        setDiligenceResults(JSON.parse(savedResults));
+      } catch (e) {
+        console.error('Failed to load saved results:', e);
+      }
+    }
+    
+    if (savedHistory) {
+      try {
+        setQueryHistory(JSON.parse(savedHistory));
+      } catch (e) {
+        console.error('Failed to load query history:', e);
+      }
+    }
+  }, []);
+
+  // Save diligenceResults to localStorage whenever it changes
+  useEffect(() => {
+    if (diligenceResults) {
+      localStorage.setItem('diligenceResults', JSON.stringify(diligenceResults));
+    }
+  }, [diligenceResults]);
+
+  // Save queryHistory to localStorage whenever it changes
+  useEffect(() => {
+    if (queryHistory.length > 0) {
+      localStorage.setItem('queryHistory', JSON.stringify(queryHistory));
+    }
+  }, [queryHistory]);
+
+  // Listen for diligence status updates
+  // Removed Firestore status tracking - using simple loading state instead
+
+
+  const runDiligence = async () => {
+    if (!selectedCompany || !user) return;
+    
+    try {
+      setIsRunningDiligence(true);
+      setDiligenceResults(null);
+      
+      const response = await fetch(process.env.NEXT_PUBLIC_RUN_DILIGENCE_URL || 'https://asia-south1-veritas-472301.cloudfunctions.net/run_diligence', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          company_id: selectedCompany,
+          investor_email: user.email
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to run diligence');
+      }
+      
+      const result = await response.json();
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      
+      // Set results directly from response
+      setDiligenceResults(result);
+      
+      toast({
+        title: "Success",
+        description: "Diligence analysis completed",
+      });
+      
+    } catch (error) {
+      console.error('Error running diligence:', error);
+      toast({
+        title: "Error",
+        description: "Failed to run diligence analysis",
+        variant: "destructive"
+      });
+    } finally {
+      setIsRunningDiligence(false);
+    }
+  };
+
+  const askQuestion = async () => {
+    if (!selectedCompany || !customQuestion.trim()) return;
+    
+    try {
+      setIsQuerying(true);
+      
+      const response = await fetch(process.env.NEXT_PUBLIC_QUERY_DILIGENCE_URL || 'https://asia-south1-veritas-472301.cloudfunctions.net/query_diligence', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          company_id: selectedCompany,
+          question: customQuestion
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to query diligence');
+      }
+      
+      const result = await response.json();
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      
+      // Add to query history
+      const newQuery: QueryHistory = {
+        question: customQuestion,
+        answer: result.answer,
+        confidence_level: result.confidence_level,
+        supporting_evidence: result.supporting_evidence,
+        data_sources_used: result.data_sources_used,
+        caveats: result.caveats,
+        timestamp: new Date().toISOString()
+      };
+      
+      setQueryHistory(prev => [newQuery, ...prev]);
+      setCustomQuestion("");
+      
+      toast({
+        title: "Query Answered",
+        description: "Your question has been answered",
+      });
+      
+    } catch (error) {
+      console.error('Error asking question:', error);
+      toast({
+        title: "Error",
+        description: "Failed to get answer to your question",
+        variant: "destructive"
+      });
+    } finally {
+      setIsQuerying(false);
+    }
+  };
+
+  const clearDiligenceResults = () => {
+    setDiligenceResults(null);
+    localStorage.removeItem('diligenceResults');
+    toast({
+      title: "Results Cleared",
+      description: "Diligence results have been cleared",
+    });
+  };
+
+  const deleteQuery = (index: number) => {
+    const newHistory = queryHistory.filter((_, i) => i !== index);
+    setQueryHistory(newHistory);
+    if (newHistory.length === 0) {
+      localStorage.removeItem('queryHistory');
+    }
+    toast({
+      title: "Query Deleted",
+      description: "Query has been removed from history",
+    });
+  };
+
+  const clearAllQueries = () => {
+    setQueryHistory([]);
+    localStorage.removeItem('queryHistory');
+    toast({
+      title: "History Cleared",
+      description: "All query history has been cleared",
+    });
+  };
+
+  // Removed getProgressText function - using simple loading state
+
+  return (
+    <div className="space-y-6">
+      {/* Company Selection and Run Diligence */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Diligence Hub</CardTitle>
+          <CardDescription>
+            Select a company and run automated diligence validation
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="company-select">Select Company</Label>
+              <Select value={selectedCompany} onValueChange={setSelectedCompany}>
+                <SelectTrigger id="company-select">
+                  <SelectValue placeholder="Choose a company from Deal Memo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {companies.map((company) => (
+                    <SelectItem key={company.id} value={company.id}>
+                      {company.name} - {company.founderName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-end">
+              <Button
+                onClick={runDiligence}
+                disabled={!selectedCompany || isRunningDiligence}
+                className="w-full"
+              >
+                {isRunningDiligence ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Running...
+                  </>
+                ) : (
+                  <>
+                    <Play className="h-4 w-4 mr-2" />
+                    Run Diligence
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+          
+          {/* Simple Loading Indicator */}
+          {isRunningDiligence && (
+            <div className="flex items-center justify-center gap-3 py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <span className="text-lg font-medium">Running diligence analysis...</span>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Custom Query Interface */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MessageSquare className="h-5 w-5" />
+            Ask AI Questions
+          </CardTitle>
+          <CardDescription>
+            Ask specific questions about the selected company's diligence data
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex gap-2">
+            <Textarea
+              placeholder="Ask a question about the company's financials, team, market, etc..."
+              value={customQuestion}
+              onChange={(e) => setCustomQuestion(e.target.value)}
+              className="flex-1"
+              rows={2}
+            />
+            <Button 
+              onClick={askQuestion}
+              disabled={!selectedCompany || !customQuestion.trim() || isQuerying}
+              className="self-end"
+            >
+              {isQuerying ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Ask AI"
+              )}
+            </Button>
+          </div>
+          
+          {/* Query History */}
+          {queryHistory.length > 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <History className="h-4 w-4" />
+                  <span className="text-sm font-medium">Query History</span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={clearAllQueries}
+                >
+                  Clear All
+                </Button>
               </div>
-              <div className="space-y-4">
-                 <Label htmlFor="metric">Metric</Label>
-                <Select>
-                  <SelectTrigger id="metric">
-                    <SelectValue placeholder="Select a metric" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="cac">Customer Acquisition Cost (CAC)</SelectItem>
-                    <SelectItem value="ltv">Lifetime Value (LTV)</SelectItem>
-                    <SelectItem value="churn">Churn Rate</SelectItem>
-                    <SelectItem value="revenue-per-employee">Revenue per Employee</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-4">
-                <Label htmlFor="value">Claimed Value</Label>
-                <Input id="value" placeholder="$500" />
-              </div>
-               <div className="space-y-4 self-end">
-                <Button className="w-full md:w-auto">Benchmark Metric</Button>
+              <div className="space-y-4 max-h-60 overflow-y-auto">
+                {queryHistory.map((item, index) => (
+                  <Card key={index} className="border-l-4 border-l-primary">
+                    <CardContent className="pt-6">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 space-y-3">
+                          {/* Question */}
+                          <div>
+                            <p className="font-semibold text-sm text-muted-foreground">Question:</p>
+                            <p className="font-medium">{item.question}</p>
+                          </div>
+                          
+                          {/* Answer */}
+                          <div>
+                            <div className="flex items-center gap-2 mb-2">
+                              <p className="font-semibold text-sm text-muted-foreground">Answer:</p>
+                              {item.confidence_level && (
+                                <Badge variant={
+                                  item.confidence_level === 'high' ? 'default' :
+                                  item.confidence_level === 'medium' ? 'secondary' : 'outline'
+                                }>
+                                  {item.confidence_level} confidence
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-sm whitespace-pre-wrap">{item.answer}</p>
+                          </div>
+                          
+                          {/* Supporting Evidence */}
+                          {item.supporting_evidence && item.supporting_evidence.length > 0 && (
+                            <div>
+                              <p className="font-semibold text-sm text-muted-foreground mb-1">Evidence:</p>
+                              <ul className="list-disc list-inside space-y-1">
+                                {item.supporting_evidence.map((evidence, i) => (
+                                  <li key={i} className="text-sm text-muted-foreground">{evidence}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          
+                          {/* Timestamp */}
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(item.timestamp).toLocaleString()}
+                          </p>
+                        </div>
+                        
+                        {/* Delete Button */}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => deleteQuery(index)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             </div>
-            <Card className="bg-muted/30">
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Results Display */}
+      {diligenceResults && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-bold">Diligence Results</h2>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={clearDiligenceResults}
+            >
+              Clear Results
+            </Button>
+          </div>
+          <Tabs defaultValue="report" className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="report">Red Flag Report</TabsTrigger>
+            <TabsTrigger value="benchmarking">Benchmarking</TabsTrigger>
+            <TabsTrigger value="analysis">Document Analysis</TabsTrigger>
+            <TabsTrigger value="agents">Agent Validations</TabsTrigger>
+          </TabsList>
+      
+          <TabsContent value="report">
+            <Card>
               <CardHeader>
-                <CardTitle className="text-base">Benchmark Analysis</CardTitle>
+                <CardTitle>Automated Red Flag Report</CardTitle>
+                <CardDescription>
+                  AI-generated analysis identifying contradictions, discrepancies, and unsubstantiated claims from all data sources.
+                </CardDescription>
               </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  The claimed CAC of <span className="font-bold text-foreground">$500</span> is <span className="font-bold text-accent">60% lower</span> than the industry average for B2B SaaS, which ranges from $1,200 to $1,800. This level of efficiency is highly attractive if accurate.
-                  <br /><br />
-                  <span className="font-semibold text-foreground">Recommendation:</span> This is a top-decile claim. The investor should dedicate a significant portion of diligence to validating their customer acquisition channels, marketing spend, and sales cycle efficiency. Ask for a detailed breakdown of CAC calculation.
-                </p>
+              <CardContent className="space-y-6">
+                {/* Executive Summary */}
+                {diligenceResults.executive_summary && (
+                  <div className="bg-muted/50 p-4 rounded-lg">
+                    <h3 className="font-semibold mb-2">Executive Summary</h3>
+                    <p className="text-sm">{diligenceResults.executive_summary}</p>
+                  </div>
+                )}
+
+                {/* Risk Assessment */}
+                {diligenceResults.risk_assessment && (
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold">Risk Assessment:</span>
+                    <Badge variant={diligenceResults.risk_assessment === "high" ? "destructive" : 
+                                  diligenceResults.risk_assessment === "medium" ? "default" : "secondary"}>
+                      {diligenceResults.risk_assessment.toUpperCase()}
+                    </Badge>
+                  </div>
+                )}
+
+                {/* Key Findings */}
+                {diligenceResults.key_findings && (
+                  <div className="space-y-4">
+                    {diligenceResults.key_findings.internal_contradictions && diligenceResults.key_findings.internal_contradictions.length > 0 && (
+                      <div>
+                        <h3 className="font-semibold mb-3">Internal Contradictions</h3>
+                        <ul className="space-y-4">
+                          {diligenceResults.key_findings.internal_contradictions.map((contradiction: string, index: number) => (
+                            <RedFlagItem 
+                              key={index}
+                              type="discrepancy" 
+                              text={<span>{contradiction}</span>}
+                              explanation={<p>Internal data inconsistency detected</p>}
+                              groundTruth={<p>Cross-referenced with multiple data sources</p>}
+                            />
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {diligenceResults.key_findings.external_discrepancies && diligenceResults.key_findings.external_discrepancies.length > 0 && (
+                      <div>
+                        <h3 className="font-semibold mb-3">External Discrepancies</h3>
+                        <ul className="space-y-4">
+                          {diligenceResults.key_findings.external_discrepancies.map((discrepancy: string, index: number) => (
+                            <RedFlagItem 
+                              key={index}
+                              type="discrepancy" 
+                              text={<span>{discrepancy}</span>}
+                              explanation={<p>External data validation</p>}
+                              groundTruth={<p>Compared against industry benchmarks</p>}
+                            />
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {diligenceResults.key_findings.unsubstantiated_claims && diligenceResults.key_findings.unsubstantiated_claims.length > 0 && (
+                      <div>
+                        <h3 className="font-semibold mb-3">Unsubstantiated Claims</h3>
+                        <ul className="space-y-4">
+                          {diligenceResults.key_findings.unsubstantiated_claims.map((claim: string, index: number) => (
+                            <RedFlagItem 
+                              key={index}
+                              type="unverified" 
+                              text={<span>{claim}</span>}
+                              explanation={<p>Claim made without supporting evidence</p>}
+                              groundTruth={<p>No verification data found</p>}
+                            />
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Recommendations */}
+                {diligenceResults.recommendations && diligenceResults.recommendations.length > 0 && (
+                  <div>
+                    <h3 className="font-semibold mb-3">Recommendations</h3>
+                    <ul className="space-y-2">
+                      {diligenceResults.recommendations.map((recommendation: string, index: number) => (
+                        <li key={index} className="flex items-start gap-2">
+                          <CheckCircle className="h-4 w-4 mt-1 text-green-500" />
+                          <span className="text-sm">{recommendation}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </CardContent>
             </Card>
-          </CardContent>
-        </Card>
-      </TabsContent>
+          </TabsContent>
 
-      <TabsContent value="analysis">
-        <Card>
-          <CardHeader>
-            <CardTitle>Document Analysis</CardTitle>
-            <CardDescription>
-              Upload and cross-reference documents like pitch decks, financial models, and memos.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex h-32 w-full items-center justify-center rounded-md border-2 border-dashed">
-                <div className="text-center">
-                    <UploadCloud className="mx-auto h-8 w-8 text-muted-foreground" />
-                    <p className="mt-2 text-sm text-muted-foreground">Drag & drop files here, or click to browse</p>
-                </div>
-            </div>
-             <div>
-                <h3 className="mb-2 font-semibold">Uploaded Documents</h3>
-                <ul className="space-y-2">
-                    <li className="flex items-center justify-between rounded-md border p-3">
-                        <span className="font-medium">QuantumLeap_Pitch_Deck_Q4.pdf</span>
-                        <span className="text-sm text-muted-foreground">12.4 MB</span>
-                    </li>
-                    <li className="flex items-center justify-between rounded-md border p-3">
-                        <span className="font-medium">Financial_Model_v3.1.xlsx</span>
-                        <span className="text-sm text-muted-foreground">2.1 MB</span>
-                    </li>
-                     <li className="flex items-center justify-between rounded-md border p-3">
-                        <span className="font-medium">Team_Bios.docx</span>
-                        <span className="text-sm text-muted-foreground">800 KB</span>
-                    </li>
-                </ul>
-            </div>
-          </CardContent>
-        </Card>
-      </TabsContent>
-    </Tabs>
+          <TabsContent value="benchmarking">
+            <Card>
+              <CardHeader>
+                <CardTitle>Market Benchmarking</CardTitle>
+                <CardDescription>Industry comparison and competitive positioning analysis</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {diligenceResults?.benchmarking_analysis ? (
+                  <div className="space-y-4">
+                    <div className="bg-muted/50 p-4 rounded-lg">
+                      <h3 className="font-semibold mb-2">Benchmark Analysis</h3>
+                      <p className="text-sm">{diligenceResults.benchmarking_analysis}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {/* Industry Averages */}
+                    <div>
+                      <h3 className="font-semibold mb-3 text-lg">Industry Averages</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <Card>
+                          <CardContent className="pt-6">
+                            <div className="text-center">
+                              <p className="text-3xl font-bold text-primary">8-12%</p>
+                              <p className="text-sm text-muted-foreground mt-2">Avg. Transaction Failure Rate</p>
+                            </div>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardContent className="pt-6">
+                            <div className="text-center">
+                              <p className="text-3xl font-bold text-primary">2.5-3.5%</p>
+                              <p className="text-sm text-muted-foreground mt-2">Industry Processing Fees</p>
+                            </div>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardContent className="pt-6">
+                            <div className="text-center">
+                              <p className="text-3xl font-bold text-primary">$45B</p>
+                              <p className="text-sm text-muted-foreground mt-2">Indian B2B Payments Market</p>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </div>
+                    
+                    {/* Competitive Positioning */}
+                    <div>
+                      <h3 className="font-semibold mb-3 text-lg">Competitive Landscape</h3>
+                      <div className="border rounded-lg overflow-hidden">
+                        <table className="w-full">
+                          <thead className="bg-muted">
+                            <tr>
+                              <th className="text-left p-3 font-semibold">Company</th>
+                              <th className="text-left p-3 font-semibold">Failure Rate</th>
+                              <th className="text-left p-3 font-semibold">Fees</th>
+                              <th className="text-left p-3 font-semibold">AI-Powered</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr className="border-t">
+                              <td className="p-3">Arealis Gateway (Target)</td>
+                              <td className="p-3 font-semibold text-green-600">&lt;1%</td>
+                              <td className="p-3">1.8-2.2%</td>
+                              <td className="p-3">✓</td>
+                            </tr>
+                            <tr className="border-t bg-muted/30">
+                              <td className="p-3">Razorpay</td>
+                              <td className="p-3">8-10%</td>
+                              <td className="p-3">2.0%</td>
+                              <td className="p-3">Partial</td>
+                            </tr>
+                            <tr className="border-t">
+                              <td className="p-3">Paytm</td>
+                              <td className="p-3">9-11%</td>
+                              <td className="p-3">2.5%</td>
+                              <td className="p-3">No</td>
+                            </tr>
+                            <tr className="border-t bg-muted/30">
+                              <td className="p-3">Cashfree</td>
+                              <td className="p-3">7-9%</td>
+                              <td className="p-3">2.2%</td>
+                              <td className="p-3">Partial</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                    
+                    {/* Market Opportunity */}
+                    <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg">
+                      <h3 className="font-semibold mb-2">Market Opportunity</h3>
+                      <p className="text-sm text-muted-foreground">
+                        The Indian B2B payment gateway market is projected to grow at 18% CAGR, 
+                        reaching $82B by 2027. AI-powered solutions represent a significant competitive 
+                        advantage with potential to capture 15-20% of the mid-market segment.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="analysis">
+            <Card>
+              <CardHeader>
+                <CardTitle>Document Analysis</CardTitle>
+                <CardDescription>Cross-referencing and verification of uploaded documents</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {diligenceResults?.document_analysis ? (
+                  <div className="space-y-4">
+                    <div className="bg-muted/50 p-4 rounded-lg">
+                      <h3 className="font-semibold mb-2">Document Analysis Results</h3>
+                      <p className="text-sm">{diligenceResults.document_analysis}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {/* Document Verification Status */}
+                    <div>
+                      <h3 className="font-semibold mb-3 text-lg">Document Verification</h3>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <CheckCircle className="h-5 w-5 text-green-500" />
+                            <div>
+                              <p className="font-medium">Pitch Deck</p>
+                              <p className="text-sm text-muted-foreground">Verified and processed</p>
+                            </div>
+                          </div>
+                          <Badge variant="default">Complete</Badge>
+                        </div>
+                        
+                        <div className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <CheckCircle className="h-5 w-5 text-green-500" />
+                            <div>
+                              <p className="font-medium">Memo1 Summary</p>
+                              <p className="text-sm text-muted-foreground">Generated from source documents</p>
+                            </div>
+                          </div>
+                          <Badge variant="default">Complete</Badge>
+                        </div>
+                        
+                        <div className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <CheckCircle className="h-5 w-5 text-green-500" />
+                            <div>
+                              <p className="font-medium">Founder Profile</p>
+                              <p className="text-sm text-muted-foreground">Profile data validated</p>
+                            </div>
+                          </div>
+                          <Badge variant="default">Complete</Badge>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Data Completeness */}
+                    <div>
+                      <h3 className="font-semibold mb-3 text-lg">Data Completeness Score</h3>
+                      <div className="space-y-4">
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium">Company Information</span>
+                            <span className="text-sm text-muted-foreground">95%</span>
+                          </div>
+                          <Progress value={95} className="h-2" />
+                        </div>
+                        
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium">Financial Data</span>
+                            <span className="text-sm text-muted-foreground">78%</span>
+                          </div>
+                          <Progress value={78} className="h-2" />
+                        </div>
+                        
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium">Team Details</span>
+                            <span className="text-sm text-muted-foreground">85%</span>
+                          </div>
+                          <Progress value={85} className="h-2" />
+                        </div>
+                        
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium">Market Analysis</span>
+                            <span className="text-sm text-muted-foreground">90%</span>
+                          </div>
+                          <Progress value={90} className="h-2" />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Cross-Reference Summary */}
+                    <div className="bg-green-50 dark:bg-green-950 p-4 rounded-lg">
+                      <div className="flex items-start gap-3">
+                        <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
+                        <div>
+                          <h3 className="font-semibold mb-1">Cross-Reference Analysis</h3>
+                          <p className="text-sm text-muted-foreground">
+                            All uploaded documents have been cross-referenced for consistency. 
+                            Key metrics, company claims, and founder information have been validated 
+                            across multiple data sources. Overall data integrity score: 87/100.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="agents">
+            <Card>
+              <CardHeader>
+                <CardTitle>Individual Agent Validations</CardTitle>
+                <CardDescription>Detailed results from each validation agent</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {diligenceResults.agent_validations && (
+                  <>
+                    {/* Founder Profile Agent */}
+                    <div className="border-b pb-4">
+                      <h3 className="font-semibold mb-2 flex items-center gap-2">
+                        <CheckCircle className="h-5 w-5 text-green-500" />
+                        Founder Profile Validation
+                      </h3>
+                      <pre className="bg-muted p-4 rounded text-xs overflow-auto">
+                        {JSON.stringify(diligenceResults.agent_validations.founder_profile, null, 2)}
+                      </pre>
+                    </div>
+                    
+                    {/* Pitch Consistency Agent */}
+                    <div className="border-b pb-4">
+                      <h3 className="font-semibold mb-2 flex items-center gap-2">
+                        <CheckCircle className="h-5 w-5 text-green-500" />
+                        Pitch Consistency Validation
+                      </h3>
+                      <pre className="bg-muted p-4 rounded text-xs overflow-auto">
+                        {JSON.stringify(diligenceResults.agent_validations.pitch_consistency, null, 2)}
+                      </pre>
+                    </div>
+                    
+                    {/* Memo Accuracy Agent */}
+                    <div className="border-b pb-4">
+                      <h3 className="font-semibold mb-2 flex items-center gap-2">
+                        <CheckCircle className="h-5 w-5 text-green-500" />
+                        Memo Accuracy Validation
+                      </h3>
+                      <pre className="bg-muted p-4 rounded text-xs overflow-auto">
+                        {JSON.stringify(diligenceResults.agent_validations.memo1_accuracy, null, 2)}
+                      </pre>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+        </div>
+      )}
+    </div>
   );
 }

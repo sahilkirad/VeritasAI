@@ -20,16 +20,38 @@ from firebase_admin import auth as firebase_auth
 options.set_global_options(region="asia-south1")
 
 def get_cors_headers(request):
-    """Get CORS headers based on request origin"""
-    origin = request.headers.get('Origin', 'https://veritas-472301.web.app')
-    allowed_origins = ['http://localhost:3000', 'https://veritas-472301.web.app']
-    cors_origin = origin if origin in allowed_origins else 'https://veritas-472301.web.app'
+    """Get CORS headers for the response - returns single origin only"""
+    origin = request.headers.get('Origin', '')
     
+    # Whitelist allowed origins
+    allowed_origins = [
+        'http://localhost:3000',
+        'http://localhost:3001',
+        'https://veritas-472301.web.app',
+        'https://veritas-472301.firebaseapp.com'
+    ]
+    
+    # CRITICAL: Return only ONE origin value, never comma-separated
+    if origin in allowed_origins:
+        return {
+            'Access-Control-Allow-Origin': origin,  # Single value only!
+            'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+            'Access-Control-Allow-Credentials': 'true'
+        }
+    
+    # Fallback for development localhost variations
+    if 'localhost' in origin:
+        return {
+            'Access-Control-Allow-Origin': origin,  # Still single value
+            'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+        }
+    
+    # Default: no CORS (will fail for cross-origin)
     return {
-        'Access-Control-Allow-Origin': cors_origin,
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        'Content-Type': 'application/json'
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization'
     }
 
 # --- 1. Global Initialization ---
@@ -497,9 +519,25 @@ def process_ingestion_task(event: pubsub_fn.CloudEvent) -> None:
             return
 
         print(f"Invoking IntakeCurationAgent for file type: {file_type}...")
-        ingestion_result = agent.run(
-            file_data=file_data, filename=file_path, file_type=file_type
-        )
+        
+        # Get founder email from task data
+        founder_email = task_data.get("founder_email", "")
+        
+        # Use enhanced run method with embeddings if founder email is available
+        if founder_email:
+            print(f"Using enhanced intake agent with embeddings for founder: {founder_email}")
+            ingestion_result = agent.run_with_embeddings(
+                file_data=file_data, 
+                filename=file_path, 
+                file_type=file_type,
+                founder_email=founder_email,
+                company_id=task_data.get("upload_id", file_path.replace('/', '_'))
+            )
+        else:
+            print("No founder email provided, using standard intake agent")
+            ingestion_result = agent.run(
+                file_data=file_data, filename=file_path, file_type=file_type
+            )
         
         if ingestion_result.get("status") == "SUCCESS":
             print(f"Successfully ingested {file_path}. Memo 1 generated. Saving to Firestore...")
@@ -838,4 +876,128 @@ def ai_feedback(req: https_fn.Request) -> https_fn.Response:
     except Exception as e:
         print(f"Error in ai_feedback: {e}")
         headers = get_cors_headers(req)
+        return https_fn.Response(json.dumps({"error": str(e)}), status=500, headers=headers)
+
+
+# --- 8. Diligence Hub Endpoints ---
+
+@https_fn.on_request(
+    memory=options.MemoryOption.MB_512,
+    timeout_sec=300
+)
+def run_diligence(req: https_fn.Request):
+    """
+    Endpoint: POST /run_diligence
+    Body: { company_id, investor_email }
+    Returns: Validation report
+    """
+    try:
+        # Handle CORS preflight
+        if req.method == "OPTIONS":
+            headers = get_cors_headers(req)
+            return https_fn.Response("", status=200, headers=headers)
+
+        # Extract and validate parameters
+        data = req.get_json()
+        if not data:
+            return https_fn.Response('No JSON data provided', status=400)
+
+        company_id = data.get("company_id")
+        investor_email = data.get("investor_email")
+
+        # Validate required parameters
+        if not company_id:
+            return https_fn.Response('Missing required parameter: company_id', status=400)
+        
+        if not investor_email:
+            return https_fn.Response('Missing required parameter: investor_email', status=400)
+
+        # Lazy-initialize the diligence agent
+        from agents.diligence_agent_rag import get_diligence_agent
+        agent = get_diligence_agent()
+        
+        print(f"Running diligence for company: {company_id}, investor: {investor_email}")
+        
+        # Run diligence validation asynchronously
+        import asyncio
+        result = asyncio.run(agent.run_validation(company_id, investor_email))
+        
+        # Add detailed logging
+        print(f"Diligence completed. Result keys: {list(result.keys())}")
+        print(f"Result size: {len(json.dumps(result))} bytes")
+        
+        # Return results with proper JSON content type
+        headers = {
+            **get_cors_headers(req),
+            'Content-Type': 'application/json'
+        }
+        return https_fn.Response(json.dumps(result), status=200, headers=headers)
+        
+    except Exception as e:
+        print(f"Error in run_diligence: {e}")
+        headers = {
+            **get_cors_headers(req),
+            'Content-Type': 'application/json'
+        }
+        return https_fn.Response(json.dumps({"error": str(e)}), status=500, headers=headers)
+
+
+@https_fn.on_request(
+    memory=options.MemoryOption.MB_512,
+    timeout_sec=60
+)
+def query_diligence(req: https_fn.Request):
+    """
+    Endpoint: POST /query_diligence
+    Body: { company_id, question }
+    Returns: AI-generated answer with sources
+    """
+    try:
+        # Handle CORS preflight
+        if req.method == "OPTIONS":
+            headers = get_cors_headers(req)
+            return https_fn.Response("", status=200, headers=headers)
+
+        # Extract and validate parameters
+        data = req.get_json()
+        if not data:
+            return https_fn.Response('No JSON data provided', status=400)
+
+        company_id = data.get("company_id")
+        question = data.get("question")
+
+        # Validate required parameters
+        if not company_id:
+            return https_fn.Response('Missing required parameter: company_id', status=400)
+        
+        if not question:
+            return https_fn.Response('Missing required parameter: question', status=400)
+
+        # Lazy-initialize the diligence agent
+        from agents.diligence_agent_rag import get_diligence_agent
+        agent = get_diligence_agent()
+        
+        print(f"Querying diligence for company: {company_id}, question: {question}")
+        
+        # Query diligence data
+        import asyncio
+        result = asyncio.run(agent.query_diligence(company_id, question))
+        
+        # Add detailed logging
+        print(f"Query completed. Result keys: {list(result.keys())}")
+        print(f"Answer: {result.get('answer', 'NO ANSWER FIELD')[:100]}...")
+        
+        # Return results with proper JSON content type
+        headers = {
+            **get_cors_headers(req),
+            'Content-Type': 'application/json'
+        }
+        return https_fn.Response(json.dumps(result), status=200, headers=headers)
+        
+    except Exception as e:
+        print(f"Error in query_diligence: {e}")
+        headers = {
+            **get_cors_headers(req),
+            'Content-Type': 'application/json'
+        }
         return https_fn.Response(json.dumps({"error": str(e)}), status=500, headers=headers)

@@ -11,9 +11,17 @@ try:
     from google.cloud import speech_v2 as speech
     import vertexai
     from vertexai.generative_models import GenerativeModel, Part
+    from google.cloud import firestore
     GOOGLE_AVAILABLE = True
 except ImportError:
     GOOGLE_AVAILABLE = False
+
+# Import vector search client
+try:
+    from .vector_search_client import get_vector_search_client
+    VECTOR_SEARCH_AVAILABLE = True
+except ImportError:
+    VECTOR_SEARCH_AVAILABLE = False
     
 # Suppress noisy Google Cloud logging
 logging.getLogger('google.api_core').setLevel(logging.WARNING)
@@ -57,6 +65,8 @@ class IntakeCurationAgent:
         # Initialize Google Cloud clients to None
         self.gemini_model = None
         self.speech_client = None
+        self.db = None
+        self.vector_search_client = None
 
     def set_up(self):
         """Initializes all necessary Google Cloud clients and models."""
@@ -77,6 +87,17 @@ class IntakeCurationAgent:
             # Initialize Speech-to-Text Client
             self.speech_client = speech.SpeechClient()
             self.logger.info("SpeechClient initialized successfully.")
+            
+            # Initialize Firestore client
+            self.db = firestore.Client(project=self.project)
+            self.logger.info("Firestore client initialized successfully.")
+            
+            # Initialize Vector Search client
+            if VECTOR_SEARCH_AVAILABLE:
+                self.vector_search_client = get_vector_search_client()
+                self.logger.info("Vector Search client initialized successfully.")
+            else:
+                self.logger.warning("Vector Search client not available.")
 
             self.logger.info("✅ IntakeCurationAgent setup complete.")
             
@@ -263,9 +284,9 @@ class IntakeCurationAgent:
         """Safely extracts a JSON object from a string, even with markdown wrappers."""
         self.logger.debug(f"Attempting to parse JSON from model response: {text}")
         # Use a regex to find the JSON block, which is more robust
-        match = re.search(r'```(json)?\s*(\{.*?\})\s*```', text, re.DOTALL)
+        match = re.search(r'```(?:json)?\s*(\{.*\})\s*```', text, re.DOTALL)
         if match:
-            json_str = match.group(2)
+            json_str = match.group(1)
         else:
             # Fallback for plain JSON without markdown
             json_str = text
@@ -275,6 +296,115 @@ class IntakeCurationAgent:
         except json.JSONDecodeError:
             self.logger.error(f"Failed to decode JSON from model response: {json_str}")
             return {"error": "Failed to parse valid JSON from model response.", "raw_response": text}
+
+    def get_founder_profile(self, founder_email: str) -> Optional[Dict[str, Any]]:
+        """Get founder profile data from Firestore"""
+        try:
+            if not self.db:
+                self.logger.error("Firestore client not initialized")
+                return None
+                
+            # Query founderProfiles collection by email
+            profiles_ref = self.db.collection('founderProfiles')
+            query = profiles_ref.where('email', '==', founder_email).limit(1)
+            docs = query.get()
+            
+            if docs:
+                doc = docs[0]
+                profile_data = doc.to_dict()
+                self.logger.info(f"Found founder profile for {founder_email}")
+                return profile_data
+            else:
+                self.logger.warning(f"No founder profile found for {founder_email}")
+                return None
+                
+        except Exception as e:
+            self.logger.error(f"Error getting founder profile: {e}")
+            return None
+
+    def store_embeddings_for_company(self, company_id: str, memo1: Dict[str, Any], 
+                                    founder_email: str, pitch_deck_text: str = "") -> bool:
+        """Store embeddings for a company's data in Vector Search"""
+        try:
+            if not self.vector_search_client:
+                self.logger.warning("Vector Search client not available. Skipping embedding storage.")
+                return False
+                
+            # Get founder profile data
+            founder_profile = self.get_founder_profile(founder_email)
+            if not founder_profile:
+                self.logger.warning(f"No founder profile found for {founder_email}. Using empty profile.")
+                founder_profile = {}
+            
+            # Store embeddings using vector search client
+            success = self.vector_search_client.store_company_embeddings(
+                company_id=company_id,
+                memo1=memo1,
+                founder_profile=founder_profile,
+                pitch_deck_text=pitch_deck_text
+            )
+            
+            if success:
+                self.logger.info(f"Successfully stored embeddings for company {company_id}")
+            else:
+                self.logger.error(f"Failed to store embeddings for company {company_id}")
+                
+            return success
+            
+        except Exception as e:
+            self.logger.error(f"Error storing embeddings for company {company_id}: {e}")
+            return False
+
+    def run_with_embeddings(self, file_data: bytes, filename: str, file_type: str, 
+                          founder_email: str, company_id: str = None) -> Dict[str, Any]:
+        """
+        Enhanced run method that also generates and stores embeddings
+        
+        Args:
+            file_data (bytes): The raw byte content of the file.
+            filename (str): The original name of the file.
+            file_type (str): The type of file ('pdf', 'video', 'audio').
+            founder_email (str): Email of the founder for profile lookup.
+            company_id (str): Optional company ID for embedding storage.
+            
+        Returns:
+            Dict[str, Any]: A structured dictionary containing the processing status and results.
+        """
+        # Run the original processing
+        result = self.run(file_data, filename, file_type)
+        
+        # If processing was successful, store embeddings
+        if result.get("status") == "SUCCESS" and result.get("memo_1"):
+            memo1 = result["memo_1"]
+            
+            # Use company_id if provided, otherwise generate from filename
+            if not company_id:
+                company_id = filename.replace('.', '_').replace(' ', '_').lower()
+            
+            # Extract pitch deck text if it's a PDF
+            pitch_deck_text = ""
+            if file_type == 'pdf':
+                # For PDFs, we could extract text here, but for now we'll use the memo1 content
+                pitch_deck_text = json.dumps(memo1, indent=2)
+            
+            # Store embeddings
+            embedding_success = self.store_embeddings_for_company(
+                company_id=company_id,
+                memo1=memo1,
+                founder_email=founder_email,
+                pitch_deck_text=pitch_deck_text
+            )
+            
+            # Add embedding status to result
+            result["embeddings_stored"] = embedding_success
+            result["company_id"] = company_id
+            
+            if embedding_success:
+                self.logger.info(f"Embeddings stored successfully for company {company_id}")
+            else:
+                self.logger.warning(f"Failed to store embeddings for company {company_id}")
+        
+        return result
 
 
 def test_agent(file_path: str, project_id: str):

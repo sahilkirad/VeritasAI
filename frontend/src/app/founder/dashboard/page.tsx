@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowUpRight, DollarSign, Users, TrendingUp, CheckCircle, PlusCircle, LineChart, BarChart, RefreshCw } from "lucide-react";
+import { ArrowUpRight, DollarSign, Users, TrendingUp, CheckCircle, PlusCircle, LineChart, BarChart, RefreshCw, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GoogleAnalyticsDialog } from "@/components/GoogleAnalyticsDialog";
 import { AnalyticsDataDisplay } from "@/components/AnalyticsDataDisplay";
@@ -128,6 +129,39 @@ export default function FounderDashboardPage() {
                 </Card>
             ))}
        </div>
+
+        {/* Profile Completion Call-to-Action */}
+        <Card className="border-blue-200 bg-blue-50/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-blue-900">
+              <User className="h-5 w-5" />
+              Complete Your Founder Profile
+            </CardTitle>
+            <CardDescription className="text-blue-700">
+              Help investors understand your background and expertise. Complete your profile to enable advanced diligence validation.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <p className="text-sm text-blue-800">
+                  Add your professional background, education, and experience to help investors make informed decisions.
+                </p>
+                <p className="text-xs text-blue-600">
+                  This data will be used for AI-powered diligence analysis and validation.
+                </p>
+              </div>
+              <Link href="/founder/dashboard/profile">
+                <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                  <User className="h-4 w-4 mr-2" />
+                  Complete Profile
+                  <ArrowUpRight className="h-4 w-4 ml-2" />
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <Card className="lg:col-span-2">
               <CardHeader>
@@ -191,6 +225,13 @@ export default function FounderDashboardPage() {
                     <CheckCircle className="h-6 w-6 text-green-500" />
                     <span>Company Profile Created</span>
                   </li>
+                  <li className="flex items-center gap-3">
+                    <Link href="/founder/dashboard/profile" className="flex items-center gap-3 hover:bg-muted/50 p-2 rounded-md transition-colors">
+                      <User className="h-6 w-6 text-blue-500" />
+                      <span className="text-blue-600 font-medium">Complete Founder Profile</span>
+                      <ArrowUpRight className="h-4 w-4 text-blue-500" />
+                    </Link>
+                  </li>
                    <li className="flex items-center gap-3">
                     <CheckCircle className="h-6 w-6 text-green-500" />
                     <span>Upload Pitch Deck</span>
@@ -204,7 +245,7 @@ export default function FounderDashboardPage() {
                     <span>Record Video Pitch</span>
                   </li>
                   <li className="flex items-center gap-3 opacity-60">
-                    <div className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-dashed border-primary text-primary font-bold">5</div>
+                    <div className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-dashed border-primary text-primary font-bold">6</div>
                     <span>Create First "Investor Room"</span>
                   </li>
                 </ul>

@@ -8,10 +8,7 @@
   "functions": {
     "source": "functions",
     "runtime": "python312",
-    "region": "asia-south1",
-    "memory": "512MB",
-    "cpu": 1,
-    "maxInstances": 1
+    "region": "asia-south1"
   },
   "hosting": {
     "public": "frontend/out",

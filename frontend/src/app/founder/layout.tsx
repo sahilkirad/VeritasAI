@@ -25,12 +25,13 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
-import { Bot, FileText, LayoutDashboard, LogOut, MoreVertical, Settings, Users, Shield } from "lucide-react"
+import { Bot, FileText, LayoutDashboard, LogOut, MoreVertical, Settings, Users, Shield, User } from "lucide-react"
 import { Logo } from "@/components/icons/logo"
 import { useAuth } from "@/contexts/AuthContext"
 
 const navItems = [
   { href: "/founder/dashboard", icon: LayoutDashboard, label: "Home" },
+  { href: "/founder/dashboard/profile", icon: User, label: "Profile" },
   { href: "/founder/dashboard/documents", icon: FileText, label: "Pitch Hub" },
   { href: "/founder/dashboard/datarooms", icon: Shield, label: "Investor Rooms" },
   { href: "/founder/dashboard/feedback", icon: Bot, label: "AI Feedback" },
@@ -104,7 +105,9 @@ function FounderDashboardContent({ children }: { children: React.ReactNode }) {
             <DropdownMenuContent side="top" align="start" className="w-56">
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>Profile</DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/founder/dashboard/profile">Profile</Link>
+              </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/founder/dashboard/settings">Settings</Link>
               </DropdownMenuItem>
@@ -141,6 +144,9 @@ function FounderDashboardContent({ children }: { children: React.ReactNode }) {
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/founder/dashboard/profile">Profile</Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href="/founder/dashboard/settings">Settings</Link>
                 </DropdownMenuItem>

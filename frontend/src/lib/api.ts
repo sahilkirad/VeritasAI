@@ -138,6 +138,41 @@ class ApiClient {
       }),
     });
   }
+
+  async validateMemoData(memoData: any, memoId: string, memoType: string = "memo_1"): Promise<ApiResponse> {
+    return this.makeRequest('validate_memo_data', {
+      method: 'POST',
+      body: JSON.stringify({
+        memo_data: memoData,
+        memo_id: memoId,
+        memo_type: memoType
+      }),
+    });
+  }
+
+  async validateMarketSize(marketSizeClaim: string, industryCategory: string, memoId: string, memoType: string = "memo_1"): Promise<ApiResponse> {
+    return this.makeRequest('validate_market_size', {
+      method: 'POST',
+      body: JSON.stringify({
+        market_size_claim: marketSizeClaim,
+        industry_category: industryCategory,
+        memo_id: memoId,
+        memo_type: memoType
+      }),
+    });
+  }
+
+  async validateCompetitors(competitors: string[], industryCategory: string, memoId: string, memoType: string = "memo_1"): Promise<ApiResponse> {
+    return this.makeRequest('validate_competitors', {
+      method: 'POST',
+      body: JSON.stringify({
+        competitors: competitors,
+        industry_category: industryCategory,
+        memo_id: memoId,
+        memo_type: memoType
+      }),
+    });
+  }
 }
 
 export const apiClient = new ApiClient();
@@ -150,6 +185,9 @@ export const API_ENDPOINTS = {
   SCHEDULE_INTERVIEW: process.env.NEXT_PUBLIC_SCHEDULE_INTERVIEW_URL || 'https://asia-south1-veritas-472301.cloudfunctions.net/schedule_ai_interview',
   CHECK_MEMO: process.env.NEXT_PUBLIC_CHECK_MEMO_URL || 'https://asia-south1-veritas-472301.cloudfunctions.net/check_memo',
   CHECK_DILIGENCE: process.env.NEXT_PUBLIC_CHECK_DILIGENCE_URL || 'https://asia-south1-veritas-472301.cloudfunctions.net/check_diligence',
+  VALIDATE_MEMO_DATA: process.env.NEXT_PUBLIC_VALIDATE_MEMO_DATA_URL || 'https://asia-south1-veritas-472301.cloudfunctions.net/validate_memo_data',
+  VALIDATE_MARKET_SIZE: process.env.NEXT_PUBLIC_VALIDATE_MARKET_SIZE_URL || 'https://asia-south1-veritas-472301.cloudfunctions.net/validate_market_size',
+  VALIDATE_COMPETITORS: process.env.NEXT_PUBLIC_VALIDATE_COMPETITORS_URL || 'https://asia-south1-veritas-472301.cloudfunctions.net/validate_competitors',
 };
 
 // Standalone uploadFile function for backward compatibility

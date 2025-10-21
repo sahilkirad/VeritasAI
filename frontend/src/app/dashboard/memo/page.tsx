@@ -39,8 +39,100 @@ interface MemoData {
     timestamp?: any;
     summary_analysis?: string;
     market_size?: string;
+    sam_market_size?: string;
+    som_market_size?: string;
     traction?: string;
     team?: string;
+    
+    // Company Snapshot Fields
+    company_stage?: string;
+    headquarters?: string;
+    founded_date?: string;
+    amount_raising?: string;
+    post_money_valuation?: string;
+    investment_sought?: string;
+    ownership_target?: string;
+    key_thesis?: string;
+    key_metric?: string;
+    
+    // Financial & Deal Details
+    current_revenue?: string;
+    revenue_growth_rate?: string;
+    customer_acquisition_cost?: string;
+    lifetime_value?: string;
+    gross_margin?: string;
+    operating_margin?: string;
+    net_margin?: string;
+    burn_rate?: string;
+    runway?: string;
+    business_model?: string;
+    growth_stage?: string;
+    pre_money_valuation?: string;
+    lead_investor?: string;
+    committed_funding?: string;
+    round_stage?: string;
+    
+    // Product & Technology
+    product_features?: string[];
+    technology_advantages?: string;
+    innovation_level?: string;
+    scalability_plan?: string;
+    technology_stack?: string;
+    
+    // Market & Competition
+    target_customers?: string;
+    market_timing?: string;
+    competitive_advantages?: string;
+    market_penetration?: string;
+    industry_category?: string;
+    target_market?: string;
+    
+    // Team & Execution
+    team_size?: string;
+    key_team_members?: string[];
+    advisory_board?: string[];
+    execution_track_record?: string;
+    
+    // Growth & Traction
+    user_growth?: string;
+    revenue_growth?: string;
+    customer_growth?: string;
+    key_milestones?: string[];
+    upcoming_milestones?: string[];
+    
+    // Risk & Mitigation
+    key_risks?: string[];
+    risk_mitigation?: string;
+    regulatory_risks?: string;
+    
+    // Exit Strategy
+    potential_acquirers?: string[];
+    ipo_timeline?: string;
+    exit_valuation?: string;
+    
+    // Additional fields
+    revenue_model?: string;
+    pricing_strategy?: string;
+    go_to_market?: string;
+    funding_ask?: string;
+    use_of_funds?: string;
+    timeline?: string;
+    partnerships?: string;
+    regulatory_considerations?: string;
+    scalability?: string;
+    intellectual_property?: string;
+    exit_strategy?: string;
+    
+    // Enriched fields (for AI-enriched data display)
+    headquarters_enriched?: any;
+    amount_raising_enriched?: any;
+    post_money_valuation_enriched?: any;
+    current_revenue_enriched?: any;
+    customer_acquisition_cost_enriched?: any;
+    gross_margin_enriched?: any;
+    founded_date_enriched?: any;
+    committed_funding_enriched?: any;
+    exit_valuation_enriched?: any;
   };
   filename?: string;
 }
@@ -120,6 +212,10 @@ export default function DealMemoPage() {
           const data = doc.data();
           console.log('Processing memo doc:', doc.id, data);
           const memo1Data = data.memo_1 || {};
+          console.log('Raw memo1Data from Firestore:', memo1Data);
+          console.log('Company stage from Firestore:', memo1Data.company_stage);
+          console.log('Headquarters from Firestore:', memo1Data.headquarters);
+          console.log('Amount raising from Firestore:', memo1Data.amount_raising);
           const memo: MemoData = {
             id: doc.id,
             filename: data.original_filename || 'Unknown File',
@@ -142,13 +238,108 @@ export default function DealMemoPage() {
               // Additional fields that might be in the data
               summary_analysis: memo1Data.summary_analysis || memo1Data.executive_summary,
               market_size: memo1Data.market_size || memo1Data.total_addressable_market,
+              sam_market_size: memo1Data.sam_market_size || memo1Data.serviceable_available_market,
+              som_market_size: memo1Data.som_market_size || memo1Data.serviceable_obtainable_market,
               traction: memo1Data.traction || memo1Data.key_metrics,
-              team: memo1Data.team || memo1Data.team_overview
+              team: memo1Data.team || memo1Data.team_overview,
+              
+              // Company Snapshot Fields - CRITICAL FIX
+              company_stage: memo1Data.company_stage,
+              headquarters: memo1Data.headquarters,
+              founded_date: memo1Data.founded_date,
+              amount_raising: memo1Data.amount_raising,
+              post_money_valuation: memo1Data.post_money_valuation,
+              investment_sought: memo1Data.investment_sought,
+              ownership_target: memo1Data.ownership_target,
+              key_thesis: memo1Data.key_thesis,
+              key_metric: memo1Data.key_metric,
+              
+              // Financial & Deal Details
+              current_revenue: memo1Data.current_revenue,
+              revenue_growth_rate: memo1Data.revenue_growth_rate,
+              customer_acquisition_cost: memo1Data.customer_acquisition_cost,
+              lifetime_value: memo1Data.lifetime_value,
+              gross_margin: memo1Data.gross_margin,
+              operating_margin: memo1Data.operating_margin,
+              net_margin: memo1Data.net_margin,
+              burn_rate: memo1Data.burn_rate,
+              runway: memo1Data.runway,
+              business_model: memo1Data.business_model,
+              growth_stage: memo1Data.growth_stage,
+              pre_money_valuation: memo1Data.pre_money_valuation,
+              lead_investor: memo1Data.lead_investor,
+              committed_funding: memo1Data.committed_funding,
+              round_stage: memo1Data.round_stage,
+              
+              // Product & Technology
+              product_features: memo1Data.product_features,
+              technology_advantages: memo1Data.technology_advantages,
+              innovation_level: memo1Data.innovation_level,
+              scalability_plan: memo1Data.scalability_plan,
+              technology_stack: memo1Data.technology_stack,
+              
+              // Market & Competition
+              target_customers: memo1Data.target_customers,
+              market_timing: memo1Data.market_timing,
+              competitive_advantages: memo1Data.competitive_advantages,
+              market_penetration: memo1Data.market_penetration,
+              industry_category: memo1Data.industry_category,
+              target_market: memo1Data.target_market,
+              
+              // Team & Execution
+              team_size: memo1Data.team_size,
+              key_team_members: memo1Data.key_team_members,
+              advisory_board: memo1Data.advisory_board,
+              execution_track_record: memo1Data.execution_track_record,
+              
+              // Growth & Traction
+              user_growth: memo1Data.user_growth,
+              revenue_growth: memo1Data.revenue_growth,
+              customer_growth: memo1Data.customer_growth,
+              key_milestones: memo1Data.key_milestones,
+              upcoming_milestones: memo1Data.upcoming_milestones,
+              
+              // Risk & Mitigation
+              key_risks: memo1Data.key_risks,
+              risk_mitigation: memo1Data.risk_mitigation,
+              regulatory_risks: memo1Data.regulatory_risks,
+              
+              // Exit Strategy
+              potential_acquirers: memo1Data.potential_acquirers,
+              ipo_timeline: memo1Data.ipo_timeline,
+              exit_valuation: memo1Data.exit_valuation,
+              
+              // Additional fields
+              revenue_model: memo1Data.revenue_model,
+              pricing_strategy: memo1Data.pricing_strategy,
+              go_to_market: memo1Data.go_to_market,
+              funding_ask: memo1Data.funding_ask,
+              use_of_funds: memo1Data.use_of_funds,
+              timeline: memo1Data.timeline,
+              partnerships: memo1Data.partnerships,
+              regulatory_considerations: memo1Data.regulatory_considerations,
+              scalability: memo1Data.scalability,
+              intellectual_property: memo1Data.intellectual_property,
+              exit_strategy: memo1Data.exit_strategy,
+              
+              // Enriched fields (for AI-enriched data display)
+              headquarters_enriched: memo1Data.headquarters_enriched,
+              amount_raising_enriched: memo1Data.amount_raising_enriched,
+              post_money_valuation_enriched: memo1Data.post_money_valuation_enriched,
+              current_revenue_enriched: memo1Data.current_revenue_enriched,
+              customer_acquisition_cost_enriched: memo1Data.customer_acquisition_cost_enriched,
+              gross_margin_enriched: memo1Data.gross_margin_enriched,
+              founded_date_enriched: memo1Data.founded_date_enriched,
+              committed_funding_enriched: memo1Data.committed_funding_enriched,
+              exit_valuation_enriched: memo1Data.exit_valuation_enriched
             }
           };
           memos.push(memo);
         });
         console.log('Setting available memos:', memos);
+        console.log('First memo memo_1 data:', memos[0]?.memo_1);
+        console.log('Company stage in mapped data:', memos[0]?.memo_1?.company_stage);
+        console.log('Headquarters in mapped data:', memos[0]?.memo_1?.headquarters);
         setAvailableMemos(memos);
         setLoading(false);
         return;
@@ -692,6 +883,7 @@ export default function DealMemoPage() {
         <TabsContent value="memo1">
           <Memo1Tab 
             memo1={memoData.memo_1 || {}} 
+            memoId={memoData.id}
             onInterviewScheduled={(result) => {
               console.log('Interview scheduled:', result);
               toast({
@@ -707,7 +899,7 @@ export default function DealMemoPage() {
         </TabsContent>
 
         <TabsContent value="memo3">
-          <Memo3Tab diligenceData={diligenceData} />
+          <Memo3Tab diligenceData={diligenceData} memo1Data={memoData.memo_1} memoId={memoData.id} />
         </TabsContent>
       </Tabs>
 

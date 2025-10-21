@@ -199,6 +199,65 @@ class IntakeCurationAgent:
         - "scalability": Information about scalability, growth potential, or expansion plans.
         - "intellectual_property": Patents, trademarks, or IP considerations mentioned.
         - "exit_strategy": Potential exit strategies or acquisition targets mentioned.
+        
+        Company Snapshot Fields (Extract from pitch):
+        - "company_stage": The current stage of the company (e.g., "Seed", "Series A", "Pre-Seed").
+        - "headquarters": The headquarters location of the company.
+        - "founded_date": When the company was founded.
+        - "amount_raising": The amount of funding being raised in this round.
+        - "post_money_valuation": The post-money valuation of the company.
+        - "investment_sought": The specific investment amount being sought.
+        - "ownership_target": The percentage of ownership being offered.
+        - "key_thesis": The main investment thesis or value proposition.
+        - "key_metric": The most important business metric or KPI.
+        
+        Financial & Deal Details:
+        - "current_revenue": Current revenue numbers if mentioned.
+        - "revenue_growth_rate": Revenue growth rate or percentage.
+        - "customer_acquisition_cost": CAC if mentioned.
+        - "lifetime_value": LTV if mentioned.
+        - "gross_margin": Gross margin percentage if mentioned.
+        - "burn_rate": Monthly burn rate if mentioned.
+        - "runway": Months of runway remaining if mentioned.
+        - "pre_money_valuation": Pre-money valuation if mentioned.
+        - "lead_investor": Name of lead investor if mentioned.
+        - "committed_funding": Amount of committed funding if mentioned.
+        - "round_stage": The stage of the current funding round.
+        
+        Product & Technology:
+        - "product_features": List of key product features mentioned.
+        - "technology_advantages": Key technological advantages or differentiators.
+        - "innovation_level": Level of innovation or technical sophistication.
+        - "scalability_plan": Plans for scaling the technology or product.
+        
+        Market & Competition:
+        - "target_customers": Specific target customer segments.
+        - "market_timing": Why now is the right time for this market.
+        - "competitive_advantages": Key competitive advantages over competitors.
+        - "market_penetration": Current market penetration or market share.
+        
+        Team & Execution:
+        - "team_size": Current team size.
+        - "key_team_members": Names and roles of key team members.
+        - "advisory_board": Advisory board members if mentioned.
+        - "execution_track_record": Previous execution experience of founders.
+        
+        Growth & Traction:
+        - "user_growth": User growth metrics if mentioned.
+        - "revenue_growth": Revenue growth metrics if mentioned.
+        - "customer_growth": Customer growth metrics if mentioned.
+        - "key_milestones": Key business milestones achieved.
+        - "upcoming_milestones": Upcoming milestones or goals.
+        
+        Risk & Mitigation:
+        - "key_risks": Main business risks identified.
+        - "risk_mitigation": How risks are being mitigated.
+        - "regulatory_risks": Any regulatory or compliance risks.
+        
+        Exit Strategy:
+        - "potential_acquirers": Potential acquisition targets mentioned.
+        - "ipo_timeline": IPO timeline or plans if mentioned.
+        - "exit_valuation": Expected exit valuation if mentioned.
         """
         
         response = self.gemini_model.generate_content([prompt, pdf_part])
@@ -272,6 +331,65 @@ class IntakeCurationAgent:
         - "scalability": Information about scalability, growth potential, or expansion plans.
         - "intellectual_property": Patents, trademarks, or IP considerations mentioned.
         - "exit_strategy": Potential exit strategies or acquisition targets mentioned.
+        
+        Company Snapshot Fields (Extract from pitch):
+        - "company_stage": The current stage of the company (e.g., "Seed", "Series A", "Pre-Seed").
+        - "headquarters": The headquarters location of the company.
+        - "founded_date": When the company was founded.
+        - "amount_raising": The amount of funding being raised in this round.
+        - "post_money_valuation": The post-money valuation of the company.
+        - "investment_sought": The specific investment amount being sought.
+        - "ownership_target": The percentage of ownership being offered.
+        - "key_thesis": The main investment thesis or value proposition.
+        - "key_metric": The most important business metric or KPI.
+        
+        Financial & Deal Details:
+        - "current_revenue": Current revenue numbers if mentioned.
+        - "revenue_growth_rate": Revenue growth rate or percentage.
+        - "customer_acquisition_cost": CAC if mentioned.
+        - "lifetime_value": LTV if mentioned.
+        - "gross_margin": Gross margin percentage if mentioned.
+        - "burn_rate": Monthly burn rate if mentioned.
+        - "runway": Months of runway remaining if mentioned.
+        - "pre_money_valuation": Pre-money valuation if mentioned.
+        - "lead_investor": Name of lead investor if mentioned.
+        - "committed_funding": Amount of committed funding if mentioned.
+        - "round_stage": The stage of the current funding round.
+        
+        Product & Technology:
+        - "product_features": List of key product features mentioned.
+        - "technology_advantages": Key technological advantages or differentiators.
+        - "innovation_level": Level of innovation or technical sophistication.
+        - "scalability_plan": Plans for scaling the technology or product.
+        
+        Market & Competition:
+        - "target_customers": Specific target customer segments.
+        - "market_timing": Why now is the right time for this market.
+        - "competitive_advantages": Key competitive advantages over competitors.
+        - "market_penetration": Current market penetration or market share.
+        
+        Team & Execution:
+        - "team_size": Current team size.
+        - "key_team_members": Names and roles of key team members.
+        - "advisory_board": Advisory board members if mentioned.
+        - "execution_track_record": Previous execution experience of founders.
+        
+        Growth & Traction:
+        - "user_growth": User growth metrics if mentioned.
+        - "revenue_growth": Revenue growth metrics if mentioned.
+        - "customer_growth": Customer growth metrics if mentioned.
+        - "key_milestones": Key business milestones achieved.
+        - "upcoming_milestones": Upcoming milestones or goals.
+        
+        Risk & Mitigation:
+        - "key_risks": Main business risks identified.
+        - "risk_mitigation": How risks are being mitigated.
+        - "regulatory_risks": Any regulatory or compliance risks.
+        
+        Exit Strategy:
+        - "potential_acquirers": Potential acquisition targets mentioned.
+        - "ipo_timeline": IPO timeline or plans if mentioned.
+        - "exit_valuation": Expected exit valuation if mentioned.
         
         Text to analyze:
         {text[:20000]}
@@ -379,10 +497,10 @@ class IntakeCurationAgent:
             self.logger.error(f"Error storing embeddings for company {company_id}: {e}")
             return False
 
-    def run_with_embeddings(self, file_data: bytes, filename: str, file_type: str, 
+    async def run_with_embeddings(self, file_data: bytes, filename: str, file_type: str, 
                           founder_email: str, company_id: str = None) -> Dict[str, Any]:
         """
-        Enhanced run method that also generates and stores embeddings
+        Enhanced run method that also generates and stores embeddings and enriches missing data with Perplexity
         
         Args:
             file_data (bytes): The raw byte content of the file.
@@ -397,7 +515,7 @@ class IntakeCurationAgent:
         # Run the original processing
         result = self.run(file_data, filename, file_type)
         
-        # If processing was successful, store embeddings
+        # If processing was successful, enrich missing data and store embeddings
         if result.get("status") == "SUCCESS" and result.get("memo_1"):
             memo1 = result["memo_1"]
             
@@ -405,16 +523,38 @@ class IntakeCurationAgent:
             if not company_id:
                 company_id = filename.replace('.', '_').replace(' ', '_').lower()
             
+            # Enrich missing fields using Perplexity AI
+            try:
+                from services.perplexity_service import PerplexitySearchService
+                perplexity_service = PerplexitySearchService()
+                
+                self.logger.info(f"Enriching missing data for {memo1.get('title', 'Unknown Company')} using Perplexity AI...")
+                
+                # Run enrichment asynchronously
+                import asyncio
+                enriched_memo1 = await perplexity_service.enrich_missing_fields(memo1)
+                
+                # Update the memo with enriched data
+                result["memo_1"] = enriched_memo1
+                result["data_enriched"] = True
+                
+                self.logger.info(f"Successfully enriched data for {memo1.get('title', 'Unknown Company')}")
+                
+            except Exception as e:
+                self.logger.error(f"Error enriching data with Perplexity: {e}")
+                result["data_enriched"] = False
+                result["enrichment_error"] = str(e)
+            
             # Extract pitch deck text if it's a PDF
             pitch_deck_text = ""
             if file_type == 'pdf':
                 # For PDFs, we could extract text here, but for now we'll use the memo1 content
-                pitch_deck_text = json.dumps(memo1, indent=2)
+                pitch_deck_text = json.dumps(result["memo_1"], indent=2)
             
             # Store embeddings
             embedding_success = self.store_embeddings_for_company(
                 company_id=company_id,
-                memo1=memo1,
+                memo1=result["memo_1"],
                 founder_email=founder_email,
                 pitch_deck_text=pitch_deck_text
             )

@@ -3,7 +3,7 @@
 ## 🔗 Direct Link to Secrets
 https://github.com/sahilkirad/VeritasAI/settings/secrets/actions
 
-## 📋 All Required Secrets (15 total)
+## 📋 All Required Secrets (16 total)
 
 ### Firebase Configuration (7 secrets)
 | Secret Name | Secret Value |
@@ -43,12 +43,17 @@ https://github.com/sahilkirad/VeritasAI/settings/secrets/actions
 | `FIREBASE_TOKEN` | [Run `firebase login:ci` to get this] |
 | `GCP_SA_KEY` | [Service account JSON file content] |
 
+### AI Services (1 secret)
+| Secret Name | Secret Value |
+|-------------|--------------|
+| `PERPLEXITY_API_KEY` | [Get from https://www.perplexity.ai/settings/api] |
+
 ## 🚀 Steps to Add Secrets
 
 1. **Go to**: https://github.com/sahilkirad/VeritasAI/settings/secrets/actions
 2. **Click**: "New repository secret"
 3. **Add each secret** with the exact name and value from the table above
-4. **Repeat** for all 15 secrets
+4. **Repeat** for all 16 secrets
 5. **Push to main branch** to trigger deployment
 
 ## 🔧 Getting Missing Values
@@ -68,6 +73,11 @@ firebase login:ci
 - Go to "Keys" tab
 - Click "Add Key" → "Create new key" → "JSON"
 - Download and copy the entire JSON content
+
+### Perplexity API Key
+- Go to [Perplexity AI Settings](https://www.perplexity.ai/settings/api)
+- Sign in to your Perplexity account
+- Copy your API key (starts with `pplx-`)
 
 ## ✅ Verification
 

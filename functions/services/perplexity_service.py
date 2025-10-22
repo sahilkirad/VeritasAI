@@ -4,7 +4,8 @@ import logging
 import asyncio
 import aiohttp
 from typing import Dict, List, Any, Optional
-
+from dotenv import load_dotenv
+load_dotenv()  # Add at top of file
 class PerplexitySearchService:
     """
     Service for enriching memo data using Perplexity AI search.

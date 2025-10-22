@@ -341,14 +341,22 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
   };
 
   // Parse acquisition targets table data
-  const parseAcquisitionTargets = (acquirersText: string) => {
+  const parseAcquisitionTargets = (acquirersText: any) => {
+    // Handle non-string inputs safely
     if (!acquirersText) return null;
     
+    // Convert to string if it's not already
+    const textString = typeof acquirersText === 'string' 
+      ? acquirersText 
+      : JSON.stringify(acquirersText);
+    
+    if (!textString || textString.trim().length === 0) return null;
+    
     // Check if the text contains a table structure
-    const tableMatch = acquirersText.match(/\| Target Category \| Rationale \| Examples \(Hypothetical\) \|/);
+    const tableMatch = textString.match(/\| Target Category \| Rationale \| Examples \(Hypothetical\) \|/);
     if (tableMatch) {
       // Extract table rows
-      const rows = acquirersText.split('\n').filter(line => 
+      const rows = textString.split('\n').filter(line => 
         line.includes('|') && 
         !line.includes('Target Category') && 
         !line.includes('---') &&
@@ -1182,7 +1190,7 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
                 <h4 className="font-semibold mb-2">Key Team Members</h4>
                 {enhancedMemo1.key_team_members && enhancedMemo1.key_team_members.length > 0 ? (
                   <ul className="text-sm text-muted-foreground space-y-1">
-                    {enhancedMemo1.key_team_members.map((member, index) => (
+                    {enhancedMemo1.key_team_members.map((member: string, index: number) => (
                       <li key={index}>• {member}</li>
                     ))}
                   </ul>
@@ -1214,7 +1222,7 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
                 <h4 className="font-semibold mb-2">Advisory Board</h4>
                 {Array.isArray(enhancedMemo1.advisory_board) ? (
                   <ul className="text-sm text-muted-foreground space-y-1">
-                    {enhancedMemo1.advisory_board.map((advisor, index) => (
+                    {enhancedMemo1.advisory_board.map((advisor: string, index: number) => (
                       <li key={index}>• {advisor}</li>
                     ))}
                   </ul>
@@ -1236,7 +1244,7 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
           <CardContent>
             <div className="flex flex-wrap gap-2">
               {Array.isArray(enhancedMemo1.competition) ? (
-                enhancedMemo1.competition.map((competitor, index) => (
+                enhancedMemo1.competition.map((competitor: string, index: number) => (
                 <Badge key={index} variant="outline">
                   {competitor}
                 </Badge>
@@ -1261,7 +1269,7 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
           <CardContent>
             {Array.isArray(enhancedMemo1.product_features) ? (
               <ul className="space-y-2">
-                {enhancedMemo1.product_features.map((feature, index) => (
+                {enhancedMemo1.product_features.map((feature: string, index: number) => (
                   <li key={index} className="flex items-start gap-2 text-sm">
                     <CheckCircle className="h-3 w-3 text-green-500 mt-1 flex-shrink-0" />
                     <span>{feature}</span>
@@ -1355,7 +1363,7 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
               <h4 className="font-semibold mb-2">Key Milestones</h4>
               {Array.isArray(enhancedMemo1.key_milestones) ? (
                 <ul className="space-y-1">
-                  {enhancedMemo1.key_milestones.map((milestone, index) => (
+                  {enhancedMemo1.key_milestones.map((milestone: string, index: number) => (
                     <li key={index} className="flex items-start gap-2 text-sm">
                       <CheckCircle className="h-3 w-3 text-green-500 mt-1 flex-shrink-0" />
                       <span>{milestone}</span>
@@ -1382,7 +1390,7 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
           <CardContent>
             {Array.isArray(enhancedMemo1.initial_flags) ? (
             <ul className="space-y-2">
-              {enhancedMemo1.initial_flags.map((flag, index) => (
+              {enhancedMemo1.initial_flags.map((flag: string, index: number) => (
                 <li key={index} className="flex items-start gap-2 text-sm">
                   <AlertTriangle className="h-3 w-3 text-amber-500 mt-1 flex-shrink-0" />
                   <span>{flag}</span>
@@ -1408,7 +1416,7 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
           <CardContent>
             {Array.isArray(enhancedMemo1.validation_points) ? (
             <ul className="space-y-2">
-              {enhancedMemo1.validation_points.map((point, index) => (
+              {enhancedMemo1.validation_points.map((point: string, index: number) => (
                 <li key={index} className="flex items-start gap-2 text-sm">
                   <CheckCircle className="h-3 w-3 text-green-500 mt-1 flex-shrink-0" />
                   <span>{point}</span>
@@ -2423,7 +2431,7 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
                   if (Array.isArray(enhancedMemo1.potential_acquirers)) {
                     return (
                       <div className="space-y-3">
-                        {enhancedMemo1.potential_acquirers.map((acquirer, index) => (
+                        {enhancedMemo1.potential_acquirers.map((acquirer: string, index: number) => (
                           <div key={index} className="p-3 bg-green-50 rounded-lg border border-green-200">
                             <div className="flex items-center gap-2">
                               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
@@ -2592,7 +2600,7 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
               <h4 className="font-semibold mb-2">Key Risks</h4>
               {Array.isArray(enhancedMemo1.key_risks) ? (
                 <ul className="space-y-2">
-                  {enhancedMemo1.key_risks.map((risk, index) => (
+                  {enhancedMemo1.key_risks.map((risk: string, index: number) => (
                     <li key={index} className="flex items-start gap-2 text-sm">
                       <AlertTriangle className="h-3 w-3 text-amber-500 mt-1 flex-shrink-0" />
                       <span>{risk}</span>
@@ -2748,7 +2756,7 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
                 <div className="p-4 bg-green-50 rounded-lg">
                   <h4 className="font-semibold text-green-800 mb-3">Key Strengths</h4>
                   <ul className="space-y-1 text-sm">
-                    {enhancedMemo1.validation_result.validation_result.overall_assessment.key_strengths?.map((strength, index) => (
+                    {enhancedMemo1.validation_result.validation_result.overall_assessment.key_strengths?.map((strength: string, index: number) => (
                       <li key={index} className="flex items-center gap-2">
                         <CheckCircle className="h-4 w-4 text-green-600" />
                         {strength}
@@ -2759,7 +2767,7 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
                 <div className="p-4 bg-red-50 rounded-lg">
                   <h4 className="font-semibold text-red-800 mb-3">Key Concerns</h4>
                   <ul className="space-y-1 text-sm">
-                    {enhancedMemo1.validation_result.validation_result.overall_assessment.key_concerns?.map((concern, index) => (
+                    {enhancedMemo1.validation_result.validation_result.overall_assessment.key_concerns?.map((concern: string, index: number) => (
                       <li key={index} className="flex items-center gap-2">
                         <AlertTriangle className="h-4 w-4 text-red-600" />
                         {concern}
@@ -2778,7 +2786,7 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
                   <div>
                     <h5 className="font-medium text-blue-700 mb-2">Immediate Actions</h5>
                     <ul className="space-y-1 text-sm">
-                      {enhancedMemo1.validation_result.validation_result.recommendations.immediate_actions?.map((action, index) => (
+                      {enhancedMemo1.validation_result.validation_result.recommendations.immediate_actions?.map((action: string, index: number) => (
                         <li key={index} className="flex items-center gap-2">
                           <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
                           {action}
@@ -2789,7 +2797,7 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
                   <div>
                     <h5 className="font-medium text-blue-700 mb-2">Next Steps</h5>
                     <ul className="space-y-1 text-sm">
-                      {enhancedMemo1.validation_result.validation_result.recommendations.next_steps?.map((step, index) => (
+                      {enhancedMemo1.validation_result.validation_result.recommendations.next_steps?.map((step: string, index: number) => (
                         <li key={index} className="flex items-center gap-2">
                           <div className="w-2 h-2 bg-green-600 rounded-full"></div>
                           {step}

@@ -21,7 +21,7 @@ const envConfig = {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',  // ← ADD THIS LINE
+  // output: 'export',  // Commented out to allow dynamic routes
   eslint: {
     ignoreDuringBuilds: true,
   },

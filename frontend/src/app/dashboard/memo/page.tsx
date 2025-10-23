@@ -21,17 +21,26 @@ import MemoDebug from '@/components/memo/MemoDebug';
 
 // Helper function to safely convert market size data to string
 function convertMarketSizeToString(marketSizeData: any): string {
+  console.log('convertMarketSizeToString input:', marketSizeData);
+  console.log('convertMarketSizeToString input type:', typeof marketSizeData);
+  
   if (typeof marketSizeData === 'string') {
+    console.log('Returning string as-is:', marketSizeData);
     return marketSizeData;
   }
   if (typeof marketSizeData === 'object' && marketSizeData !== null) {
+    console.log('Converting object to string:', marketSizeData);
     const parts = [];
     if (marketSizeData.TAM) parts.push(`TAM: ${marketSizeData.TAM}`);
     if (marketSizeData.SAM) parts.push(`SAM: ${marketSizeData.SAM}`);
     if (marketSizeData.SOM) parts.push(`SOM: ${marketSizeData.SOM}`);
-    return parts.length > 0 ? parts.join(' | ') : 'Not specified';
+    const result = parts.length > 0 ? parts.join(' | ') : 'Not specified';
+    console.log('Object conversion result:', result);
+    return result;
   }
-  return marketSizeData?.toString() || 'Not specified';
+  const result = marketSizeData?.toString() || 'Not specified';
+  console.log('Fallback conversion result:', result);
+  return result;
 }
 
 interface MemoData {
@@ -231,6 +240,8 @@ export default function DealMemoPage() {
           console.log('Company stage from Firestore:', memo1Data.company_stage);
           console.log('Headquarters from Firestore:', memo1Data.headquarters);
           console.log('Amount raising from Firestore:', memo1Data.amount_raising);
+          console.log('Market size from Firestore:', memo1Data.market_size);
+          console.log('Market size type:', typeof memo1Data.market_size);
           const memo: MemoData = {
             id: doc.id,
             filename: data.original_filename || 'Unknown File',
@@ -252,9 +263,21 @@ export default function DealMemoPage() {
               timestamp: data.timestamp,
               // Additional fields that might be in the data
               summary_analysis: memo1Data.summary_analysis || memo1Data.executive_summary,
-              market_size: convertMarketSizeToString(memo1Data.market_size || memo1Data.total_addressable_market),
-              sam_market_size: convertMarketSizeToString(memo1Data.sam_market_size || memo1Data.serviceable_available_market),
-              som_market_size: convertMarketSizeToString(memo1Data.som_market_size || memo1Data.serviceable_obtainable_market),
+              market_size: (() => {
+                const converted = convertMarketSizeToString(memo1Data.market_size || memo1Data.total_addressable_market);
+                console.log('Converted market_size:', converted);
+                return converted;
+              })(),
+              sam_market_size: (() => {
+                const converted = convertMarketSizeToString(memo1Data.sam_market_size || memo1Data.serviceable_available_market);
+                console.log('Converted sam_market_size:', converted);
+                return converted;
+              })(),
+              som_market_size: (() => {
+                const converted = convertMarketSizeToString(memo1Data.som_market_size || memo1Data.serviceable_obtainable_market);
+                console.log('Converted som_market_size:', converted);
+                return converted;
+              })(),
               traction: memo1Data.traction || memo1Data.key_metrics,
               team: memo1Data.team || memo1Data.team_overview,
               
@@ -897,7 +920,13 @@ export default function DealMemoPage() {
 
         <TabsContent value="memo1">
           <Memo1Tab 
-            memo1={memoData.memo_1 || {}} 
+            memo1={(() => {
+              const memo1Data = memoData.memo_1 || {};
+              console.log('Passing memo1 data to Memo1Tab:', memo1Data);
+              console.log('Market size in memo1:', memo1Data.market_size);
+              console.log('Market size type in memo1:', typeof memo1Data.market_size);
+              return memo1Data;
+            })()} 
             memoId={memoData.id}
             onInterviewScheduled={(result) => {
               console.log('Interview scheduled:', result);

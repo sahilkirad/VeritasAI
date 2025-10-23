@@ -211,7 +211,7 @@ class IntakeCurationAgent:
         
         BUSINESS MODEL & FINANCIALS:
         - "revenue_model": Detailed revenue model breakdown (subscription, commission, one-time, freemium, marketplace, etc.).
-        - "pricing_strategy": Pricing tiers, models, strategies, and competitive pricing analysis.
+        - "pricing_strategy": A comprehensive string description of pricing tiers, models, strategies, and competitive pricing analysis. Format as a readable text description, NOT as an object with tier names as keys.
         - "unit_economics": Customer Acquisition Cost (CAC), Lifetime Value (LTV), gross margins, and unit economics.
         - "financial_projections": Revenue projections, growth rates, and key financial metrics.
         - "funding_history": Previous funding rounds, amounts raised, and investor information.
@@ -389,7 +389,7 @@ class IntakeCurationAgent:
         - "industry_category": The primary industry category (e.g., "EdTech", "HRTech", "FinTech", "AI/ML", "SaaS").
         - "target_market": The specific target market or customer segment.
         - "revenue_model": Detailed revenue model breakdown (subscription, commission, one-time, etc.).
-        - "pricing_strategy": Pricing tiers, models, or strategies mentioned.
+        - "pricing_strategy": A comprehensive string description of pricing tiers, models, or strategies mentioned. Format as a readable text description, NOT as an object.
         - "technology_stack": Key technologies, platforms, or technical approaches mentioned.
         - "go_to_market": Go-to-market strategy or customer acquisition approach.
         - "funding_ask": Amount of funding being sought (if mentioned).

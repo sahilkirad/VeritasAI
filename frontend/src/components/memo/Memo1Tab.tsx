@@ -1179,7 +1179,7 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
             <div>
             <h4 className="font-semibold mb-2">Pricing Strategy</h4>
             <p className="text-sm text-muted-foreground mb-3">
-              {enhancedMemo1.pricing_strategy || "Not specified in pitch deck"}
+              {safeRenderValue(enhancedMemo1.pricing_strategy) || "Not specified in pitch deck"}
             </p>
           </div>
         </CardContent>

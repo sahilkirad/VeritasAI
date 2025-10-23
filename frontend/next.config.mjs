@@ -57,13 +57,6 @@ const nextConfig = {
       tls: false,
     };
     
-    // Ensure proper JavaScript file serving
-    config.module.rules.push({
-      test: /\.js$/,
-      enforce: 'pre',
-      use: ['source-map-loader'],
-    });
-    
     return config;
   },
   

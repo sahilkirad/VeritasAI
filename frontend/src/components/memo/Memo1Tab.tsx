@@ -383,10 +383,17 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
 
   const enhancedMemo1 = { ...memo1, ...parsedFinancialData };
 
+  // Helper function to safely render values that might be objects
+  const safeRenderValue = (value: any): string => {
+    if (typeof value === 'string') return value;
+    if (typeof value === 'object' && value !== null) return JSON.stringify(value);
+    return value?.toString() || "Not specified";
+  };
+
   // Helper function to render enriched field with badge and source link
   const renderEnrichedField = (fieldName: string, enrichedField?: EnrichedField) => {
     const originalValue = enhancedMemo1[fieldName as keyof Memo1Data] as string;
-    const displayValue = enrichedField?.value || originalValue || "Not specified";
+    const displayValue = safeRenderValue(enrichedField?.value || originalValue);
     const isEnriched = enrichedField?.enriched;
     
     return (
@@ -916,7 +923,10 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
                 <tr>
                   <td className="px-4 py-3 text-sm font-medium text-gray-900">Total Addressable Market (TAM)</td>
                   <td className="px-4 py-3 text-sm text-gray-700">
-                    {enhancedMemo1.market_size_enriched?.value || enhancedMemo1.market_size || "Not specified"}
+                    {enhancedMemo1.market_size_enriched?.value || 
+                     (typeof enhancedMemo1.market_size === 'string' ? enhancedMemo1.market_size : 
+                      typeof enhancedMemo1.market_size === 'object' ? JSON.stringify(enhancedMemo1.market_size) : 
+                      "Not specified")}
                     {enhancedMemo1.market_size_enriched?.enriched && (
                       <Badge variant="secondary" className="ml-2 text-xs">AI-enriched</Badge>
                     )}
@@ -936,7 +946,9 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
                 <tr>
                   <td className="px-4 py-3 text-sm font-medium text-gray-900">Serviceable Available Market (SAM)</td>
                   <td className="px-4 py-3 text-sm text-gray-700">
-                    {enhancedMemo1.sam_market_size || "Not specified"}
+                    {typeof enhancedMemo1.sam_market_size === 'string' ? enhancedMemo1.sam_market_size : 
+                     typeof enhancedMemo1.sam_market_size === 'object' ? JSON.stringify(enhancedMemo1.sam_market_size) : 
+                     "Not specified"}
                   </td>
                   <td className="px-4 py-3">
                     {enhancedMemo1.sam_market_size ? (
@@ -953,7 +965,9 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
                 <tr>
                   <td className="px-4 py-3 text-sm font-medium text-gray-900">Serviceable Obtainable Market (SOM)</td>
                   <td className="px-4 py-3 text-sm text-gray-700">
-                    {enhancedMemo1.som_market_size || "Not specified"}
+                    {typeof enhancedMemo1.som_market_size === 'string' ? enhancedMemo1.som_market_size : 
+                     typeof enhancedMemo1.som_market_size === 'object' ? JSON.stringify(enhancedMemo1.som_market_size) : 
+                     "Not specified"}
                   </td>
                   <td className="px-4 py-3">
                     {enhancedMemo1.som_market_size ? (
@@ -1025,7 +1039,9 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
             <div className="p-4 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg border">
               <h4 className="font-semibold text-gray-800 mb-3">Market Opportunity Summary</h4>
               <div className="space-y-2 text-sm text-gray-700">
-                <p><strong>Market Size:</strong> {enhancedMemo1.market_size}</p>
+                <p><strong>Market Size:</strong> {typeof enhancedMemo1.market_size === 'string' ? enhancedMemo1.market_size : 
+                   typeof enhancedMemo1.market_size === 'object' ? JSON.stringify(enhancedMemo1.market_size) : 
+                   "Not specified"}</p>
                 {enhancedMemo1.market_timing && (
                   <p><strong>Market Timing:</strong> {enhancedMemo1.market_timing}</p>
                 )}

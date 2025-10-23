@@ -187,7 +187,7 @@ class DataSyncService:
                         "problem": memo_1_data.get('problem', data.get('problem', '')),
                         "solution": memo_1_data.get('solution', data.get('solution', '')),
                         "businessModel": memo_1_data.get('business_model', data.get('business_model', '')),
-                        "marketSize": memo_1_data.get('market_size', data.get('market_size', {})),
+                        "marketSize": self._convert_market_size_to_string(memo_1_data.get('market_size', data.get('market_size', {}))),
                         "traction": memo_1_data.get('traction', data.get('traction', '')),
                         "team": memo_1_data.get('team', ''),
                         "competition": memo_1_data.get('competition', data.get('competition', [])),
@@ -451,3 +451,23 @@ class DataSyncService:
             return ["Processing failed", "Data quality issues"]
         else:
             return ["Incomplete processing"]
+    
+    def _convert_market_size_to_string(self, market_size_data):
+        """
+        Convert market size data to a string format to prevent React rendering errors.
+        Handles both string and object formats.
+        """
+        if isinstance(market_size_data, str):
+            return market_size_data
+        elif isinstance(market_size_data, dict):
+            # Convert object format {TAM, SAM, SOM} to readable string
+            parts = []
+            if 'TAM' in market_size_data:
+                parts.append(f"TAM: {market_size_data['TAM']}")
+            if 'SAM' in market_size_data:
+                parts.append(f"SAM: {market_size_data['SAM']}")
+            if 'SOM' in market_size_data:
+                parts.append(f"SOM: {market_size_data['SOM']}")
+            return " | ".join(parts) if parts else "Not specified"
+        else:
+            return str(market_size_data) if market_size_data else "Not specified"

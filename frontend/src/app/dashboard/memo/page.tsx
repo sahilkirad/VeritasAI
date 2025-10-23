@@ -19,6 +19,21 @@ import Memo2Tab from '@/components/memo/Memo2Tab';
 import Memo3Tab from '@/components/memo/Memo3Tab';
 import MemoDebug from '@/components/memo/MemoDebug';
 
+// Helper function to safely convert market size data to string
+function convertMarketSizeToString(marketSizeData: any): string {
+  if (typeof marketSizeData === 'string') {
+    return marketSizeData;
+  }
+  if (typeof marketSizeData === 'object' && marketSizeData !== null) {
+    const parts = [];
+    if (marketSizeData.TAM) parts.push(`TAM: ${marketSizeData.TAM}`);
+    if (marketSizeData.SAM) parts.push(`SAM: ${marketSizeData.SAM}`);
+    if (marketSizeData.SOM) parts.push(`SOM: ${marketSizeData.SOM}`);
+    return parts.length > 0 ? parts.join(' | ') : 'Not specified';
+  }
+  return marketSizeData?.toString() || 'Not specified';
+}
+
 interface MemoData {
   id: string;
   memo_1?: {
@@ -237,9 +252,9 @@ export default function DealMemoPage() {
               timestamp: data.timestamp,
               // Additional fields that might be in the data
               summary_analysis: memo1Data.summary_analysis || memo1Data.executive_summary,
-              market_size: memo1Data.market_size || memo1Data.total_addressable_market,
-              sam_market_size: memo1Data.sam_market_size || memo1Data.serviceable_available_market,
-              som_market_size: memo1Data.som_market_size || memo1Data.serviceable_obtainable_market,
+              market_size: convertMarketSizeToString(memo1Data.market_size || memo1Data.total_addressable_market),
+              sam_market_size: convertMarketSizeToString(memo1Data.sam_market_size || memo1Data.serviceable_available_market),
+              som_market_size: convertMarketSizeToString(memo1Data.som_market_size || memo1Data.serviceable_obtainable_market),
               traction: memo1Data.traction || memo1Data.key_metrics,
               team: memo1Data.team || memo1Data.team_overview,
               

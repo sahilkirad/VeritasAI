@@ -192,7 +192,7 @@ class IntakeCurationAgent:
         - "problem": A detailed, specific summary of the core problem the company is solving (include target audience, pain points, and market need).
         - "solution": A comprehensive summary of the proposed solution (include key features, technology, and value proposition).
         - "traction": Detailed summary of traction metrics, milestones, and achievements (include specific numbers, dates, and key customers).
-        - "market_size": The Total Addressable Market (TAM), Serviceable Addressable Market (SAM), and Serviceable Obtainable Market (SOM) with specific numbers and sources.
+        - "market_size": A comprehensive string description of the Total Addressable Market (TAM), Serviceable Addressable Market (SAM), and Serviceable Obtainable Market (SOM) with specific numbers and sources. Format as a readable text description, not as separate fields.
         - "business_model": Detailed explanation of revenue model, pricing strategy, and monetization approach.
         - "competition": A comprehensive list of direct and indirect competitors with brief descriptions of competitive positioning.
         - "team": Detailed summary of founding team background, relevant experience, and key strengths.
@@ -377,7 +377,7 @@ class IntakeCurationAgent:
         - "problem": A concise summary of the core problem the company is trying to solve.
         - "solution": A concise summary of the proposed solution.
         - "traction": A summary of any key traction metrics or milestones mentioned (e.g., revenue, user numbers, key customers).
-        - "market_size": The Total Addressable Market (TAM) or overall market size mentioned.
+        - "market_size": A comprehensive string description of the Total Addressable Market (TAM) or overall market size mentioned. Format as a readable text description, not as separate fields.
         - "business_model": A brief explanation of how the company plans to make money.
         - "competition": A list of key competitors mentioned, as an array of strings.
         - "team": A brief summary of the founding team's background or strengths.

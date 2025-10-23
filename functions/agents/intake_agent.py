@@ -196,9 +196,9 @@ class IntakeCurationAgent:
         - "business_model": Detailed explanation of revenue model, pricing strategy, and monetization approach.
         - "competition": A comprehensive list of direct and indirect competitors with brief descriptions of competitive positioning.
         - "team": Detailed summary of founding team background, relevant experience, and key strengths.
-        - "initial_flags": A list of 3-5 potential red flags, risks, or areas of concern identified from the pitch deck.
-        - "validation_points": A list of the top 5 most critical claims that require investor validation (include specific metrics, partnerships, or achievements).
-        - "summary_analysis": A comprehensive 4-5 paragraph executive summary that synthesizes key findings, highlights compelling aspects, identifies risks, and provides an initial investment thesis with clear rationale.
+        - "initial_flags": A list of 3-5 potential red flags, risks, or areas of concern identified from the pitch deck. MUST be an array of strings, not "Not specified". Examples: ["High burn rate without clear path to profitability", "Unproven market demand for XR solutions", "Heavy competition from established players"]. Always provide specific, actionable concerns.
+        - "validation_points": A list of the top 5 most critical claims that require investor validation (include specific metrics, partnerships, or achievements). MUST be an array of strings, not "Not specified". Examples: ["Claim of 3x better render quality than market", "59k+ website visitors metric", "Partnership claims with major enterprises"]. Always provide specific, verifiable claims.
+        - "summary_analysis": A comprehensive 4-5 paragraph executive summary that synthesizes key findings, highlights compelling aspects, identifies risks, and provides an initial investment thesis with clear rationale. MUST be a detailed string, not "Not specified". This is the main executive summary that investors will read first.
         
         COMPREHENSIVE ANALYSIS FIELDS (Extract with maximum detail):
         
@@ -311,6 +311,13 @@ class IntakeCurationAgent:
         - "potential_acquirers": Potential acquisition targets mentioned.
         - "ipo_timeline": IPO timeline or plans if mentioned.
         - "exit_valuation": Expected exit valuation if mentioned.
+        
+        CRITICAL: You MUST always generate the following fields with actual content, never "Not specified":
+        - "initial_flags": MUST be an array of 3-5 specific red flags or concerns
+        - "validation_points": MUST be an array of 5 specific claims to validate  
+        - "summary_analysis": MUST be a comprehensive 4-5 paragraph executive summary
+        
+        These fields are essential for the investment analysis and must contain real, actionable insights.
         """
         
         response = self.gemini_model.generate_content([prompt, pdf_part])
@@ -381,9 +388,9 @@ class IntakeCurationAgent:
         - "business_model": A brief explanation of how the company plans to make money.
         - "competition": A list of key competitors mentioned, as an array of strings.
         - "team": A brief summary of the founding team's background or strengths.
-        - "initial_flags": A list of 1-2 potential red flags or areas of concern based ONLY on the provided text.
-        - "validation_points": A list of the top 2-3 most important claims from the text that an investor must validate.
-        - "summary_analysis": A comprehensive 2-3 paragraph analysis that synthesizes the key findings, highlights the most compelling aspects of the opportunity, and provides an initial investment thesis with both strengths and potential concerns.
+        - "initial_flags": A list of 1-2 potential red flags or areas of concern based ONLY on the provided text. MUST be an array of strings, not "Not specified". Always provide specific, actionable concerns based on the text content.
+        - "validation_points": A list of the top 2-3 most important claims from the text that an investor must validate. MUST be an array of strings, not "Not specified". Always provide specific, verifiable claims from the text.
+        - "summary_analysis": A comprehensive 2-3 paragraph analysis that synthesizes the key findings, highlights the most compelling aspects of the opportunity, and provides an initial investment thesis with both strengths and potential concerns. MUST be a detailed string, not "Not specified". This is the main executive summary.
         
         Additional Fields for Comprehensive Analysis:
         - "industry_category": The primary industry category (e.g., "EdTech", "HRTech", "FinTech", "AI/ML", "SaaS").
@@ -459,6 +466,13 @@ class IntakeCurationAgent:
         - "potential_acquirers": Potential acquisition targets mentioned.
         - "ipo_timeline": IPO timeline or plans if mentioned.
         - "exit_valuation": Expected exit valuation if mentioned.
+        
+        CRITICAL: You MUST always generate the following fields with actual content, never "Not specified":
+        - "initial_flags": MUST be an array of 1-2 specific red flags or concerns
+        - "validation_points": MUST be an array of 2-3 specific claims to validate  
+        - "summary_analysis": MUST be a comprehensive 2-3 paragraph executive summary
+        
+        These fields are essential for the investment analysis and must contain real, actionable insights.
         
         Text to analyze:
         {text[:20000]}

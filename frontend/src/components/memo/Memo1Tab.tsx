@@ -383,20 +383,32 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
 
   const enhancedMemo1 = { ...memo1, ...parsedFinancialData };
   
-  // Debug logging for market size data
-  console.log('Memo1Tab received memo1:', memo1);
-  console.log('Memo1Tab market_size:', memo1.market_size);
-  console.log('Memo1Tab market_size type:', typeof memo1.market_size);
-  console.log('Memo1Tab sam_market_size:', memo1.sam_market_size);
-  console.log('Memo1Tab som_market_size:', memo1.som_market_size);
-  console.log('Enhanced memo1 market_size:', enhancedMemo1.market_size);
-  console.log('Enhanced memo1 market_size type:', typeof enhancedMemo1.market_size);
+  // Debug logging for market size data (remove in production)
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Memo1Tab received memo1:', memo1);
+    console.log('Memo1Tab market_size:', memo1.market_size);
+    console.log('Memo1Tab market_size type:', typeof memo1.market_size);
+    console.log('Memo1Tab sam_market_size:', memo1.sam_market_size);
+    console.log('Memo1Tab som_market_size:', memo1.som_market_size);
+    console.log('Enhanced memo1 market_size:', enhancedMemo1.market_size);
+    console.log('Enhanced memo1 market_size type:', typeof enhancedMemo1.market_size);
+  }
 
   // Helper function to safely render values that might be objects
   const safeRenderValue = (value: any): string => {
     if (typeof value === 'string') return value;
     if (typeof value === 'object' && value !== null) return JSON.stringify(value);
     return value?.toString() || "Not specified";
+  };
+
+  // Helper function to safely render array data
+  const safeRenderArray = (array: any[] | undefined, fallback: string = "Not specified"): string[] => {
+    if (!Array.isArray(array)) return [fallback];
+    return array.map(item => {
+      if (typeof item === 'string') return item;
+      if (typeof item === 'object' && item !== null) return JSON.stringify(item);
+      return item?.toString() || fallback;
+    });
   };
 
   // Helper function to render enriched field with badge and source link
@@ -932,10 +944,7 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
                 <tr>
                   <td className="px-4 py-3 text-sm font-medium text-gray-900">Total Addressable Market (TAM)</td>
                   <td className="px-4 py-3 text-sm text-gray-700">
-                    {enhancedMemo1.market_size_enriched?.value || 
-                     (typeof enhancedMemo1.market_size === 'string' ? enhancedMemo1.market_size : 
-                      typeof enhancedMemo1.market_size === 'object' ? JSON.stringify(enhancedMemo1.market_size) : 
-                      "Not specified")}
+                    {enhancedMemo1.market_size_enriched?.value || safeRenderValue(enhancedMemo1.market_size) || "Not specified"}
                     {enhancedMemo1.market_size_enriched?.enriched && (
                       <Badge variant="secondary" className="ml-2 text-xs">AI-enriched</Badge>
                     )}
@@ -955,9 +964,7 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
                 <tr>
                   <td className="px-4 py-3 text-sm font-medium text-gray-900">Serviceable Available Market (SAM)</td>
                   <td className="px-4 py-3 text-sm text-gray-700">
-                    {typeof enhancedMemo1.sam_market_size === 'string' ? enhancedMemo1.sam_market_size : 
-                     typeof enhancedMemo1.sam_market_size === 'object' ? JSON.stringify(enhancedMemo1.sam_market_size) : 
-                     "Not specified"}
+                    {safeRenderValue(enhancedMemo1.sam_market_size) || "Not specified"}
                   </td>
                   <td className="px-4 py-3">
                     {enhancedMemo1.sam_market_size ? (
@@ -974,9 +981,7 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
                 <tr>
                   <td className="px-4 py-3 text-sm font-medium text-gray-900">Serviceable Obtainable Market (SOM)</td>
                   <td className="px-4 py-3 text-sm text-gray-700">
-                    {typeof enhancedMemo1.som_market_size === 'string' ? enhancedMemo1.som_market_size : 
-                     typeof enhancedMemo1.som_market_size === 'object' ? JSON.stringify(enhancedMemo1.som_market_size) : 
-                     "Not specified"}
+                    {safeRenderValue(enhancedMemo1.som_market_size) || "Not specified"}
                   </td>
                   <td className="px-4 py-3">
                     {enhancedMemo1.som_market_size ? (
@@ -1048,9 +1053,7 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
             <div className="p-4 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg border">
               <h4 className="font-semibold text-gray-800 mb-3">Market Opportunity Summary</h4>
               <div className="space-y-2 text-sm text-gray-700">
-                <p><strong>Market Size:</strong> {typeof enhancedMemo1.market_size === 'string' ? enhancedMemo1.market_size : 
-                   typeof enhancedMemo1.market_size === 'object' ? JSON.stringify(enhancedMemo1.market_size) : 
-                   "Not specified"}</p>
+                <p><strong>Market Size:</strong> {safeRenderValue(enhancedMemo1.market_size) || "Not specified"}</p>
                 {enhancedMemo1.market_timing && (
                   <p><strong>Market Timing:</strong> {enhancedMemo1.market_timing}</p>
                 )}

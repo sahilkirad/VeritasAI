@@ -21,7 +21,8 @@ const envConfig = {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',  // Enabled for Firebase Hosting static deployment
+  // Only enable static export for production builds, not development
+  ...(process.env.NODE_ENV === 'production' && { output: 'export' }),
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -55,8 +56,19 @@ const nextConfig = {
       fs: false,
       tls: false,
     };
+    
+    // Ensure proper JavaScript file serving
+    config.module.rules.push({
+      test: /\.js$/,
+      enforce: 'pre',
+      use: ['source-map-loader'],
+    });
+    
     return config;
   },
+  
+  // Ensure proper asset serving
+  assetPrefix: process.env.NODE_ENV === 'production' ? '' : '',
 }
 
 export default nextConfig

@@ -146,7 +146,7 @@ class DatabaseAuth {
         return {
           success: false,
           user: null,
-          error: 'No account found with this email'
+          error: 'No account found with this email. Please sign up first or check your email address.'
         };
       }
 
@@ -157,7 +157,7 @@ class DatabaseAuth {
         return {
           success: false,
           user: null,
-          error: 'Invalid email or password'
+          error: 'Invalid email or password. Please check your credentials and try again.'
         };
       }
 
@@ -166,7 +166,7 @@ class DatabaseAuth {
         return {
           success: false,
           user: null,
-          error: `This account is registered as a ${userProfile.role}, not an ${expectedRole}`
+          error: `This email is registered as a ${userProfile.role}, not a ${expectedRole}. Please use the correct login page.`
         };
       }
 

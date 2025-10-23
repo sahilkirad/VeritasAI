@@ -19,7 +19,7 @@ export default function FounderLoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
-  const { user, signIn, loading } = useAuth()
+  const { user, signIn, signUp, loading } = useAuth()
   const router = useRouter()
 
   // Redirect if already authenticated
@@ -42,7 +42,47 @@ export default function FounderLoginPage() {
       await signIn(email, password, 'founder')
       router.push("/founder/dashboard")
     } catch (error: any) {
-      setError(error.message || "Failed to sign in")
+      console.error('Founder login error:', error)
+      // Provide more helpful error messages
+      if (error.message?.includes('No account found')) {
+        setError("No founder account found with this email. Please sign up first or check your email address.")
+      } else if (error.message?.includes('Invalid email or password')) {
+        setError("Invalid email or password. Please check your credentials and try again.")
+      } else if (error.message?.includes('registered as')) {
+        setError("This email is registered as a different user type. Please use the correct login page.")
+      } else {
+        setError(error.message || "Failed to sign in. Please try again.")
+      }
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Add test account functionality for development
+  const handleTestAccount = async () => {
+    setIsLoading(true)
+    setError("")
+    
+    try {
+      // Create a test founder account if it doesn't exist
+      const testEmail = "test@founder.com"
+      const testPassword = "test123"
+      const testName = "Test Founder"
+      
+      // Try to sign in first
+      try {
+        await signIn(testEmail, testPassword, 'founder')
+        router.push("/founder/dashboard")
+        return
+      } catch (signInError) {
+        // If sign in fails, try to create the account
+        console.log('Test account not found, creating...')
+        await signUp(testEmail, testPassword, testName, 'founder', 'Test Company', 'https://testcompany.com', 'https://linkedin.com/in/testfounder')
+        router.push("/founder/dashboard")
+      }
+    } catch (error: any) {
+      console.error('Test account creation error:', error)
+      setError("Failed to create test account. Please sign up manually.")
     } finally {
       setIsLoading(false)
     }
@@ -103,6 +143,24 @@ export default function FounderLoginPage() {
                 </>
               ) : (
                 "Sign In"
+              )}
+            </Button>
+            
+            {/* Test Account Button for Development */}
+            <Button 
+              type="button" 
+              variant="outline" 
+              className="w-full" 
+              onClick={handleTestAccount}
+              disabled={isLoading || loading}
+            >
+              {isLoading ? (
+                <>
+                  <AvengersLoader size="sm" className="mr-2" />
+                  Creating Test Account...
+                </>
+              ) : (
+                "Use Test Account (Development)"
               )}
             </Button>
           </form>

@@ -19,8 +19,13 @@ let app: any = null;
 let auth: any = null, db: any = null, storage: any = null;
 
 try {
+  console.log('🔄 Initializing Firebase...');
+  console.log('🔄 Firebase config:', firebaseConfig);
+  
   // Check if Firebase is already initialized
   const existingApps = getApps();
+  console.log('🔄 Existing apps:', existingApps.length);
+  
   if (existingApps.length > 0) {
     app = existingApps[0];
     console.log('✅ Using existing Firebase app');
@@ -31,15 +36,28 @@ try {
   }
   
   // Initialize services
+  console.log('🔄 Initializing Firebase services...');
   auth = getAuth(app);
   db = getFirestore(app);
   storage = getStorage(app);
   
+  console.log('✅ Firebase services initialized:', {
+    auth: !!auth,
+    db: !!db,
+    storage: !!storage
+  });
+  
 } catch (error) {
   console.error('❌ Firebase initialization failed:', error);
+  console.error('❌ Firebase initialization error details:', {
+    message: error.message,
+    stack: error.stack,
+    name: error.name
+  });
   
   // Fallback: try to get existing app
   try {
+    console.log('🔄 Trying fallback initialization...');
     app = getApp();
     auth = getAuth(app);
     db = getFirestore(app);
@@ -47,6 +65,11 @@ try {
     console.log('✅ Using existing Firebase app as fallback');
   } catch (fallbackError) {
     console.error('❌ Fallback also failed:', fallbackError);
+    console.error('❌ Fallback error details:', {
+      message: fallbackError.message,
+      stack: fallbackError.stack,
+      name: fallbackError.name
+    });
     // Don't throw error, just set to null and handle gracefully
     app = null;
     auth = null;

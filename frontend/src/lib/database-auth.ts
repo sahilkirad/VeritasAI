@@ -218,18 +218,36 @@ class DatabaseAuth {
   // Get user by email from database
   private async getUserByEmail(email: string): Promise<UserProfile | null> {
     try {
+      console.log('🔄 Getting user by email:', email);
+      console.log('🔄 Database instance in getUserByEmail:', this.db);
+      
       const usersRef = collection(this.db, 'users');
+      console.log('🔄 Users collection reference:', usersRef);
+      
       const q = query(usersRef, where('email', '==', email.toLowerCase().trim()));
+      console.log('🔄 Query created:', q);
+      
       const querySnapshot = await getDocs(q);
+      console.log('🔄 Query snapshot:', querySnapshot);
+      console.log('🔄 Query snapshot empty:', querySnapshot.empty);
+      console.log('🔄 Query snapshot size:', querySnapshot.size);
       
       if (querySnapshot.empty) {
+        console.log('❌ No documents found for email:', email);
         return null;
       }
 
       const userDoc = querySnapshot.docs[0];
-      return userDoc.data() as UserProfile;
+      const userData = userDoc.data() as UserProfile;
+      console.log('🔄 User document data:', userData);
+      return userData;
     } catch (error) {
       console.error('❌ Get user by email error:', error);
+      console.error('❌ Get user by email error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
       return null;
     }
   }

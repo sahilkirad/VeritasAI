@@ -71,18 +71,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string, expectedRole?: 'investor' | 'founder' | 'admin') => {
     try {
-      console.log('🔄 Attempting sign in for:', email, 'Expected role:', expectedRole);
+      console.log('🔄 AuthContext: Attempting sign in for:', email, 'Expected role:', expectedRole);
+      console.log('🔄 AuthContext: databaseAuth instance:', databaseAuth);
       const result = await databaseAuth.signInWithEmail(email, password, expectedRole);
+      console.log('🔄 AuthContext: signInWithEmail result:', result);
       
       if (result.success && result.user) {
         setUser(result.user);
         setUserProfile(result.user);
-        console.log('✅ Sign in successful:', result.user.email, 'Role:', result.user.role);
+        console.log('✅ AuthContext: Sign in successful:', result.user.email, 'Role:', result.user.role);
       } else {
+        console.error('❌ AuthContext: Sign in failed:', result.error);
         throw new Error(result.error || 'Sign in failed');
       }
     } catch (error: any) {
-      console.error('❌ Sign in error:', error);
+      console.error('❌ AuthContext: Sign in error:', error);
+      console.error('❌ AuthContext: Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
       throw new Error(error.message || 'Failed to sign in');
     }
   };

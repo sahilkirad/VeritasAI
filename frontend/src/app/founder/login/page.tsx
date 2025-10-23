@@ -35,14 +35,22 @@ export default function FounderLoginPage() {
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
+    console.log('🔄 Founder login attempt:', { email, password: '***' })
     setIsLoading(true)
     setError("")
     
     try {
+      console.log('🔄 Calling signIn function...')
       await signIn(email, password, 'founder')
+      console.log('✅ SignIn successful, redirecting...')
       router.push("/founder/dashboard")
     } catch (error: any) {
-      console.error('Founder login error:', error)
+      console.error('❌ Founder login error:', error)
+      console.error('❌ Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      })
       // Provide more helpful error messages
       if (error.message?.includes('No account found')) {
         setError("No founder account found with this email. Please sign up first or check your email address.")

@@ -138,11 +138,16 @@ class DatabaseAuth {
   async signInWithEmail(email: string, password: string, expectedRole?: 'investor' | 'founder' | 'admin'): Promise<AuthResult> {
     try {
       console.log('🔄 Database signin for:', email);
+      console.log('🔄 Database instance:', this);
+      console.log('🔄 Database db:', this.db);
 
       // Get user from database
+      console.log('🔄 Getting user by email...');
       const userProfile = await this.getUserByEmail(email);
+      console.log('🔄 User profile found:', userProfile);
       
       if (!userProfile) {
+        console.log('❌ No user profile found for email:', email);
         return {
           success: false,
           user: null,
@@ -151,9 +156,12 @@ class DatabaseAuth {
       }
 
       // Verify password
+      console.log('🔄 Verifying password...');
       const isPasswordValid = await this.verifyPassword(password, userProfile.password);
+      console.log('🔄 Password valid:', isPasswordValid);
       
       if (!isPasswordValid) {
+        console.log('❌ Password verification failed');
         return {
           success: false,
           user: null,
@@ -163,6 +171,7 @@ class DatabaseAuth {
 
       // Validate role if expected role is provided
       if (expectedRole && userProfile.role !== expectedRole) {
+        console.log('❌ Role mismatch:', userProfile.role, 'vs', expectedRole);
         return {
           success: false,
           user: null,
@@ -171,11 +180,13 @@ class DatabaseAuth {
       }
 
       // Update authentication status
+      console.log('🔄 Updating authentication status...');
       userProfile.isAuthenticated = true;
       await setDoc(doc(this.db, 'users', userProfile.uid), userProfile);
 
       // Store session in localStorage
       if (typeof window !== 'undefined') {
+        console.log('🔄 Storing session in localStorage...');
         localStorage.setItem(this.SESSION_KEY, JSON.stringify({
           uid: userProfile.uid,
           email: userProfile.email,
@@ -191,6 +202,11 @@ class DatabaseAuth {
       };
     } catch (error: any) {
       console.error('❌ Database signin error:', error);
+      console.error('❌ Database signin error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
       return {
         success: false,
         user: null,

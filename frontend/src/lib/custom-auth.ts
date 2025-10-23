@@ -14,6 +14,11 @@ export class CustomAuth {
 
   async signUpWithEmail(email: string, password: string, fullName: string, role: 'investor' | 'founder') {
     try {
+      // Check if Firebase Auth is available
+      if (!auth) {
+        throw new Error('Firebase Auth not initialized');
+      }
+      
       // Use Firebase Auth directly
       const { createUserWithEmailAndPassword, updateProfile } = await import('firebase/auth');
       
@@ -56,6 +61,11 @@ export class CustomAuth {
 
   async signInWithEmail(email: string, password: string) {
     try {
+      // Check if Firebase Auth is available
+      if (!auth) {
+        throw new Error('Firebase Auth not initialized');
+      }
+      
       const { signInWithEmailAndPassword } = await import('firebase/auth');
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
@@ -122,6 +132,13 @@ export class CustomAuth {
 
   async signOut() {
     try {
+      // Check if Firebase Auth is available
+      if (!auth) {
+        console.warn('Firebase Auth not initialized, clearing local storage only');
+        localStorage.removeItem('userProfile');
+        return;
+      }
+      
       const { signOut } = await import('firebase/auth');
       await signOut(auth);
     } catch (error) {

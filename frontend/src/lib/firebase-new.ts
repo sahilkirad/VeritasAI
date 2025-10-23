@@ -15,8 +15,8 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase with error handling
-let app: any;
-let auth: any, db: any, storage: any;
+let app: any = null;
+let auth: any = null, db: any = null, storage: any = null;
 
 try {
   // Check if Firebase is already initialized
@@ -47,12 +47,23 @@ try {
     console.log('✅ Using existing Firebase app as fallback');
   } catch (fallbackError) {
     console.error('❌ Fallback also failed:', fallbackError);
-    throw new Error('Firebase initialization completely failed');
+    // Don't throw error, just set to null and handle gracefully
+    app = null;
+    auth = null;
+    db = null;
+    storage = null;
+    console.warn('⚠️ Firebase services not available - some features may not work');
   }
 }
 
+// Export with null checks
 export { auth, db, storage };
 export default app;
+
+// Add safety checks for Firebase services
+export const getFirebaseAuth = () => auth;
+export const getFirebaseDb = () => db;
+export const getFirebaseStorage = () => storage;
 
 // Type the db export properly
 export type { Firestore } from 'firebase/firestore';

@@ -8,29 +8,21 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Logo } from "@/components/icons/logo"
 import { ArrowRight, Mail, Shield } from "lucide-react"
+import { useAuth } from "@/contexts/AuthContext"
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState("")
   const router = useRouter()
+  const { user } = useAuth()
 
-  // Check if already logged in as admin (using localStorage for static export compatibility)
+  // Redirect if already logged in as admin (using useEffect to avoid render-time navigation)
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const session = localStorage.getItem('veritas_session')
-      if (session) {
-        try {
-          const user = JSON.parse(session)
-          if (user.role === 'admin') {
-            router.push('/admin/dashboard')
-          }
-        } catch (error) {
-          // Invalid session, continue with login
-        }
-      }
+    if (user && user.role === 'admin') {
+      router.push('/admin/dashboard')
     }
-  }, [router])
+  }, [user, router])
 
   const handlePasswordlessLogin = async (e: React.FormEvent) => {
     e.preventDefault()

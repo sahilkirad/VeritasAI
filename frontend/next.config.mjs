@@ -21,7 +21,7 @@ const envConfig = {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',  // Enabled for Firebase Hosting - admin routes will be handled separately
+  // output: 'export',  // Disabled to enable dynamic admin dashboard
   eslint: {
     ignoreDuringBuilds: true,
   },

@@ -29,7 +29,7 @@ export default function LandingPage() {
     <div className="flex min-h-screen flex-col bg-[#eef5ff]">
       {user && (
         <div className="bg-blue-100 p-2 text-center text-sm">
-          <span>Logged in as: {user.email} ({user.role})</span>
+          <span>Logged in as: {String(user.email || 'Unknown')} ({String(user.role || 'Unknown')})</span>
           <Button 
             variant="outline" 
             size="sm" 

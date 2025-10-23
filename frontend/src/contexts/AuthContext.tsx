@@ -7,9 +7,9 @@ interface AuthContextType {
   user: UserProfile | null;
   userProfile: UserProfile | null;
   loading: boolean;
-  signIn: (email: string, password: string, expectedRole?: 'investor' | 'founder') => Promise<void>;
-  signUp: (email: string, password: string, fullName: string, role: 'investor' | 'founder', companyName?: string, companyWebsite?: string, linkedinProfile?: string) => Promise<void>;
-  signInWithGoogle: (role?: 'investor' | 'founder') => Promise<void>;
+  signIn: (email: string, password: string, expectedRole?: 'investor' | 'founder' | 'admin') => Promise<void>;
+  signUp: (email: string, password: string, fullName: string, role: 'investor' | 'founder' | 'admin', companyName?: string, companyWebsite?: string, linkedinProfile?: string) => Promise<void>;
+  signInWithGoogle: (role?: 'investor' | 'founder' | 'admin') => Promise<void>;
   logout: () => Promise<void>;
 }
 

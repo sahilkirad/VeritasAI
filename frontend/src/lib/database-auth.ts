@@ -7,7 +7,7 @@ export interface UserProfile {
   uid: string;
   email: string;
   displayName: string;
-  role: 'investor' | 'founder';
+  role: 'investor' | 'founder' | 'admin';
   password: string; // Hashed password
   createdAt: string;
   isAuthenticated: boolean;

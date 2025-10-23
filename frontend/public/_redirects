@@ -1,2 +1,6 @@
 # Redirect all routes to index.html for client-side routing
 /*    /index.html   200
+
+# Handle JavaScript and CSS files
+/_next/static/*    /_next/static/*    200
+/_next/*          /index.html         200

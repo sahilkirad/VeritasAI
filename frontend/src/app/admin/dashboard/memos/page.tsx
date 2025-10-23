@@ -34,11 +34,11 @@ import {
   RefreshCw,
   Database
 } from "lucide-react"
-import Link from "next/link"
 import { useMemoManagementData } from "@/hooks/useHybridAdminData"
 import { useAdminMemos } from "@/hooks/useFirestoreRealtime"
 import { FirebaseErrorBoundary } from "@/components/admin/FirebaseErrorBoundary"
 import { FirebaseLoading } from "@/components/admin/FirebaseLoading"
+import MemoDetailDialog from "@/components/admin/MemoDetailDialog"
 
 interface MemoData {
   id: string
@@ -64,6 +64,8 @@ export default function MemoManagementPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [versionFilter, setVersionFilter] = useState<string>("all")
   const [riskFilter, setRiskFilter] = useState<string>("all")
+  const [selectedMemo, setSelectedMemo] = useState<MemoData | null>(null)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
 
   // Convert Firestore data to MemoData format - memoized to prevent infinite loops
   const memos: MemoData[] = useMemo(() => 
@@ -163,6 +165,16 @@ export default function MemoManagementPage() {
     setRiskFilter("all")
   }
 
+  const handleViewMemo = (memo: MemoData) => {
+    setSelectedMemo(memo)
+    setIsDialogOpen(true)
+  }
+
+  const handleCloseDialog = () => {
+    setIsDialogOpen(false)
+    setSelectedMemo(null)
+  }
+
   const loading = memosLoading || hybridLoading
 
   if (loading) {
@@ -198,6 +210,7 @@ export default function MemoManagementPage() {
   }
 
   return (
+    <>
     <FirebaseErrorBoundary>
       <FirebaseLoading>
         <div className="space-y-6">
@@ -360,11 +373,13 @@ export default function MemoManagementPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Link href={`/admin/dashboard/memos/${memo.id}`}>
-                          <Button variant="outline" size="sm">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </Link>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleViewMemo(memo)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
                         <Button variant="outline" size="sm">
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
@@ -380,5 +395,13 @@ export default function MemoManagementPage() {
         </div>
       </FirebaseLoading>
     </FirebaseErrorBoundary>
+
+    {/* Memo Detail Dialog */}
+    <MemoDetailDialog 
+      memo={selectedMemo}
+      open={isDialogOpen}
+      onOpenChange={handleCloseDialog}
+    />
+  </>
   )
 }

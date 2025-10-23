@@ -11,10 +11,16 @@
     "region": "asia-south1"
   },
   "hosting": {
+    "public": "frontend/out",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
     "rewrites": [
       {
         "source": "**",
-        "function": "nextjs"
+        "destination": "/index.html"
       }
     ]
   },

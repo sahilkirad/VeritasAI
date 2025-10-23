@@ -21,7 +21,7 @@ const envConfig = {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // output: 'export',  // Disabled to enable dynamic admin dashboard
+  output: 'export',  // Enabled for Firebase Hosting static deployment
   eslint: {
     ignoreDuringBuilds: true,
   },

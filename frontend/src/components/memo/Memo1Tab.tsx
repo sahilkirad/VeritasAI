@@ -1195,14 +1195,19 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
                       if (typeof member === 'string') {
                         return <li key={index}>• {member}</li>;
                       } else if (member && typeof member === 'object') {
-                        // Handle {role, name} object format
+                        // Handle {role, name} or {name, role} object format
                         const name = member.name || member.title || '';
-                        const role = member.role || '';
-                        return (
-                          <li key={index}>
-                            • {name}{role ? ` - ${role}` : ''}
-                          </li>
-                        );
+                        const role = member.role || member.position || '';
+                        // Only render if we have at least a name or role
+                        if (name || role) {
+                          return (
+                            <li key={index}>
+                              • {name}{role ? ` - ${role}` : ''}
+                            </li>
+                          );
+                        }
+                        // If object has no useful properties, convert to string
+                        return <li key={index}>• {JSON.stringify(member)}</li>;
                       }
                       // Fallback for any other data type
                       return <li key={index}>• {String(member)}</li>;
@@ -1241,14 +1246,19 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
                       if (typeof advisor === 'string') {
                         return <li key={index}>• {advisor}</li>;
                       } else if (advisor && typeof advisor === 'object') {
-                        // Handle {role, name} object format
+                        // Handle {role, name} or {name, role} object format
                         const name = advisor.name || advisor.title || '';
-                        const role = advisor.role || '';
-                        return (
-                          <li key={index}>
-                            • {name}{role ? ` - ${role}` : ''}
-                          </li>
-                        );
+                        const role = advisor.role || advisor.position || '';
+                        // Only render if we have at least a name or role
+                        if (name || role) {
+                          return (
+                            <li key={index}>
+                              • {name}{role ? ` - ${role}` : ''}
+                            </li>
+                          );
+                        }
+                        // If object has no useful properties, convert to string
+                        return <li key={index}>• {JSON.stringify(advisor)}</li>;
                       }
                       // Fallback for any other data type
                       return <li key={index}>• {String(advisor)}</li>;

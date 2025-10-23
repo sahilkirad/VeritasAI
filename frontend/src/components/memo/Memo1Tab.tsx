@@ -382,6 +382,15 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
   };
 
   const enhancedMemo1 = { ...memo1, ...parsedFinancialData };
+  
+  // Debug logging for market size data
+  console.log('Memo1Tab received memo1:', memo1);
+  console.log('Memo1Tab market_size:', memo1.market_size);
+  console.log('Memo1Tab market_size type:', typeof memo1.market_size);
+  console.log('Memo1Tab sam_market_size:', memo1.sam_market_size);
+  console.log('Memo1Tab som_market_size:', memo1.som_market_size);
+  console.log('Enhanced memo1 market_size:', enhancedMemo1.market_size);
+  console.log('Enhanced memo1 market_size type:', typeof enhancedMemo1.market_size);
 
   // Helper function to safely render values that might be objects
   const safeRenderValue = (value: any): string => {

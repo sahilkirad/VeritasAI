@@ -33,7 +33,11 @@ const nextConfig = {
       esmExternals: false
     },
     // Ensure proper asset handling
-    distDir: 'out'
+    distDir: 'out',
+    // Force static file serving
+    generateBuildId: async () => {
+      return 'static-build'
+    }
   }),
   eslint: {
     ignoreDuringBuilds: true,

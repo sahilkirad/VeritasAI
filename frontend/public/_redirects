@@ -1,3 +1,7 @@
+# Critical: Handle JavaScript files first to prevent HTML fallback
+/_next/static/chunks/2117-7d11c211fff1636f.js    /_next/static/chunks/2117-7d11c211fff1636f.js    200
+/_next/static/chunks/fd9d1056-1d25675ed0843a6a.js    /_next/static/chunks/fd9d1056-1d25675ed0843a6a.js    200
+
 # Handle all static assets with proper MIME types
 /_next/static/css/*.css    /_next/static/css/*.css    200
 /_next/static/chunks/*.js    /_next/static/chunks/*.js    200
@@ -7,13 +11,12 @@
 /_next/static/chunks/main-*.js    /_next/static/chunks/main-*.js    200
 /_next/static/chunks/main-app-*.js    /_next/static/chunks/main-app-*.js    200
 
-# Handle specific problematic JavaScript files
-/_next/static/chunks/2117-7d11c211fff1636f.js    /_next/static/chunks/2117-7d11c211fff1636f.js    200
-/_next/static/chunks/fd9d1056-1d25675ed0843a6a.js    /_next/static/chunks/fd9d1056-1d25675ed0843a6a.js    200
-
 # Handle app-specific JavaScript files
 /_next/static/chunks/app/*.js    /_next/static/chunks/app/*.js    200
 /_next/static/chunks/pages/*.js    /_next/static/chunks/pages/*.js    200
+
+# Handle all other static assets
+/_next/static/*    /_next/static/*    200
 
 # Redirect all other routes to index.html for client-side routing
 /*    /index.html   200

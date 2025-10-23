@@ -27,7 +27,13 @@ const nextConfig = {
     trailingSlash: false,
     images: {
       unoptimized: true
-    }
+    },
+    // Disable server-side features for static export
+    experimental: {
+      esmExternals: false
+    },
+    // Ensure proper asset handling
+    distDir: 'out'
   }),
   eslint: {
     ignoreDuringBuilds: true,

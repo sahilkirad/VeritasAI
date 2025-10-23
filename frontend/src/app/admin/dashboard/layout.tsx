@@ -41,12 +41,18 @@ export default function AdminDashboardLayout({
   const [notifications, setNotifications] = useState(0)
 
   useEffect(() => {
+    console.log('🔍 Admin layout - checking user:', user);
+    console.log('🔍 User role:', user?.role);
+    console.log('🔍 Is admin?', user?.role === 'admin');
+    
     // Check if user is admin
     if (!user || user.role !== 'admin') {
+      console.log('❌ Redirecting to admin login - user not admin or null');
       router.push('/admin')
       return
     }
 
+    console.log('✅ Admin user verified, proceeding to dashboard');
     // Simulate notification count
     setNotifications(3)
   }, [user, router])

@@ -68,7 +68,7 @@ class DatabaseAuth {
     email: string, 
     password: string, 
     fullName: string, 
-    role: 'investor' | 'founder',
+    role: 'investor' | 'founder' | 'admin',
     companyName?: string,
     companyWebsite?: string,
     linkedinProfile?: string
@@ -135,7 +135,7 @@ class DatabaseAuth {
   }
 
   // Sign in with email and password
-  async signInWithEmail(email: string, password: string, expectedRole?: 'investor' | 'founder'): Promise<AuthResult> {
+  async signInWithEmail(email: string, password: string, expectedRole?: 'investor' | 'founder' | 'admin'): Promise<AuthResult> {
     try {
       console.log('🔄 Database signin for:', email);
 
@@ -264,7 +264,7 @@ class DatabaseAuth {
   }
 
   // Google OAuth with real Google authentication
-  async signInWithGoogle(role?: 'investor' | 'founder'): Promise<AuthResult> {
+  async signInWithGoogle(role?: 'investor' | 'founder' | 'admin'): Promise<AuthResult> {
     try {
       console.log('🔄 Database Google signin, Role:', role);
       

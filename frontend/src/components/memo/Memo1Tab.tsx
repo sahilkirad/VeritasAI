@@ -258,47 +258,47 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
 
   // Parse financial data if it comes as a long text block
   const parseFinancialData = (data: string) => {
-    if (!data) return {};
+    if (!data || typeof data !== 'string') return {};
     
     const parsed: any = {};
     
     // Extract gross margin - handle various formats
-    const grossMarginMatch = data.match(/gross margin[:\s]*([0-9.]+%)/i) || 
-                            data.match(/gross margin[:\s]*([0-9.]+%)/i);
+    const grossMarginMatch = data?.match(/gross margin[:\s]*([0-9.]+%)/i) || 
+                            data?.match(/gross margin[:\s]*([0-9.]+%)/i);
     if (grossMarginMatch) {
       parsed.gross_margin = grossMarginMatch[1];
     }
     
     // Extract operating margin - handle negative values
-    const operatingMarginMatch = data.match(/operating margin[:\s]*([-]?[0-9.]+%)/i) ||
-                                data.match(/operating margin[:\s]*([-]?[0-9.]+%)/i);
+    const operatingMarginMatch = data?.match(/operating margin[:\s]*([-]?[0-9.]+%)/i) ||
+                                data?.match(/operating margin[:\s]*([-]?[0-9.]+%)/i);
     if (operatingMarginMatch) {
       parsed.operating_margin = operatingMarginMatch[1];
     }
     
     // Extract net margin - handle negative values
-    const netMarginMatch = data.match(/net margin[:\s]*([-]?[0-9.]+%)/i) ||
-                          data.match(/net margin[:\s]*([-]?[0-9.]+%)/i);
+    const netMarginMatch = data?.match(/net margin[:\s]*([-]?[0-9.]+%)/i) ||
+                          data?.match(/net margin[:\s]*([-]?[0-9.]+%)/i);
     if (netMarginMatch) {
       parsed.net_margin = netMarginMatch[1];
     }
     
     // Extract revenue - handle various currencies and units
-    const revenueMatch = data.match(/revenue[:\s]*([₹$][0-9.,\s]+(?:lakh|crore|million|billion)?)/i) ||
-                        data.match(/reported[:\s]*([₹$][0-9.,\s]+(?:lakh|crore|million|billion)?)/i);
+    const revenueMatch = data?.match(/revenue[:\s]*([₹$][0-9.,\s]+(?:lakh|crore|million|billion)?)/i) ||
+                        data?.match(/reported[:\s]*([₹$][0-9.,\s]+(?:lakh|crore|million|billion)?)/i);
     if (revenueMatch) {
       parsed.current_revenue = revenueMatch[1];
     }
     
     // Extract business model information
-    const businessModelMatch = data.match(/business model[:\s]*([^.]*)/i);
+    const businessModelMatch = data?.match(/business model[:\s]*([^.]*)/i);
     if (businessModelMatch) {
       parsed.business_model = businessModelMatch[1].trim();
     }
     
     // Extract growth stage
-    const growthStageMatch = data.match(/growth phase[:\s]*([^.]*)/i) ||
-                            data.match(/early growth[:\s]*([^.]*)/i);
+    const growthStageMatch = data?.match(/growth phase[:\s]*([^.]*)/i) ||
+                            data?.match(/early growth[:\s]*([^.]*)/i);
     if (growthStageMatch) {
       parsed.growth_stage = growthStageMatch[1].trim();
     }
@@ -316,8 +316,8 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
     const investors = [];
     
     // Extract investor names and details
-    const mortonMatch = investorText.match(/\*\*(Morton Meyerson)\*\*/);
-    const nandkishoreMatch = investorText.match(/\*\*(Nandkishore \(Andy\) Kalambi)\*\*/);
+    const mortonMatch = investorText?.match(/\*\*(Morton Meyerson)\*\*/);
+    const nandkishoreMatch = investorText?.match(/\*\*(Nandkishore \(Andy\) Kalambi)\*\*/);
     
     if (mortonMatch) {
       investors.push({
@@ -350,7 +350,7 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
       ? acquirersText 
       : JSON.stringify(acquirersText);
     
-    if (!textString || textString.trim().length === 0) return null;
+    if (!textString || typeof textString !== 'string' || textString.trim().length === 0) return null;
     
     // Check if the text contains a table structure
     const tableMatch = textString.match(/\| Target Category \| Rationale \| Examples \(Hypothetical\) \|/);
@@ -1190,9 +1190,23 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
                 <h4 className="font-semibold mb-2">Key Team Members</h4>
                 {enhancedMemo1.key_team_members && enhancedMemo1.key_team_members.length > 0 ? (
                   <ul className="text-sm text-muted-foreground space-y-1">
-                    {enhancedMemo1.key_team_members.map((member: string, index: number) => (
-                      <li key={index}>• {member}</li>
-                    ))}
+                    {enhancedMemo1.key_team_members.map((member: any, index: number) => {
+                      // Handle both string and object formats
+                      if (typeof member === 'string') {
+                        return <li key={index}>• {member}</li>;
+                      } else if (member && typeof member === 'object') {
+                        // Handle {role, name} object format
+                        const name = member.name || member.title || '';
+                        const role = member.role || '';
+                        return (
+                          <li key={index}>
+                            • {name}{role ? ` - ${role}` : ''}
+                          </li>
+                        );
+                      }
+                      // Fallback for any other data type
+                      return <li key={index}>• {String(member)}</li>;
+                    })}
                   </ul>
                 ) : (
                   <p className="text-sm text-muted-foreground">Not specified</p>
@@ -1222,9 +1236,23 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
                 <h4 className="font-semibold mb-2">Advisory Board</h4>
                 {Array.isArray(enhancedMemo1.advisory_board) ? (
                   <ul className="text-sm text-muted-foreground space-y-1">
-                    {enhancedMemo1.advisory_board.map((advisor: string, index: number) => (
-                      <li key={index}>• {advisor}</li>
-                    ))}
+                    {enhancedMemo1.advisory_board.map((advisor: any, index: number) => {
+                      // Handle both string and object formats
+                      if (typeof advisor === 'string') {
+                        return <li key={index}>• {advisor}</li>;
+                      } else if (advisor && typeof advisor === 'object') {
+                        // Handle {role, name} object format
+                        const name = advisor.name || advisor.title || '';
+                        const role = advisor.role || '';
+                        return (
+                          <li key={index}>
+                            • {name}{role ? ` - ${role}` : ''}
+                          </li>
+                        );
+                      }
+                      // Fallback for any other data type
+                      return <li key={index}>• {String(advisor)}</li>;
+                    })}
                   </ul>
                 ) : (
                   <p className="text-sm text-muted-foreground">Not specified</p>

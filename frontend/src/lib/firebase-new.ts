@@ -19,15 +19,22 @@ let app: any;
 let auth: any, db: any, storage: any;
 
 try {
-  // Force initialize with a unique name to avoid conflicts
-  app = initializeApp(firebaseConfig, 'veritas-app-' + Math.random().toString(36).substr(2, 9));
+  // Check if Firebase is already initialized
+  const existingApps = getApps();
+  if (existingApps.length > 0) {
+    app = existingApps[0];
+    console.log('✅ Using existing Firebase app');
+  } else {
+    // Initialize with a consistent name
+    app = initializeApp(firebaseConfig, 'veritas-app');
+    console.log('✅ Firebase initialized successfully');
+  }
   
   // Initialize services
   auth = getAuth(app);
   db = getFirestore(app);
   storage = getStorage(app);
   
-  console.log('✅ Firebase initialized successfully');
 } catch (error) {
   console.error('❌ Firebase initialization failed:', error);
   
@@ -37,7 +44,7 @@ try {
     auth = getAuth(app);
     db = getFirestore(app);
     storage = getStorage(app);
-    console.log('✅ Using existing Firebase app');
+    console.log('✅ Using existing Firebase app as fallback');
   } catch (fallbackError) {
     console.error('❌ Fallback also failed:', fallbackError);
     throw new Error('Firebase initialization completely failed');

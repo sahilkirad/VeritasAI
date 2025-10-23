@@ -54,11 +54,9 @@ export default function AdminLoginPage() {
         
         setMessage("✅ Admin access granted! Redirecting...")
         
-        // Redirect to dashboard immediately
+        // Redirect to dashboard immediately with a hard navigation
         setTimeout(() => {
-          if (typeof window !== 'undefined') {
-            window.location.href = '/admin/dashboard'
-          }
+          window.location.href = '/admin/dashboard'
         }, 1000)
       } else {
         setMessage("❌ Only admin@veritas.com is authorized for admin access.")

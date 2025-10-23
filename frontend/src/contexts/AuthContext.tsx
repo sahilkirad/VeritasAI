@@ -24,11 +24,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Check for existing authentication
     const checkAuth = () => {
       try {
+        // First, check localStorage directly (for admin and other sessions)
+        if (typeof window !== 'undefined') {
+          const session = localStorage.getItem('veritas_session');
+          console.log('🔍 Checking localStorage session:', session);
+          if (session) {
+            try {
+              const userData = JSON.parse(session);
+              console.log('🔍 Parsed userData:', userData);
+              setUser(userData);
+              setUserProfile(userData);
+              console.log('✅ User authenticated from localStorage:', userData.email);
+              setLoading(false);
+              return;
+            } catch (parseError) {
+              console.error('❌ Failed to parse session:', parseError);
+              localStorage.removeItem('veritas_session');
+            }
+          } else {
+            console.log('ℹ️ No localStorage session found');
+          }
+        }
+
+        // Fallback to databaseAuth if no localStorage session
         const currentUser = databaseAuth.getCurrentUser();
         if (currentUser) {
           setUser(currentUser);
           setUserProfile(currentUser);
-          console.log('✅ User authenticated:', currentUser.email);
+          console.log('✅ User authenticated from databaseAuth:', currentUser.email);
         } else {
           setUser(null);
           setUserProfile(null);
@@ -46,7 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     checkAuth();
   }, []);
 
-  const signIn = async (email: string, password: string, expectedRole?: 'investor' | 'founder') => {
+  const signIn = async (email: string, password: string, expectedRole?: 'investor' | 'founder' | 'admin') => {
     try {
       console.log('🔄 Attempting sign in for:', email, 'Expected role:', expectedRole);
       const result = await databaseAuth.signInWithEmail(email, password, expectedRole);
@@ -64,7 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signUp = async (email: string, password: string, fullName: string, role: 'investor' | 'founder', companyName?: string, companyWebsite?: string, linkedinProfile?: string) => {
+  const signUp = async (email: string, password: string, fullName: string, role: 'investor' | 'founder' | 'admin', companyName?: string, companyWebsite?: string, linkedinProfile?: string) => {
     try {
       console.log('🔄 Attempting sign up for:', email, 'Role:', role);
       const result = await databaseAuth.signUpWithEmail(email, password, fullName, role, companyName, companyWebsite, linkedinProfile);
@@ -82,7 +105,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signInWithGoogle = async (role?: 'investor' | 'founder') => {
+  const signInWithGoogle = async (role?: 'investor' | 'founder' | 'admin') => {
     try {
       console.log('🔄 Attempting Google sign in, Role:', role);
       const result = await databaseAuth.signInWithGoogle(role);

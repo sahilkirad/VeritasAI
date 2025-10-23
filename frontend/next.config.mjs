@@ -21,7 +21,7 @@ const envConfig = {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // output: 'export',  // Commented out to allow dynamic routes
+  output: 'export',  // Enabled for Firebase Hosting - admin routes will be handled separately
   eslint: {
     ignoreDuringBuilds: true,
   },

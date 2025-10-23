@@ -11,7 +11,7 @@
     "region": "asia-south1"
   },
   "hosting": {
-    "public": "frontend/out",
+    "public": "frontend/.next",
     "ignore": [
       "firebase.json",
       "**/.*",

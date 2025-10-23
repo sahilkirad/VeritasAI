@@ -1,6 +1,12 @@
 "use client"
 
 import { useEffect, useState } from "react"
+
+// Required for static export
+export async function generateStaticParams() {
+  // Return empty array for dynamic routes - will be generated at runtime
+  return []
+}
 import { useParams, useRouter } from "next/navigation"
 import { useAdminMemos } from "@/hooks/useFirestoreRealtime"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"

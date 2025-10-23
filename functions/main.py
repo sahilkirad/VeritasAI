@@ -888,6 +888,49 @@ def ai_feedback(req: https_fn.Request) -> https_fn.Response:
         return https_fn.Response(json.dumps({"error": str(e)}), status=500, headers=headers)
 
 
+@https_fn.on_request(cors=options.CorsOptions(
+    cors_origins=["http://localhost:3000", "http://localhost:3001", "https://veritas-472301.web.app", "https://veritas-472301.firebaseapp.com"],
+    cors_methods=["GET", "POST", "OPTIONS"]
+))
+def get_admin_analytics(req: https_fn.Request) -> https_fn.Response:
+    """
+    Get admin analytics data from BigQuery for the admin dashboard
+    """
+    try:
+        headers = get_cors_headers(req)
+        
+        # Handle preflight requests
+        if req.method == "OPTIONS":
+            return https_fn.Response("", status=200, headers=headers)
+        
+        if req.method != "GET":
+            return https_fn.Response("Method not allowed", status=405, headers=headers)
+        
+        # Lazy-initialize the analytics service
+        from services.bigquery_analytics_service import BigQueryAnalyticsService
+        analytics_service = BigQueryAnalyticsService()
+        
+        print("Fetching admin analytics data...")
+        
+        # Get all analytics data
+        analytics_data = {
+            "platform_metrics": analytics_service.get_platform_metrics(),
+            "diligence_analytics": analytics_service.get_diligence_analytics(),
+            "time_series": analytics_service.get_time_series_data(),
+            "investor_stats": analytics_service.get_investor_stats(),
+            "network_analytics": analytics_service.get_network_analytics(),
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        print(f"Analytics data fetched successfully: {len(analytics_data)} sections")
+        
+        return https_fn.Response(json.dumps(analytics_data), status=200, headers=headers)
+    
+    except Exception as e:
+        print(f"Error in get_admin_analytics: {e}")
+        return https_fn.Response(f"Error: {str(e)}", status=500, headers=headers)
+
+
 # --- 8. Diligence Hub Endpoints ---
 
 @https_fn.on_request(
@@ -962,6 +1005,49 @@ def run_diligence(req: https_fn.Request):
         return https_fn.Response(json.dumps({"error": str(e)}), status=500, headers=headers)
 
 
+@https_fn.on_request(cors=options.CorsOptions(
+    cors_origins=["http://localhost:3000", "http://localhost:3001", "https://veritas-472301.web.app", "https://veritas-472301.firebaseapp.com"],
+    cors_methods=["GET", "POST", "OPTIONS"]
+))
+def get_admin_analytics(req: https_fn.Request) -> https_fn.Response:
+    """
+    Get admin analytics data from BigQuery for the admin dashboard
+    """
+    try:
+        headers = get_cors_headers(req)
+        
+        # Handle preflight requests
+        if req.method == "OPTIONS":
+            return https_fn.Response("", status=200, headers=headers)
+        
+        if req.method != "GET":
+            return https_fn.Response("Method not allowed", status=405, headers=headers)
+        
+        # Lazy-initialize the analytics service
+        from services.bigquery_analytics_service import BigQueryAnalyticsService
+        analytics_service = BigQueryAnalyticsService()
+        
+        print("Fetching admin analytics data...")
+        
+        # Get all analytics data
+        analytics_data = {
+            "platform_metrics": analytics_service.get_platform_metrics(),
+            "diligence_analytics": analytics_service.get_diligence_analytics(),
+            "time_series": analytics_service.get_time_series_data(),
+            "investor_stats": analytics_service.get_investor_stats(),
+            "network_analytics": analytics_service.get_network_analytics(),
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        print(f"Analytics data fetched successfully: {len(analytics_data)} sections")
+        
+        return https_fn.Response(json.dumps(analytics_data), status=200, headers=headers)
+    
+    except Exception as e:
+        print(f"Error in get_admin_analytics: {e}")
+        return https_fn.Response(f"Error: {str(e)}", status=500, headers=headers)
+
+
 @https_fn.on_request(
     memory=options.MemoryOption.MB_512,
     timeout_sec=60
@@ -1021,6 +1107,49 @@ def query_diligence(req: https_fn.Request):
             'Content-Type': 'application/json'
         }
         return https_fn.Response(json.dumps({"error": str(e)}), status=500, headers=headers)
+
+
+@https_fn.on_request(cors=options.CorsOptions(
+    cors_origins=["http://localhost:3000", "http://localhost:3001", "https://veritas-472301.web.app", "https://veritas-472301.firebaseapp.com"],
+    cors_methods=["GET", "POST", "OPTIONS"]
+))
+def get_admin_analytics(req: https_fn.Request) -> https_fn.Response:
+    """
+    Get admin analytics data from BigQuery for the admin dashboard
+    """
+    try:
+        headers = get_cors_headers(req)
+        
+        # Handle preflight requests
+        if req.method == "OPTIONS":
+            return https_fn.Response("", status=200, headers=headers)
+        
+        if req.method != "GET":
+            return https_fn.Response("Method not allowed", status=405, headers=headers)
+        
+        # Lazy-initialize the analytics service
+        from services.bigquery_analytics_service import BigQueryAnalyticsService
+        analytics_service = BigQueryAnalyticsService()
+        
+        print("Fetching admin analytics data...")
+        
+        # Get all analytics data
+        analytics_data = {
+            "platform_metrics": analytics_service.get_platform_metrics(),
+            "diligence_analytics": analytics_service.get_diligence_analytics(),
+            "time_series": analytics_service.get_time_series_data(),
+            "investor_stats": analytics_service.get_investor_stats(),
+            "network_analytics": analytics_service.get_network_analytics(),
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        print(f"Analytics data fetched successfully: {len(analytics_data)} sections")
+        
+        return https_fn.Response(json.dumps(analytics_data), status=200, headers=headers)
+    
+    except Exception as e:
+        print(f"Error in get_admin_analytics: {e}")
+        return https_fn.Response(f"Error: {str(e)}", status=500, headers=headers)
 
 # --- 9. Validation Endpoints ---
 
@@ -1102,6 +1231,49 @@ def validate_memo_data(req: https_fn.Request):
         }
         return https_fn.Response(json.dumps({"error": str(e)}), status=500, headers=headers)
 
+
+@https_fn.on_request(cors=options.CorsOptions(
+    cors_origins=["http://localhost:3000", "http://localhost:3001", "https://veritas-472301.web.app", "https://veritas-472301.firebaseapp.com"],
+    cors_methods=["GET", "POST", "OPTIONS"]
+))
+def get_admin_analytics(req: https_fn.Request) -> https_fn.Response:
+    """
+    Get admin analytics data from BigQuery for the admin dashboard
+    """
+    try:
+        headers = get_cors_headers(req)
+        
+        # Handle preflight requests
+        if req.method == "OPTIONS":
+            return https_fn.Response("", status=200, headers=headers)
+        
+        if req.method != "GET":
+            return https_fn.Response("Method not allowed", status=405, headers=headers)
+        
+        # Lazy-initialize the analytics service
+        from services.bigquery_analytics_service import BigQueryAnalyticsService
+        analytics_service = BigQueryAnalyticsService()
+        
+        print("Fetching admin analytics data...")
+        
+        # Get all analytics data
+        analytics_data = {
+            "platform_metrics": analytics_service.get_platform_metrics(),
+            "diligence_analytics": analytics_service.get_diligence_analytics(),
+            "time_series": analytics_service.get_time_series_data(),
+            "investor_stats": analytics_service.get_investor_stats(),
+            "network_analytics": analytics_service.get_network_analytics(),
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        print(f"Analytics data fetched successfully: {len(analytics_data)} sections")
+        
+        return https_fn.Response(json.dumps(analytics_data), status=200, headers=headers)
+    
+    except Exception as e:
+        print(f"Error in get_admin_analytics: {e}")
+        return https_fn.Response(f"Error: {str(e)}", status=500, headers=headers)
+
 @https_fn.on_request(
     memory=options.MemoryOption.MB_512,
     timeout_sec=300,
@@ -1182,6 +1354,49 @@ def validate_market_size(req: https_fn.Request):
         }
         return https_fn.Response(json.dumps({"error": str(e)}), status=500, headers=headers)
 
+
+@https_fn.on_request(cors=options.CorsOptions(
+    cors_origins=["http://localhost:3000", "http://localhost:3001", "https://veritas-472301.web.app", "https://veritas-472301.firebaseapp.com"],
+    cors_methods=["GET", "POST", "OPTIONS"]
+))
+def get_admin_analytics(req: https_fn.Request) -> https_fn.Response:
+    """
+    Get admin analytics data from BigQuery for the admin dashboard
+    """
+    try:
+        headers = get_cors_headers(req)
+        
+        # Handle preflight requests
+        if req.method == "OPTIONS":
+            return https_fn.Response("", status=200, headers=headers)
+        
+        if req.method != "GET":
+            return https_fn.Response("Method not allowed", status=405, headers=headers)
+        
+        # Lazy-initialize the analytics service
+        from services.bigquery_analytics_service import BigQueryAnalyticsService
+        analytics_service = BigQueryAnalyticsService()
+        
+        print("Fetching admin analytics data...")
+        
+        # Get all analytics data
+        analytics_data = {
+            "platform_metrics": analytics_service.get_platform_metrics(),
+            "diligence_analytics": analytics_service.get_diligence_analytics(),
+            "time_series": analytics_service.get_time_series_data(),
+            "investor_stats": analytics_service.get_investor_stats(),
+            "network_analytics": analytics_service.get_network_analytics(),
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        print(f"Analytics data fetched successfully: {len(analytics_data)} sections")
+        
+        return https_fn.Response(json.dumps(analytics_data), status=200, headers=headers)
+    
+    except Exception as e:
+        print(f"Error in get_admin_analytics: {e}")
+        return https_fn.Response(f"Error: {str(e)}", status=500, headers=headers)
+
 @https_fn.on_request(
     memory=options.MemoryOption.MB_512,
     timeout_sec=300,
@@ -1261,3 +1476,89 @@ def validate_competitors(req: https_fn.Request):
             'Content-Type': 'application/json'
         }
         return https_fn.Response(json.dumps({"error": str(e)}), status=500, headers=headers)
+
+
+@https_fn.on_request(cors=options.CorsOptions(
+    cors_origins=["http://localhost:3000", "http://localhost:3001", "https://veritas-472301.web.app", "https://veritas-472301.firebaseapp.com"],
+    cors_methods=["GET", "POST", "OPTIONS"]
+))
+def get_admin_analytics(req: https_fn.Request) -> https_fn.Response:
+    """
+    Get admin analytics data from BigQuery for the admin dashboard
+    """
+    try:
+        headers = get_cors_headers(req)
+        
+        # Handle preflight requests
+        if req.method == "OPTIONS":
+            return https_fn.Response("", status=200, headers=headers)
+        
+        if req.method != "GET":
+            return https_fn.Response("Method not allowed", status=405, headers=headers)
+        
+        # Lazy-initialize the analytics service
+        from services.bigquery_analytics_service import BigQueryAnalyticsService
+        analytics_service = BigQueryAnalyticsService()
+        
+        print("Fetching admin analytics data...")
+        
+        # Get all analytics data
+        analytics_data = {
+            "platform_metrics": analytics_service.get_platform_metrics(),
+            "diligence_analytics": analytics_service.get_diligence_analytics(),
+            "time_series": analytics_service.get_time_series_data(),
+            "investor_stats": analytics_service.get_investor_stats(),
+            "network_analytics": analytics_service.get_network_analytics(),
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        print(f"Analytics data fetched successfully: {len(analytics_data)} sections")
+        
+        return https_fn.Response(json.dumps(analytics_data), status=200, headers=headers)
+    
+    except Exception as e:
+        print(f"Error in get_admin_analytics: {e}")
+        return https_fn.Response(f"Error: {str(e)}", status=500, headers=headers)
+
+
+@https_fn.on_request(cors=options.CorsOptions(
+    cors_origins=["http://localhost:3000", "http://localhost:3001", "https://veritas-472301.web.app", "https://veritas-472301.firebaseapp.com"],
+    cors_methods=["GET", "POST", "OPTIONS"]
+))
+def get_admin_analytics(req: https_fn.Request) -> https_fn.Response:
+    """
+    Get admin analytics data from BigQuery for the admin dashboard
+    """
+    try:
+        headers = get_cors_headers(req)
+        
+        # Handle preflight requests
+        if req.method == "OPTIONS":
+            return https_fn.Response("", status=200, headers=headers)
+        
+        if req.method != "GET":
+            return https_fn.Response("Method not allowed", status=405, headers=headers)
+        
+        # Lazy-initialize the analytics service
+        from services.bigquery_analytics_service import BigQueryAnalyticsService
+        analytics_service = BigQueryAnalyticsService()
+        
+        print("Fetching admin analytics data...")
+        
+        # Get all analytics data
+        analytics_data = {
+            "platform_metrics": analytics_service.get_platform_metrics(),
+            "diligence_analytics": analytics_service.get_diligence_analytics(),
+            "time_series": analytics_service.get_time_series_data(),
+            "investor_stats": analytics_service.get_investor_stats(),
+            "network_analytics": analytics_service.get_network_analytics(),
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        print(f"Analytics data fetched successfully: {len(analytics_data)} sections")
+        
+        return https_fn.Response(json.dumps(analytics_data), status=200, headers=headers)
+    
+    except Exception as e:
+        print(f"Error in get_admin_analytics: {e}")
+        return https_fn.Response(f"Error: {str(e)}", status=500, headers=headers)

@@ -3,7 +3,7 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
-// Use the original Firebase configuration but with a different approach
+// Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyDJuzygstsuvpYofxhwnipGTH-3DzAkVQM",
   authDomain: "veritas-472301.firebaseapp.com",
@@ -14,62 +14,38 @@ const firebaseConfig = {
   measurementId: "G-PRT33XGJNS",
 };
 
-// Initialize Firebase with error handling
+// Initialize Firebase with proper singleton pattern
 let app: any = null;
 let auth: any = null, db: any = null, storage: any = null;
 
-try {
-  console.log('🔄 Initializing Firebase...');
-  console.log('🔄 Firebase config:', firebaseConfig);
-  
-  // Check if Firebase is already initialized
-  const existingApps = getApps();
-  console.log('🔄 Existing apps:', existingApps.length);
-  
-  if (existingApps.length > 0) {
-    app = existingApps[0];
-    console.log('✅ Using existing Firebase app');
-  } else {
-    // Initialize with a consistent name
-    app = initializeApp(firebaseConfig, 'veritas-app');
-    console.log('✅ Firebase initialized successfully');
-  }
-  
-  // Initialize services
-  console.log('🔄 Initializing Firebase services...');
-  auth = getAuth(app);
-  db = getFirestore(app);
-  storage = getStorage(app);
-  
-  console.log('✅ Firebase services initialized:', {
-    auth: !!auth,
-    db: !!db,
-    storage: !!storage
-  });
-  
-} catch (error) {
-  console.error('❌ Firebase initialization failed:', error);
-  console.error('❌ Firebase initialization error details:', {
-    message: error.message,
-    stack: error.stack,
-    name: error.name
-  });
-  
-  // Fallback: try to get existing app
+// Only initialize Firebase once
+if (typeof window !== 'undefined') {
   try {
-    console.log('🔄 Trying fallback initialization...');
-    app = getApp();
+    // Check if Firebase is already initialized
+    const existingApps = getApps();
+    
+    if (existingApps.length > 0) {
+      app = existingApps[0];
+      console.log('✅ Using existing Firebase app');
+    } else {
+      // Initialize with a consistent name
+      app = initializeApp(firebaseConfig, 'veritas-app');
+      console.log('✅ Firebase initialized successfully');
+    }
+    
+    // Initialize services
     auth = getAuth(app);
     db = getFirestore(app);
     storage = getStorage(app);
-    console.log('✅ Using existing Firebase app as fallback');
-  } catch (fallbackError) {
-    console.error('❌ Fallback also failed:', fallbackError);
-    console.error('❌ Fallback error details:', {
-      message: fallbackError.message,
-      stack: fallbackError.stack,
-      name: fallbackError.name
+    
+    console.log('✅ Firebase services initialized:', {
+      auth: !!auth,
+      db: !!db,
+      storage: !!storage
     });
+    
+  } catch (error) {
+    console.error('❌ Firebase initialization failed:', error);
     // Don't throw error, just set to null and handle gracefully
     app = null;
     auth = null;

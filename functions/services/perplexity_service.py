@@ -15,16 +15,16 @@ class PerplexitySearchService:
     def __init__(self):
         # Use environment variable for API key
         self.api_key = os.environ.get("PERPLEXITY_API_KEY")
-        if not self.api_key:
-            raise ValueError("PERPLEXITY_API_KEY environment variable is required")
-        self.base_url = "https://api.perplexity.ai/chat/completions"
         self.logger = logging.getLogger(self.__class__.__name__)
         
-        # Log API key status for debugging
-        if os.environ.get("PERPLEXITY_API_KEY"):
-            self.logger.info("Using PERPLEXITY_API_KEY from environment variables")
+        if not self.api_key:
+            self.logger.warning("PERPLEXITY_API_KEY not set - enrichment will be skipped")
+            self.enabled = False
         else:
-            self.logger.warning("PERPLEXITY_API_KEY not found in environment variables")
+            self.logger.info("Perplexity enrichment enabled")
+            self.enabled = True
+        
+        self.base_url = "https://api.perplexity.ai/chat/completions"
     
     async def _perplexity_search(self, query: str, max_results: int = 3) -> List[Dict[str, Any]]:
         """
@@ -38,50 +38,51 @@ class PerplexitySearchService:
             List of search results with content and sources
         """
         try:
+            # Log API key status (first 10 chars only for security)
+            api_key_preview = f"{self.api_key[:10]}..." if self.api_key else "None"
+            self.logger.debug(f"Using API key: {api_key_preview}")
+            
             headers = {
                 "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                "Accept": "application/json"
             }
             
+            # Use the correct model name and parameters for Perplexity
             payload = {
-                "model": "llama-3.1-sonar-small-128k-online",
+                "model": "sonar-medium-online",  # Valid Perplexity online search model
                 "messages": [
-                    {
-                        "role": "system",
-                        "content": "You are a helpful assistant that provides accurate and up-to-date information with proper citations and references."
-                    },
                     {
                         "role": "user",
                         "content": query
                     }
                 ],
-                "max_tokens": 1000,
-                "temperature": 0.1,
-                "top_p": 0.9
+                "temperature": 0.2,
+                "return_citations": True,
+                "search_recency_filter": "month"
             }
             
             async with aiohttp.ClientSession() as session:
-                async with session.post(self.base_url, headers=headers, json=payload) as response:
+                async with session.post(self.base_url, headers=headers, json=payload, timeout=aiohttp.ClientTimeout(total=30)) as response:
+                    response_text = await response.text()
+                    
                     if response.status == 200:
-                        data = await response.json()
+                        data = json.loads(response_text)
                         content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
-                        
-                        # Extract sources from the response
-                        sources = []
-                        if "sources" in data:
-                            sources = data["sources"]
+                        citations = data.get("citations", [])
                         
                         return [{
                             "content": content,
-                            "sources": sources,
+                            "citations": citations,
                             "query": query
                         }]
                     else:
-                        self.logger.error(f"Perplexity API error: {response.status}")
+                        self.logger.error(f"Perplexity API error {response.status}: {response_text}")
+                        self.logger.error(f"Request payload: {json.dumps(payload, indent=2)}")
                         return []
                         
         except Exception as e:
-            self.logger.error(f"Error in Perplexity search: {str(e)}")
+            self.logger.error(f"Exception in Perplexity search: {str(e)}", exc_info=True)
             return []
     
     def _identify_missing_fields(self, memo_data: Dict[str, Any]) -> List[str]:
@@ -94,20 +95,44 @@ class PerplexitySearchService:
         Returns:
             List of field names that need enrichment
         """
+        # Comprehensive list of all fields that can be enriched
         fields_to_check = [
-            "company_name", "headquarters", "founded_date", "company_stage",
-            "amount_raising", "post_money_valuation", "current_revenue",
-            "customer_acquisition_cost", "gross_margin", "burn_rate",
-            "runway", "team_size", "market_size", "target_market",
-            "competitive_advantages", "business_model", "revenue_model",
-            "pricing_strategy", "go_to_market", "key_milestones",
-            "founder_linkedin", "founder_background"
+            # Company basics
+            "headquarters", "founded_date", "company_stage",
+            
+            # Funding & financials
+            "amount_raising", "post_money_valuation", "pre_money_valuation",
+            "lead_investor", "committed_funding", "ownership_target",
+            "use_of_funds",  # ADD THIS
+            "financial_projections",  # ADD THIS
+            "potential_acquirers",  # ADD THIS
+            
+            # Market analysis
+            "sam_market_size", "som_market_size", "market_penetration",
+            "market_timing", "market_trends",
+            
+            # Financial metrics
+            "current_revenue", "revenue_growth_rate",
+            "customer_acquisition_cost", "lifetime_value",
+            "gross_margin", "operating_margin", "net_margin",
+            "burn_rate", "runway",
+            
+            # Team & execution
+            "team_size", "hiring_plan",
+            
+            # Strategy
+            "go_to_market", "sales_strategy", "partnerships",
+            "distribution_channels", "scalability_plan",
+            
+            # Exit & timeline
+            "timeline", "exit_strategy", "exit_valuation", "ipo_timeline"
         ]
         
         missing_fields = []
         for field in fields_to_check:
             value = memo_data.get(field)
-            if not value or value in ["Not specified", "Not disclosed", "N/A", "", None]:
+            # Check for missing, empty, or placeholder values
+            if not value or str(value).strip() in ["Not specified", "Not disclosed", "N/A", "", "None", "Pending", "Not available"]:
                 missing_fields.append(field)
         
         return missing_fields
@@ -189,6 +214,10 @@ class PerplexitySearchService:
         Returns:
             Enriched memo data with additional fields
         """
+        if not self.enabled:
+            self.logger.info("Perplexity enrichment disabled - skipping")
+            return memo_data
+            
         try:
             # Identify missing fields
             missing_fields = self._identify_missing_fields(memo_data)
@@ -197,12 +226,16 @@ class PerplexitySearchService:
                 self.logger.info("No missing fields found for enrichment")
                 return memo_data
             
-            self.logger.info(f"Found {len(missing_fields)} missing fields: {missing_fields}")
+            self.logger.info(f"Enriching {len(missing_fields)} missing fields: {missing_fields}")
             
-            # Create company context for better search results
-            company_name = memo_data.get("company_name", "the company")
+            # Get company context - check multiple possible field names
+            company_name = memo_data.get("title", memo_data.get("company_name", "the company"))
             company_stage = memo_data.get("company_stage", "")
-            industry = memo_data.get("industry", "")
+            industry = memo_data.get("industry_category", memo_data.get("industry", ""))
+            
+            # Handle industry if it's a list
+            if isinstance(industry, list):
+                industry = ", ".join(industry)
             
             company_context = f"{company_name}"
             if company_stage:
@@ -213,19 +246,23 @@ class PerplexitySearchService:
             # Enrich missing fields
             enriched_data = await self._enrich_fields(missing_fields, company_context)
             
-            # Merge enriched data with original data
+            # Merge enriched data DIRECTLY into original fields (not just as _enriched)
             result = memo_data.copy()
+            enriched_count = 0
             for field, value in enriched_data.items():
-                if field in missing_fields:
+                if field in missing_fields and value:
+                    # Store in original field
+                    result[field] = value
+                    # Also store enriched version for reference
                     result[f"{field}_enriched"] = value
-                    result["enrichment_sources"] = result.get("enrichment_sources", [])
-                    result["enrichment_sources"].append(f"Perplexity AI - {field}")
+                    result.setdefault("enrichment_sources", []).append(f"Perplexity AI - {field}")
+                    enriched_count += 1
             
-            self.logger.info(f"Successfully enriched {len(enriched_data)} fields")
+            self.logger.info(f"Successfully enriched {enriched_count} fields")
             return result
             
         except Exception as e:
-            self.logger.error(f"Error in enrich_missing_fields: {str(e)}")
+            self.logger.error(f"Error in enrich_missing_fields: {str(e)}", exc_info=True)
             return memo_data
     
     async def analyze_competitor_matrix(self, company_name: str, industry: str, competitors: List[str]) -> Dict[str, Any]:

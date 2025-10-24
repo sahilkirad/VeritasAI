@@ -2,7 +2,7 @@
 // Custom hook to ensure Firebase is properly initialized on client side
 
 import { useEffect, useState } from 'react'
-import { db, auth, storage } from '@/lib/firebase-client'
+import { db, auth, storage } from '@/lib/firebase-new'
 
 interface UseFirebaseReturn {
   isInitialized: boolean

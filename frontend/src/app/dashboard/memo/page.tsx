@@ -54,9 +54,9 @@ interface MemoData {
     team_info?: string;
     problem?: string;
     solution?: string;
-    competition?: string[];
-    initial_flags?: string[];
-    validation_points?: string[];
+    competition?: any[];
+    initial_flags?: any[];
+    validation_points?: any[];
     founder_name?: string;
     founder_linkedin_url?: string;
     company_linkedin_url?: string;
@@ -89,7 +89,6 @@ interface MemoData {
     net_margin?: string;
     burn_rate?: string;
     runway?: string;
-    business_model?: string;
     growth_stage?: string;
     pre_money_valuation?: string;
     lead_investor?: string;
@@ -97,7 +96,7 @@ interface MemoData {
     round_stage?: string;
     
     // Product & Technology
-    product_features?: string[];
+    product_features?: any[];
     technology_advantages?: string;
     innovation_level?: string;
     scalability_plan?: string;
@@ -113,24 +112,24 @@ interface MemoData {
     
     // Team & Execution
     team_size?: string;
-    key_team_members?: string[];
-    advisory_board?: string[];
+    key_team_members?: any[];
+    advisory_board?: any[];
     execution_track_record?: string;
     
     // Growth & Traction
     user_growth?: string;
     revenue_growth?: string;
     customer_growth?: string;
-    key_milestones?: string[];
-    upcoming_milestones?: string[];
+    key_milestones?: any[];
+    upcoming_milestones?: any[];
     
     // Risk & Mitigation
-    key_risks?: string[];
+    key_risks?: any[];
     risk_mitigation?: string;
     regulatory_risks?: string;
     
     // Exit Strategy
-    potential_acquirers?: string[];
+    potential_acquirers?: any[];
     ipo_timeline?: string;
     exit_valuation?: string;
     
@@ -141,7 +140,7 @@ interface MemoData {
     funding_ask?: string;
     use_of_funds?: string;
     timeline?: string;
-    partnerships?: string;
+    partnerships?: string[];
     regulatory_considerations?: string;
     scalability?: string;
     intellectual_property?: string;
@@ -302,7 +301,6 @@ export default function DealMemoPage() {
               net_margin: memo1Data.net_margin,
               burn_rate: memo1Data.burn_rate,
               runway: memo1Data.runway,
-              business_model: memo1Data.business_model,
               growth_stage: memo1Data.growth_stage,
               pre_money_valuation: memo1Data.pre_money_valuation,
               lead_investor: memo1Data.lead_investor,
@@ -321,13 +319,15 @@ export default function DealMemoPage() {
               market_timing: memo1Data.market_timing,
               competitive_advantages: memo1Data.competitive_advantages,
               market_penetration: memo1Data.market_penetration,
-              industry_category: memo1Data.industry_category,
+              industry_category: Array.isArray(memo1Data.industry_category) 
+                ? memo1Data.industry_category.join(', ') 
+                : memo1Data.industry_category,
               target_market: memo1Data.target_market,
               
               // Team & Execution
               team_size: memo1Data.team_size,
-              key_team_members: memo1Data.key_team_members,
-              advisory_board: memo1Data.advisory_board,
+              key_team_members: memo1Data.key_team_members || [],
+              advisory_board: memo1Data.advisory_board || [],
               execution_track_record: memo1Data.execution_track_record,
               
               // Growth & Traction
@@ -378,6 +378,23 @@ export default function DealMemoPage() {
         console.log('First memo memo_1 data:', memos[0]?.memo_1);
         console.log('Company stage in mapped data:', memos[0]?.memo_1?.company_stage);
         console.log('Headquarters in mapped data:', memos[0]?.memo_1?.headquarters);
+        
+        // Debug critical fields that are showing as "Not specified"
+        if (memos[0]?.memo_1) {
+          console.log('=== FIRESTORE DATA DEBUG ===');
+          console.log('Raw Firestore memo1Data:', allMemosSnapshot.docs[0].data().memo_1);
+          console.log('Mapped company_stage:', memos[0].memo_1.company_stage);
+          console.log('Mapped headquarters:', memos[0].memo_1.headquarters);
+          console.log('Mapped founded_date:', memos[0].memo_1.founded_date);
+          console.log('Mapped amount_raising:', memos[0].memo_1.amount_raising);
+          console.log('Mapped post_money_valuation:', memos[0].memo_1.post_money_valuation);
+          console.log('Mapped current_revenue:', memos[0].memo_1.current_revenue);
+          console.log('Mapped customer_acquisition_cost:', memos[0].memo_1.customer_acquisition_cost);
+          console.log('Mapped gross_margin:', memos[0].memo_1.gross_margin);
+          console.log('Mapped use_of_funds:', memos[0].memo_1.use_of_funds);
+          console.log('Mapped potential_acquirers:', memos[0].memo_1.potential_acquirers);
+          console.log('=== END FIRESTORE DATA DEBUG ===');
+        }
         setAvailableMemos(memos);
         setLoading(false);
         return;

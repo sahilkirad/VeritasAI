@@ -8,7 +8,7 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { apiClient } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
-import CompetitorMatrix from "./CompetitorMatrix";
+// import CompetitorMatrix from "./CompetitorMatrix";
 
 interface EnrichedField {
   value: string;
@@ -392,6 +392,29 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
     console.log('Memo1Tab som_market_size:', memo1.som_market_size);
     console.log('Enhanced memo1 market_size:', enhancedMemo1.market_size);
     console.log('Enhanced memo1 market_size type:', typeof enhancedMemo1.market_size);
+    
+    // Debug critical fields that are showing as "Not specified"
+    console.log('=== CRITICAL FIELDS DEBUG ===');
+    console.log('company_stage:', memo1.company_stage);
+    console.log('headquarters:', memo1.headquarters);
+    console.log('founded_date:', memo1.founded_date);
+    console.log('amount_raising:', memo1.amount_raising);
+    console.log('post_money_valuation:', memo1.post_money_valuation);
+    console.log('investment_sought:', memo1.investment_sought);
+    console.log('ownership_target:', memo1.ownership_target);
+    console.log('key_thesis:', memo1.key_thesis);
+    console.log('key_metric:', memo1.key_metric);
+    console.log('industry_category:', memo1.industry_category);
+    console.log('target_market:', memo1.target_market);
+    console.log('current_revenue:', memo1.current_revenue);
+    console.log('customer_acquisition_cost:', memo1.customer_acquisition_cost);
+    console.log('lifetime_value:', memo1.lifetime_value);
+    console.log('gross_margin:', memo1.gross_margin);
+    console.log('use_of_funds:', memo1.use_of_funds);
+    console.log('potential_acquirers:', memo1.potential_acquirers);
+    console.log('timeline:', memo1.timeline);
+    console.log('exit_valuation:', memo1.exit_valuation);
+    console.log('=== END CRITICAL FIELDS DEBUG ===');
   }
 
   // Helper function to safely render values that might be objects
@@ -409,6 +432,21 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
       if (typeof item === 'object' && item !== null) return JSON.stringify(item);
       return item?.toString() || fallback;
     });
+  };
+
+  // Comprehensive object handling for any field that might contain objects
+  const safeRenderAnyValue = (value: any): string => {
+    if (value === null || value === undefined) return "Not specified";
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number') return value.toString();
+    if (typeof value === 'boolean') return value.toString();
+    if (Array.isArray(value)) {
+      return value.map(item => safeRenderAnyValue(item)).join(', ');
+    }
+    if (typeof value === 'object') {
+      return JSON.stringify(value);
+    }
+    return String(value);
   };
 
   // Helper function to render enriched field with badge and source link
@@ -602,7 +640,7 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
               <tbody className="divide-y divide-gray-200">
                 <tr>
                   <td className="px-4 py-3 text-sm font-medium text-gray-900">Company Name</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">{enhancedMemo1.title || "Not specified"}</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">{safeRenderAnyValue(enhancedMemo1.title)}</td>
                   <td className="px-4 py-3">
                     {enhancedMemo1.title ? (
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -849,7 +887,7 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
                 <tr>
                   <td className="px-4 py-3 text-sm font-medium text-gray-900">Industry Category</td>
                   <td className="px-4 py-3 text-sm text-gray-700">
-                    {enhancedMemo1.industry_category_enriched?.value || enhancedMemo1.industry_category || "Not specified"}
+                    {safeRenderAnyValue(enhancedMemo1.industry_category_enriched?.value || enhancedMemo1.industry_category)}
                     {enhancedMemo1.industry_category_enriched?.enriched && (
                       <Badge variant="secondary" className="ml-2 text-xs">AI-enriched</Badge>
                     )}
@@ -869,7 +907,7 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
                 <tr>
                   <td className="px-4 py-3 text-sm font-medium text-gray-900">Target Market</td>
                   <td className="px-4 py-3 text-sm text-gray-700">
-                    {enhancedMemo1.target_market_enriched?.value || enhancedMemo1.target_market || enhancedMemo1.target_customers || "Not specified"}
+                    {safeRenderAnyValue(enhancedMemo1.target_market_enriched?.value || enhancedMemo1.target_market || enhancedMemo1.target_customers)}
                     {enhancedMemo1.target_market_enriched?.enriched && (
                       <Badge variant="secondary" className="ml-2 text-xs">AI-enriched</Badge>
                     )}
@@ -889,7 +927,7 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
                 <tr>
                   <td className="px-4 py-3 text-sm font-medium text-gray-900">Market Timing</td>
                   <td className="px-4 py-3 text-sm text-gray-700">
-                    {enhancedMemo1.market_timing_enriched?.value || enhancedMemo1.market_timing || "Not specified"}
+                    {safeRenderAnyValue(enhancedMemo1.market_timing_enriched?.value || enhancedMemo1.market_timing)}
                     {enhancedMemo1.market_timing_enriched?.enriched && (
                       <Badge variant="secondary" className="ml-2 text-xs">AI-enriched</Badge>
                     )}
@@ -909,7 +947,7 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
                 <tr>
                   <td className="px-4 py-3 text-sm font-medium text-gray-900">Market Penetration</td>
                   <td className="px-4 py-3 text-sm text-gray-700">
-                    {enhancedMemo1.market_penetration_enriched?.value || enhancedMemo1.market_penetration || "Not specified"}
+                    {safeRenderAnyValue(enhancedMemo1.market_penetration_enriched?.value || enhancedMemo1.market_penetration)}
                     {enhancedMemo1.market_penetration_enriched?.enriched && (
                       <Badge variant="secondary" className="ml-2 text-xs">AI-enriched</Badge>
                     )}
@@ -1216,29 +1254,38 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
               
               <div>
                 <h4 className="font-semibold mb-2">Key Team Members</h4>
-                {enhancedMemo1.key_team_members && enhancedMemo1.key_team_members.length > 0 ? (
+                {enhancedMemo1.key_team_members && Array.isArray(enhancedMemo1.key_team_members) && enhancedMemo1.key_team_members.length > 0 ? (
                   <ul className="text-sm text-muted-foreground space-y-1">
                     {enhancedMemo1.key_team_members.map((member: any, index: number) => {
                       // Handle both string and object formats
                       if (typeof member === 'string') {
                         return <li key={index}>• {member}</li>;
                       } else if (member && typeof member === 'object') {
-                        // Handle {role, name} or {name, role} object format
+                        // Handle {role, name, strengths, background} object format
                         const name = member.name || member.title || '';
                         const role = member.role || member.position || '';
+                        const strengths = member.strengths || '';
+                        const background = member.background || '';
+                        
+                        // Build display text
+                        let displayText = name;
+                        if (role) displayText += ` - ${role}`;
+                        if (strengths) displayText += ` (${strengths})`;
+                        if (background) displayText += ` - ${background}`;
+                        
                         // Only render if we have at least a name or role
                         if (name || role) {
                           return (
                             <li key={index}>
-                              • {name}{role ? ` - ${role}` : ''}
+                              • {displayText}
                             </li>
                           );
                         }
                         // If object has no useful properties, convert to string
                         return <li key={index}>• {JSON.stringify(member)}</li>;
                       }
-                      // Fallback for any other data type
-                      return <li key={index}>• {String(member)}</li>;
+                      // Fallback for any other data type - ensure it's always a string
+                      return <li key={index}>• {String(member || 'Unknown')}</li>;
                     })}
                   </ul>
                 ) : (
@@ -1264,7 +1311,7 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
               </div>
             )}
             
-            {enhancedMemo1.advisory_board && enhancedMemo1.advisory_board.length > 0 && (
+            {enhancedMemo1.advisory_board && Array.isArray(enhancedMemo1.advisory_board) && enhancedMemo1.advisory_board.length > 0 && (
               <div className="pt-2 border-t">
                 <h4 className="font-semibold mb-2">Advisory Board</h4>
                 {Array.isArray(enhancedMemo1.advisory_board) ? (
@@ -1274,22 +1321,31 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
                       if (typeof advisor === 'string') {
                         return <li key={index}>• {advisor}</li>;
                       } else if (advisor && typeof advisor === 'object') {
-                        // Handle {role, name} or {name, role} object format
+                        // Handle {role, name, strengths, background} object format
                         const name = advisor.name || advisor.title || '';
                         const role = advisor.role || advisor.position || '';
+                        const strengths = advisor.strengths || '';
+                        const background = advisor.background || '';
+                        
+                        // Build display text
+                        let displayText = name;
+                        if (role) displayText += ` - ${role}`;
+                        if (strengths) displayText += ` (${strengths})`;
+                        if (background) displayText += ` - ${background}`;
+                        
                         // Only render if we have at least a name or role
                         if (name || role) {
                           return (
                             <li key={index}>
-                              • {name}{role ? ` - ${role}` : ''}
+                              • {displayText}
                             </li>
                           );
                         }
                         // If object has no useful properties, convert to string
                         return <li key={index}>• {JSON.stringify(advisor)}</li>;
                       }
-                      // Fallback for any other data type
-                      return <li key={index}>• {String(advisor)}</li>;
+                      // Fallback for any other data type - ensure it's always a string
+                      return <li key={index}>• {String(advisor || 'Unknown')}</li>;
                     })}
                   </ul>
                 ) : (
@@ -1310,9 +1366,9 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
           <CardContent>
             <div className="flex flex-wrap gap-2">
               {Array.isArray(enhancedMemo1.competition) ? (
-                enhancedMemo1.competition.map((competitor: string, index: number) => (
+                enhancedMemo1.competition.map((competitor: any, index: number) => (
                 <Badge key={index} variant="outline">
-                  {competitor}
+                  {typeof competitor === 'string' ? competitor : JSON.stringify(competitor)}
                 </Badge>
                 ))
               ) : (
@@ -1324,7 +1380,7 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
       )}
 
       {/* Product Features */}
-      {enhancedMemo1.product_features && enhancedMemo1.product_features.length > 0 && (
+      {enhancedMemo1.product_features && Array.isArray(enhancedMemo1.product_features) && enhancedMemo1.product_features.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -1335,10 +1391,10 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
           <CardContent>
             {Array.isArray(enhancedMemo1.product_features) ? (
               <ul className="space-y-2">
-                {enhancedMemo1.product_features.map((feature: string, index: number) => (
+                {enhancedMemo1.product_features.map((feature: any, index: number) => (
                   <li key={index} className="flex items-start gap-2 text-sm">
                     <CheckCircle className="h-3 w-3 text-green-500 mt-1 flex-shrink-0" />
-                    <span>{feature}</span>
+                    <span>{typeof feature === 'string' ? feature : JSON.stringify(feature)}</span>
                   </li>
                 ))}
               </ul>
@@ -1424,15 +1480,15 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
             </div>
           </div>
           
-          {enhancedMemo1.key_milestones && enhancedMemo1.key_milestones.length > 0 && (
+          {enhancedMemo1.key_milestones && Array.isArray(enhancedMemo1.key_milestones) && enhancedMemo1.key_milestones.length > 0 && (
             <div>
               <h4 className="font-semibold mb-2">Key Milestones</h4>
               {Array.isArray(enhancedMemo1.key_milestones) ? (
                 <ul className="space-y-1">
-                  {enhancedMemo1.key_milestones.map((milestone: string, index: number) => (
+                  {enhancedMemo1.key_milestones.map((milestone: any, index: number) => (
                     <li key={index} className="flex items-start gap-2 text-sm">
                       <CheckCircle className="h-3 w-3 text-green-500 mt-1 flex-shrink-0" />
-                      <span>{milestone}</span>
+                      <span>{typeof milestone === 'string' ? milestone : JSON.stringify(milestone)}</span>
                     </li>
                   ))}
                 </ul>
@@ -1445,7 +1501,7 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
         </Card>
 
       {/* Initial Flags */}
-      {enhancedMemo1.initial_flags && enhancedMemo1.initial_flags.length > 0 && (
+      {enhancedMemo1.initial_flags && Array.isArray(enhancedMemo1.initial_flags) && enhancedMemo1.initial_flags.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-amber-600">
@@ -1456,10 +1512,10 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
           <CardContent>
             {Array.isArray(enhancedMemo1.initial_flags) ? (
             <ul className="space-y-2">
-              {enhancedMemo1.initial_flags.map((flag: string, index: number) => (
+              {enhancedMemo1.initial_flags.map((flag: any, index: number) => (
                 <li key={index} className="flex items-start gap-2 text-sm">
                   <AlertTriangle className="h-3 w-3 text-amber-500 mt-1 flex-shrink-0" />
-                  <span>{flag}</span>
+                  <span>{typeof flag === 'string' ? flag : JSON.stringify(flag)}</span>
                 </li>
               ))}
               </ul>
@@ -1471,7 +1527,7 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
       )}
 
       {/* Validation Points */}
-      {enhancedMemo1.validation_points && enhancedMemo1.validation_points.length > 0 && (
+      {enhancedMemo1.validation_points && Array.isArray(enhancedMemo1.validation_points) && enhancedMemo1.validation_points.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-green-600">
@@ -1482,10 +1538,10 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
           <CardContent>
             {Array.isArray(enhancedMemo1.validation_points) ? (
             <ul className="space-y-2">
-              {enhancedMemo1.validation_points.map((point: string, index: number) => (
+              {enhancedMemo1.validation_points.map((point: any, index: number) => (
                 <li key={index} className="flex items-start gap-2 text-sm">
                   <CheckCircle className="h-3 w-3 text-green-500 mt-1 flex-shrink-0" />
-                  <span>{point}</span>
+                  <span>{typeof point === 'string' ? point : JSON.stringify(point)}</span>
                 </li>
               ))}
               </ul>
@@ -2497,11 +2553,11 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
                   if (Array.isArray(enhancedMemo1.potential_acquirers)) {
                     return (
                       <div className="space-y-3">
-                        {enhancedMemo1.potential_acquirers.map((acquirer: string, index: number) => (
+                        {enhancedMemo1.potential_acquirers.map((acquirer: any, index: number) => (
                           <div key={index} className="p-3 bg-green-50 rounded-lg border border-green-200">
                             <div className="flex items-center gap-2">
                               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                              <span className="font-medium text-green-800 text-sm">{acquirer}</span>
+                              <span className="font-medium text-green-800 text-sm">{typeof acquirer === 'string' ? acquirer : JSON.stringify(acquirer)}</span>
                             </div>
                           </div>
                         ))}
@@ -2653,7 +2709,7 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
       </Card>
 
       {/* Risk Assessment */}
-      {enhancedMemo1.key_risks && enhancedMemo1.key_risks.length > 0 && (
+      {enhancedMemo1.key_risks && Array.isArray(enhancedMemo1.key_risks) && enhancedMemo1.key_risks.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-amber-600">
@@ -2666,10 +2722,10 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
               <h4 className="font-semibold mb-2">Key Risks</h4>
               {Array.isArray(enhancedMemo1.key_risks) ? (
                 <ul className="space-y-2">
-                  {enhancedMemo1.key_risks.map((risk: string, index: number) => (
+                  {enhancedMemo1.key_risks.map((risk: any, index: number) => (
                     <li key={index} className="flex items-start gap-2 text-sm">
                       <AlertTriangle className="h-3 w-3 text-amber-500 mt-1 flex-shrink-0" />
-                      <span>{risk}</span>
+                      <span>{typeof risk === 'string' ? risk : JSON.stringify(risk)}</span>
                     </li>
                   ))}
                 </ul>
@@ -2822,10 +2878,10 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
                 <div className="p-4 bg-green-50 rounded-lg">
                   <h4 className="font-semibold text-green-800 mb-3">Key Strengths</h4>
                   <ul className="space-y-1 text-sm">
-                    {enhancedMemo1.validation_result.validation_result.overall_assessment.key_strengths?.map((strength: string, index: number) => (
+                    {enhancedMemo1.validation_result.validation_result.overall_assessment.key_strengths?.map((strength: any, index: number) => (
                       <li key={index} className="flex items-center gap-2">
                         <CheckCircle className="h-4 w-4 text-green-600" />
-                        {strength}
+                        {typeof strength === 'string' ? strength : JSON.stringify(strength)}
                       </li>
                     ))}
                   </ul>
@@ -2833,10 +2889,10 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
                 <div className="p-4 bg-red-50 rounded-lg">
                   <h4 className="font-semibold text-red-800 mb-3">Key Concerns</h4>
                   <ul className="space-y-1 text-sm">
-                    {enhancedMemo1.validation_result.validation_result.overall_assessment.key_concerns?.map((concern: string, index: number) => (
+                    {enhancedMemo1.validation_result.validation_result.overall_assessment.key_concerns?.map((concern: any, index: number) => (
                       <li key={index} className="flex items-center gap-2">
                         <AlertTriangle className="h-4 w-4 text-red-600" />
-                        {concern}
+                        {typeof concern === 'string' ? concern : JSON.stringify(concern)}
                       </li>
                     ))}
                   </ul>
@@ -2852,10 +2908,10 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
                   <div>
                     <h5 className="font-medium text-blue-700 mb-2">Immediate Actions</h5>
                     <ul className="space-y-1 text-sm">
-                      {enhancedMemo1.validation_result.validation_result.recommendations.immediate_actions?.map((action: string, index: number) => (
+                      {enhancedMemo1.validation_result.validation_result.recommendations.immediate_actions?.map((action: any, index: number) => (
                         <li key={index} className="flex items-center gap-2">
                           <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                          {action}
+                          {typeof action === 'string' ? action : JSON.stringify(action)}
                         </li>
                       ))}
                     </ul>
@@ -2863,10 +2919,10 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
                   <div>
                     <h5 className="font-medium text-blue-700 mb-2">Next Steps</h5>
                     <ul className="space-y-1 text-sm">
-                      {enhancedMemo1.validation_result.validation_result.recommendations.next_steps?.map((step: string, index: number) => (
+                      {enhancedMemo1.validation_result.validation_result.recommendations.next_steps?.map((step: any, index: number) => (
                         <li key={index} className="flex items-center gap-2">
                           <div className="w-2 h-2 bg-green-600 rounded-full"></div>
-                          {step}
+                          {typeof step === 'string' ? step : JSON.stringify(step)}
                         </li>
                       ))}
                     </ul>
@@ -2888,12 +2944,12 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
       )}
 
       {/* Competitor Analysis Matrix */}
-      <CompetitorMatrix 
+      {/* <CompetitorMatrix 
         data={enhancedMemo1.competitor_matrix || null}
         sources={enhancedMemo1.validation_result?.sources}
         dataQuality={enhancedMemo1.validation_result?.data_quality}
         analysisConfidence={enhancedMemo1.validation_result?.analysis_confidence}
-      />
+      /> */}
     </div>
   );
 }

@@ -679,15 +679,15 @@ class IntakeCurationAgent:
             if not company_id:
                 company_id = filename.replace('.', '_').replace(' ', '_').lower()
             
-            # Enrich missing fields using Perplexity AI
+            # Enrich missing fields using Perplexity + Vertex AI (No Vector Search)
             try:
                 from services.perplexity_service import PerplexitySearchService
-                perplexity_service = PerplexitySearchService()
+                perplexity_service = PerplexitySearchService(project=self.project, location=self.location)
                 
                 if perplexity_service.enabled:
-                    self.logger.info(f"Enriching missing data for {memo1.get('title', 'Unknown Company')} using Perplexity AI...")
+                    self.logger.info(f"Enriching missing data for {memo1.get('title', 'Unknown Company')} using Perplexity AI + Vertex AI...")
                     
-                    # Run enrichment asynchronously
+                    # Run enrichment asynchronously with Vertex AI processing
                     import asyncio
                     enriched_memo1 = await perplexity_service.enrich_missing_fields(memo1)
                     
@@ -695,43 +695,32 @@ class IntakeCurationAgent:
                     result["memo_1"] = enriched_memo1
                     result["data_enriched"] = True
                     
-                    self.logger.info(f"Successfully enriched data for {memo1.get('title', 'Unknown Company')}")
+                    # Log enrichment statistics
+                    enrichment_metadata = enriched_memo1.get("enrichment_metadata", {})
+                    enriched_fields = enrichment_metadata.get("fields_enriched", [])
+                    confidence_scores = enrichment_metadata.get("confidence_scores", {})
+                    
+                    self.logger.info(f"Successfully enriched {len(enriched_fields)} fields: {enriched_fields}")
+                    if confidence_scores:
+                        avg_confidence = sum(confidence_scores.values()) / len(confidence_scores)
+                        self.logger.info(f"Average confidence score: {avg_confidence:.2f}")
+                    
                 else:
                     self.logger.info("Perplexity enrichment skipped - API key not configured")
                     result["data_enriched"] = False
                     result["enrichment_error"] = "PERPLEXITY_API_KEY not configured"
                 
             except Exception as e:
-                self.logger.warning(f"Enrichment skipped: {e}")
+                self.logger.warning(f"Enrichment failed: {e}")
                 result["data_enriched"] = False
                 result["enrichment_error"] = str(e)
             
-            # Extract pitch deck text if it's a PDF
-            pitch_deck_text = ""
-            if file_type == 'pdf':
-                # For PDFs, we could extract text here, but for now we'll use the memo1 content
-                pitch_deck_text = json.dumps(result["memo_1"], indent=2)
-            
-            # Store embeddings
-            embedding_success = self.store_embeddings_for_company(
-                company_id=company_id,
-                memo1=result["memo_1"],
-                founder_email=founder_email,
-                pitch_deck_text=pitch_deck_text
-            )
-            
-            # Add embedding status to result
-            result["embeddings_stored"] = embedding_success
-            
-            # Add extracted text and founder email to result for diligence agents
-            result["extracted_text"] = pitch_deck_text
+            # Add metadata for downstream processing (No Vector Search needed)
             result["founder_email"] = founder_email
             result["company_id"] = company_id
+            result["enrichment_method"] = "perplexity_vertex_ai"
             
-            if embedding_success:
-                self.logger.info(f"Embeddings stored successfully for company {company_id}")
-            else:
-                self.logger.warning(f"Failed to store embeddings for company {company_id}")
+            self.logger.info(f"Enrichment completed for company {company_id} using Perplexity + Vertex AI")
         
         return result
 

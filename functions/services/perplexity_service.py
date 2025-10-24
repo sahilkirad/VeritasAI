@@ -6,16 +6,29 @@ import aiohttp
 from typing import Dict, List, Any, Optional
 from dotenv import load_dotenv
 load_dotenv()  # Add at top of file
+
+# Vertex AI imports for enhanced processing
+try:
+    import vertexai
+    from vertexai.generative_models import GenerativeModel
+    VERTEX_AI_AVAILABLE = True
+except ImportError:
+    VERTEX_AI_AVAILABLE = False
 class PerplexitySearchService:
     """
     Service for enriching memo data using Perplexity AI search.
     Follows the same pattern as DiligenceAgent for consistency.
     """
     
-    def __init__(self):
+    def __init__(self, project: str = "veritas-472301", location: str = "us-central1"):
         # Use environment variable for API key
         self.api_key = os.environ.get("PERPLEXITY_API_KEY")
         self.logger = logging.getLogger(self.__class__.__name__)
+        
+        # Vertex AI configuration
+        self.project = project
+        self.location = location
+        self.vertex_model = None
         
         if not self.api_key:
             self.logger.warning("PERPLEXITY_API_KEY not set - enrichment will be skipped")
@@ -23,6 +36,16 @@ class PerplexitySearchService:
         else:
             self.logger.info("Perplexity enrichment enabled")
             self.enabled = True
+        
+        # Initialize Vertex AI if available
+        if VERTEX_AI_AVAILABLE and self.enabled:
+            try:
+                vertexai.init(project=self.project, location=self.location)
+                self.vertex_model = GenerativeModel("gemini-2.0-flash-exp")
+                self.logger.info("Vertex AI initialized for structured data extraction")
+            except Exception as e:
+                self.logger.warning(f"Vertex AI initialization failed: {e}")
+                self.vertex_model = None
         
         self.base_url = "https://api.perplexity.ai/chat/completions"
     
@@ -88,6 +111,7 @@ class PerplexitySearchService:
     def _identify_missing_fields(self, memo_data: Dict[str, Any]) -> List[str]:
         """
         Identify fields that are missing or have placeholder values.
+        Prioritizes critical fields for enrichment.
         
         Args:
             memo_data: The memo data to analyze
@@ -95,51 +119,52 @@ class PerplexitySearchService:
         Returns:
             List of field names that need enrichment
         """
-        # Comprehensive list of all fields that can be enriched
-        fields_to_check = [
-            # Company basics
-            "headquarters", "founded_date", "company_stage",
-            
-            # Funding & financials
-            "amount_raising", "post_money_valuation", "pre_money_valuation",
-            "lead_investor", "committed_funding", "ownership_target",
-            "use_of_funds",  # ADD THIS
-            "financial_projections",  # ADD THIS
-            "potential_acquirers",  # ADD THIS
-            
-            # Market analysis
-            "sam_market_size", "som_market_size", "market_penetration",
-            "market_timing", "market_trends",
-            
-            # Financial metrics
-            "current_revenue", "revenue_growth_rate",
-            "customer_acquisition_cost", "lifetime_value",
-            "gross_margin", "operating_margin", "net_margin",
-            "burn_rate", "runway",
-            
-            # Team & execution
-            "team_size", "hiring_plan",
-            
-            # Strategy
-            "go_to_market", "sales_strategy", "partnerships",
-            "distribution_channels", "scalability_plan",
-            
-            # Exit & timeline
-            "timeline", "exit_strategy", "exit_valuation", "ipo_timeline"
+        # Critical fields that should be enriched first
+        critical_fields = [
+            "company_stage", "headquarters", "founded_date", 
+            "current_revenue", "revenue_growth_rate", "burn_rate", "runway",
+            "amount_raising", "post_money_valuation", "lead_investor"
         ]
         
+        # Important fields for comprehensive enrichment
+        important_fields = [
+            "customer_acquisition_cost", "lifetime_value", "gross_margin",
+            "team_size", "key_team_members", "advisory_board",
+            "go_to_market", "sales_strategy", "partnerships",
+            "use_of_funds", "financial_projections", "potential_acquirers",
+            "sam_market_size", "som_market_size", "market_penetration",
+            "market_timing", "market_trends", "competitive_advantages",
+            "scalability_plan", "exit_strategy", "exit_valuation"
+        ]
+        
+        # Check critical fields first
         missing_fields = []
-        for field in fields_to_check:
+        for field in critical_fields:
             value = memo_data.get(field)
-            # Check for missing, empty, or placeholder values
-            if not value or str(value).strip() in ["Not specified", "Not disclosed", "N/A", "", "None", "Pending", "Not available"]:
+            if self._is_field_missing(value):
+                missing_fields.append(field)
+        
+        # Add important fields if we have capacity
+        for field in important_fields:
+            value = memo_data.get(field)
+            if self._is_field_missing(value):
                 missing_fields.append(field)
         
         return missing_fields
     
+    def _is_field_missing(self, value: Any) -> bool:
+        """Check if a field value is missing or placeholder"""
+        if not value:
+            return True
+        if isinstance(value, str):
+            return value.strip() in ["Not specified", "Not disclosed", "N/A", "", "None", "Pending", "Not available", "TBD", "To be determined"]
+        if isinstance(value, list):
+            return len(value) == 0
+        return False
+    
     async def _enrich_fields(self, missing_fields: List[str], company_context: str) -> Dict[str, Any]:
         """
-        Enrich missing fields using Perplexity search.
+        Enrich missing fields using category-specific Perplexity searches.
         
         Args:
             missing_fields: List of fields to enrich
@@ -150,32 +175,151 @@ class PerplexitySearchService:
         """
         enriched_data = {}
         
-        # Group fields by type for more efficient searches
-        field_groups = {
-            "company_info": ["company_name", "headquarters", "founded_date", "company_stage"],
-            "financials": ["amount_raising", "post_money_valuation", "current_revenue", 
-                          "customer_acquisition_cost", "gross_margin", "burn_rate", "runway"],
-            "team": ["team_size", "founder_linkedin", "founder_background"],
-            "market": ["market_size", "target_market", "competitive_advantages"],
-            "business": ["business_model", "revenue_model", "pricing_strategy", "go_to_market"]
+        # Define field categories with specialized prompts
+        field_categories = {
+            "company_basics": {
+                "fields": ["company_stage", "headquarters", "founded_date", "team_size"],
+                "prompt_template": "Provide verified company information for {company_context}: headquarters location, founding date, current stage (seed/series A/B/C), employee count. Include specific dates, locations, and stage details with sources."
+            },
+            "financial_metrics": {
+                "fields": ["current_revenue", "revenue_growth_rate", "burn_rate", "runway", "customer_acquisition_cost", "lifetime_value", "gross_margin"],
+                "prompt_template": "Find latest financial data for {company_context}: current revenue, revenue growth rate, funding raised, valuation, burn rate, runway, CAC, LTV, gross margins. Focus on recent data with specific numbers and sources."
+            },
+            "funding_deals": {
+                "fields": ["amount_raising", "post_money_valuation", "pre_money_valuation", "lead_investor", "committed_funding", "use_of_funds"],
+                "prompt_template": "Research funding information for {company_context}: current funding round amount, valuation, lead investors, committed funding, use of funds. Include recent funding announcements and investor details."
+            },
+            "market_intelligence": {
+                "fields": ["sam_market_size", "som_market_size", "market_penetration", "market_timing", "market_trends", "competitive_advantages"],
+                "prompt_template": "Analyze market for {company_context}: TAM/SAM/SOM with sources, market penetration, competitive advantages, market timing, industry trends. Provide specific market size numbers and competitive positioning."
+            },
+            "team_execution": {
+                "fields": ["key_team_members", "advisory_board", "go_to_market", "sales_strategy", "partnerships"],
+                "prompt_template": "Research team and execution for {company_context}: key team members, advisory board, go-to-market strategy, sales approach, key partnerships. Include LinkedIn profiles and strategic partnerships."
+            },
+            "growth_exit": {
+                "fields": ["scalability_plan", "exit_strategy", "exit_valuation", "potential_acquirers", "ipo_timeline"],
+                "prompt_template": "Analyze growth and exit strategy for {company_context}: scalability plans, exit strategy, potential acquirers, IPO timeline, exit valuation expectations. Include strategic growth plans and exit options."
+            }
         }
         
-        for group_name, fields in field_groups.items():
-            relevant_fields = [f for f in fields if f in missing_fields]
+        # Process each category
+        for category_name, category_info in field_categories.items():
+            relevant_fields = [f for f in category_info["fields"] if f in missing_fields]
             if not relevant_fields:
                 continue
                 
-            # Create a comprehensive query for this group
-            query = f"Find detailed information about {company_context} focusing on: {', '.join(relevant_fields)}. Provide specific data, metrics, and recent updates."
-            
             try:
+                # Create specialized query for this category
+                query = category_info["prompt_template"].format(company_context=company_context)
+                
+                self.logger.info(f"Enriching {category_name} fields: {relevant_fields}")
                 results = await self._perplexity_search(query)
+                
                 if results:
-                    enriched_data.update(self._extract_field_data(results[0]["content"], relevant_fields))
+                    # Process results with Vertex AI if available
+                    if self.vertex_model:
+                        processed_data = await self._process_with_vertex_ai(
+                            results[0]["content"], 
+                            relevant_fields, 
+                            category_name
+                        )
+                        enriched_data.update(processed_data)
+                    else:
+                        # Fallback to simple extraction
+                        enriched_data.update(self._extract_field_data(results[0]["content"], relevant_fields))
+                        
             except Exception as e:
-                self.logger.error(f"Error enriching {group_name}: {str(e)}")
+                self.logger.error(f"Error enriching {category_name}: {str(e)}")
         
         return enriched_data
+    
+    async def _process_with_vertex_ai(self, content: str, fields: List[str], category: str) -> Dict[str, Any]:
+        """
+        Process Perplexity results using Vertex AI for structured data extraction.
+        
+        Args:
+            content: Raw content from Perplexity search
+            fields: List of fields to extract
+            category: Category of fields being processed
+            
+        Returns:
+            Dictionary of processed field data with confidence scores
+        """
+        if not self.vertex_model:
+            return {}
+            
+        try:
+            prompt = f"""
+            You are a data extraction specialist. Extract structured information from the following content about a startup company.
+            
+            Category: {category}
+            Fields to extract: {', '.join(fields)}
+            
+            Content to analyze:
+            {content[:4000]}  # Limit content to avoid token limits
+            
+            Instructions:
+            1. Extract only the requested fields from the content
+            2. For each field, provide the value and a confidence score (0.0-1.0)
+            3. If information is not found, use null for the value and 0.0 for confidence
+            4. Format dates consistently (YYYY-MM-DD format)
+            5. Format numbers with appropriate units (e.g., "$1.2M", "50 employees")
+            6. For team members, format as "Name - Role"
+            7. For lists, use JSON arrays
+            
+            Return ONLY a valid JSON object with this structure:
+            {{
+                "field_name": {{
+                    "value": "extracted_value",
+                    "confidence": 0.85,
+                    "source": "brief source description"
+                }}
+            }}
+            
+            Example:
+            {{
+                "company_stage": {{
+                    "value": "Series A",
+                    "confidence": 0.9,
+                    "source": "Recent funding announcement"
+                }},
+                "headquarters": {{
+                    "value": "San Francisco, CA",
+                    "confidence": 0.8,
+                    "source": "Company website"
+                }}
+            }}
+            """
+            
+            response = self.vertex_model.generate_content(prompt)
+            
+            # Parse the JSON response
+            try:
+                result = json.loads(response.text)
+                
+                # Extract values and confidence scores
+                processed_data = {}
+                for field, data in result.items():
+                    if isinstance(data, dict) and "value" in data:
+                        value = data["value"]
+                        confidence = data.get("confidence", 0.0)
+                        
+                        # Only include fields with reasonable confidence
+                        if confidence > 0.3:
+                            processed_data[field] = value
+                            processed_data[f"{field}_confidence"] = confidence
+                            processed_data[f"{field}_source"] = data.get("source", "")
+                            
+                return processed_data
+                
+            except json.JSONDecodeError as e:
+                self.logger.error(f"Failed to parse Vertex AI response: {e}")
+                return {}
+                
+        except Exception as e:
+            self.logger.error(f"Error in Vertex AI processing: {e}")
+            return {}
     
     def _extract_field_data(self, content: str, fields: List[str]) -> Dict[str, Any]:
         """
@@ -206,13 +350,13 @@ class PerplexitySearchService:
     
     async def enrich_missing_fields(self, memo_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Main method to enrich missing fields in memo data.
+        Main method to enrich missing fields in memo data with enhanced validation.
         
         Args:
             memo_data: The memo data to enrich
             
         Returns:
-            Enriched memo data with additional fields
+            Enriched memo data with additional fields and confidence scores
         """
         if not self.enabled:
             self.logger.info("Perplexity enrichment disabled - skipping")
@@ -246,24 +390,87 @@ class PerplexitySearchService:
             # Enrich missing fields
             enriched_data = await self._enrich_fields(missing_fields, company_context)
             
-            # Merge enriched data DIRECTLY into original fields (not just as _enriched)
+            # Merge enriched data with validation and confidence scoring
             result = memo_data.copy()
             enriched_count = 0
+            enrichment_metadata = {
+                "enrichment_timestamp": str(asyncio.get_event_loop().time()),
+                "fields_enriched": [],
+                "confidence_scores": {},
+                "sources": {}
+            }
+            
             for field, value in enriched_data.items():
                 if field in missing_fields and value:
-                    # Store in original field
-                    result[field] = value
-                    # Also store enriched version for reference
-                    result[f"{field}_enriched"] = value
-                    result.setdefault("enrichment_sources", []).append(f"Perplexity AI - {field}")
-                    enriched_count += 1
+                    # Validate the enriched value
+                    if self._validate_enriched_value(field, value):
+                        # Store in original field
+                        result[field] = value
+                        # Store enriched version for reference
+                        result[f"{field}_enriched"] = value
+                        
+                        # Add confidence and source information
+                        confidence_key = f"{field}_confidence"
+                        source_key = f"{field}_source"
+                        
+                        if confidence_key in enriched_data:
+                            result[confidence_key] = enriched_data[confidence_key]
+                            enrichment_metadata["confidence_scores"][field] = enriched_data[confidence_key]
+                        
+                        if source_key in enriched_data:
+                            result[source_key] = enriched_data[source_key]
+                            enrichment_metadata["sources"][field] = enriched_data[source_key]
+                        
+                        enrichment_metadata["fields_enriched"].append(field)
+                        enriched_count += 1
+                    else:
+                        self.logger.warning(f"Validation failed for enriched field: {field}")
             
-            self.logger.info(f"Successfully enriched {enriched_count} fields")
+            # Add enrichment metadata
+            result["enrichment_metadata"] = enrichment_metadata
+            result["enrichment_success"] = enriched_count > 0
+            result["enrichment_count"] = enriched_count
+            
+            self.logger.info(f"Successfully enriched {enriched_count} fields with confidence scoring")
             return result
             
         except Exception as e:
             self.logger.error(f"Error in enrich_missing_fields: {str(e)}", exc_info=True)
             return memo_data
+    
+    def _validate_enriched_value(self, field: str, value: Any) -> bool:
+        """
+        Validate enriched field values for quality and consistency.
+        
+        Args:
+            field: The field name
+            value: The enriched value
+            
+        Returns:
+            True if value is valid, False otherwise
+        """
+        if not value:
+            return False
+            
+        # Field-specific validation rules
+        validation_rules = {
+            "company_stage": lambda v: isinstance(v, str) and len(v) > 0 and any(stage in v.lower() for stage in ["seed", "series", "pre-seed", "startup"]),
+            "headquarters": lambda v: isinstance(v, str) and len(v) > 2 and "," in v,  # Should have city, state/country
+            "founded_date": lambda v: isinstance(v, str) and len(v) >= 4,  # At least year
+            "current_revenue": lambda v: isinstance(v, str) and any(char in v for char in ["$", "M", "K", "B"]),
+            "team_size": lambda v: isinstance(v, str) and any(char.isdigit() for char in v),
+            "burn_rate": lambda v: isinstance(v, str) and any(char in v for char in ["$", "M", "K"]),
+            "runway": lambda v: isinstance(v, str) and any(char.isdigit() for char in v)
+        }
+        
+        if field in validation_rules:
+            try:
+                return validation_rules[field](value)
+            except:
+                return False
+        
+        # Default validation for other fields
+        return isinstance(value, (str, int, float, list)) and str(value).strip() not in ["", "null", "None"]
     
     async def analyze_competitor_matrix(self, company_name: str, industry: str, competitors: List[str]) -> Dict[str, Any]:
         """

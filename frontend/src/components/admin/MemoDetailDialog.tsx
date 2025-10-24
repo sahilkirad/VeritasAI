@@ -418,10 +418,10 @@ export default function MemoDetailDialog({ memo, open, onOpenChange }: MemoDetai
                 </Button>
               </div>
               
-              {memo.adminNotes.length > 0 && (
+              {memo.adminNotes?.length > 0 && (
                 <div className="space-y-2">
                   <h4 className="font-medium text-sm">Previous Notes:</h4>
-                  {memo.adminNotes.map((note, index) => (
+                  {memo.adminNotes?.map((note, index) => (
                     <div key={index} className="p-3 bg-muted rounded-lg text-sm">
                       {note}
                     </div>

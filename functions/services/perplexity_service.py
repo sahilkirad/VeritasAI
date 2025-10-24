@@ -41,7 +41,7 @@ class PerplexitySearchService:
         if VERTEX_AI_AVAILABLE and self.enabled:
             try:
                 vertexai.init(project=self.project, location=self.location)
-                self.vertex_model = GenerativeModel("gemini-2.0-flash-exp")
+                self.vertex_model = GenerativeModel("gemini-2.5-flash")
                 self.logger.info("Vertex AI initialized for structured data extraction")
             except Exception as e:
                 self.logger.warning(f"Vertex AI initialization failed: {e}")
@@ -73,7 +73,7 @@ class PerplexitySearchService:
             
             # Use the correct model name and parameters for Perplexity
             payload = {
-                "model": "sonar-medium-online",  # Valid Perplexity online search model
+                "model": "sonar",  # Current Perplexity search model (2025) with web search + citations
                 "messages": [
                     {
                         "role": "user",
@@ -107,6 +107,54 @@ class PerplexitySearchService:
         except Exception as e:
             self.logger.error(f"Exception in Perplexity search: {str(e)}", exc_info=True)
             return []
+    
+    def extract_json_from_response(self, response_text: str) -> Optional[Dict[str, Any]]:
+        """
+        Extract JSON from Gemini response, handling markdown code blocks and extra text.
+        Similar to the helper in diligence_agent_rag.py for consistency.
+        
+        Args:
+            response_text: Raw response text from Gemini
+            
+        Returns:
+            Parsed JSON dictionary or None if extraction fails
+        """
+        if not response_text or not response_text.strip():
+            self.logger.warning("Empty response from Gemini")
+            return None
+            
+        try:
+            # First try direct JSON parsing
+            return json.loads(response_text.strip())
+        except json.JSONDecodeError:
+            pass
+        
+        # Try to extract JSON from markdown code blocks
+        import re
+        
+        # Pattern to match ```json ... ``` blocks
+        json_pattern = r'```(?:json)?\s*(\{.*?\})\s*```'
+        match = re.search(json_pattern, response_text, re.DOTALL)
+        
+        if match:
+            try:
+                return json.loads(match.group(1))
+            except json.JSONDecodeError:
+                pass
+        
+        # Try to find JSON object boundaries
+        json_pattern = r'\{.*\}'
+        match = re.search(json_pattern, response_text, re.DOTALL)
+        
+        if match:
+            try:
+                return json.loads(match.group(0))
+            except json.JSONDecodeError:
+                pass
+        
+        # Log the actual response for debugging
+        self.logger.error(f"Failed to extract JSON from Gemini response. Response: {response_text[:500]}...")
+        return None
     
     def _identify_missing_fields(self, memo_data: Dict[str, Any]) -> List[str]:
         """
@@ -250,25 +298,14 @@ class PerplexitySearchService:
             return {}
             
         try:
-            prompt = f"""
-            You are a data extraction specialist. Extract structured information from the following content about a startup company.
-            
-            Category: {category}
-            Fields to extract: {', '.join(fields)}
-            
-            Content to analyze:
-            {content[:4000]}  # Limit content to avoid token limits
-            
-            Instructions:
-            1. Extract only the requested fields from the content
-            2. For each field, provide the value and a confidence score (0.0-1.0)
-            3. If information is not found, use null for the value and 0.0 for confidence
-            4. Format dates consistently (YYYY-MM-DD format)
-            5. Format numbers with appropriate units (e.g., "$1.2M", "50 employees")
-            6. For team members, format as "Name - Role"
-            7. For lists, use JSON arrays
-            
-            Return ONLY a valid JSON object with this structure:
+            prompt = f"""You are a data extraction specialist. Extract structured information from the following content about a startup company.
+
+            **CRITICAL - RESPONSE FORMAT:**
+            Return ONLY a valid JSON object. No markdown, no code blocks, no explanations before or after.
+            Your response must start with {{ and end with }}.
+            Do not wrap in ```json``` or any other formatting.
+
+            **Required JSON Structure:**
             {{
                 "field_name": {{
                     "value": "extracted_value",
@@ -276,8 +313,23 @@ class PerplexitySearchService:
                     "source": "brief source description"
                 }}
             }}
+
+            **Category:** {category}
+            **Fields to extract:** {', '.join(fields)}
             
-            Example:
+            **Content to analyze:**
+            {content[:4000]}
+
+            **Instructions:**
+            1. Extract only the requested fields from the content
+            2. For each field, provide the value and a confidence score (0.0-1.0)
+            3. If information is not found, use null for the value and 0.0 for confidence
+            4. Format dates consistently (YYYY-MM-DD format)
+            5. Format numbers with appropriate units (e.g., "$1.2M", "50 employees")
+            6. For team members, format as "Name - Role"
+            7. For lists, use JSON arrays
+
+            **Example:**
             {{
                 "company_stage": {{
                     "value": "Series A",
@@ -290,32 +342,36 @@ class PerplexitySearchService:
                     "source": "Company website"
                 }}
             }}
-            """
+
+            Analyze and return ONLY the JSON object."""
             
             response = self.vertex_model.generate_content(prompt)
             
-            # Parse the JSON response
-            try:
-                result = json.loads(response.text)
-                
-                # Extract values and confidence scores
-                processed_data = {}
-                for field, data in result.items():
-                    if isinstance(data, dict) and "value" in data:
-                        value = data["value"]
-                        confidence = data.get("confidence", 0.0)
-                        
-                        # Only include fields with reasonable confidence
-                        if confidence > 0.3:
-                            processed_data[field] = value
-                            processed_data[f"{field}_confidence"] = confidence
-                            processed_data[f"{field}_source"] = data.get("source", "")
-                            
-                return processed_data
-                
-            except json.JSONDecodeError as e:
-                self.logger.error(f"Failed to parse Vertex AI response: {e}")
+            # Add debug logging for Gemini response
+            self.logger.debug(f"Gemini response (first 500 chars): {response.text[:500]}")
+            
+            # Parse the JSON response using helper function
+            result = self.extract_json_from_response(response.text)
+            
+            if result is None:
+                self.logger.error("Failed to extract JSON from Gemini response")
                 return {}
+            
+            # Extract values and confidence scores
+            processed_data = {}
+            for field, data in result.items():
+                if isinstance(data, dict) and "value" in data:
+                    value = data["value"]
+                    confidence = data.get("confidence", 0.0)
+                    
+                    # Only include fields with reasonable confidence
+                    if confidence > 0.3:
+                        processed_data[field] = value
+                        processed_data[f"{field}_confidence"] = confidence
+                        processed_data[f"{field}_source"] = data.get("source", "")
+                        
+            self.logger.info(f"Successfully processed {len(processed_data)} fields from Gemini response")
+            return processed_data
                 
         except Exception as e:
             self.logger.error(f"Error in Vertex AI processing: {e}")

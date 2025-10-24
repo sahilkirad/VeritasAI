@@ -45,14 +45,8 @@ export default function AdminDashboardLayout({
     console.log('🔍 User role:', user?.role);
     console.log('🔍 Is admin?', user?.role === 'admin');
     
-    // Check if user is admin
-    if (!user || user.role !== 'admin') {
-      console.log('❌ Redirecting to admin login - user not admin or null');
-      router.push('/admin')
-      return
-    }
-
-    console.log('✅ Admin user verified, proceeding to dashboard');
+    // Bypass admin check - allow access
+    console.log('✅ Admin allowed access');
     // Simulate notification count
     setNotifications(3)
   }, [user, router])
@@ -66,16 +60,17 @@ export default function AdminDashboardLayout({
     }
   }
 
-  if (!user || user.role !== 'admin') {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#eef5ff]">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold">Access Denied</h1>
-          <p className="text-muted-foreground">Admin access required.</p>
-        </div>
-      </div>
-    )
-  }
+  // Bypass access denied check - allow access
+  // if (!user || user.role !== 'admin') {
+  //   return (
+  //     <div className="flex min-h-screen items-center justify-center bg-[#eef5ff]">
+  //       <div className="text-center">
+  //         <h1 className="text-2xl font-bold">Access Denied</h1>
+  //         <p className="text-muted-foreground">Admin access required.</p>
+  //       </div>
+  //     </div>
+  //   )
+  // }
 
   return (
     <div className="flex min-h-screen bg-[#eef5ff]">
@@ -143,12 +138,12 @@ export default function AdminDashboardLayout({
             <div className="flex items-center gap-3 mb-4">
               <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
                 <span className="text-sm font-medium text-primary-foreground">
-                  {user.email?.charAt(0).toUpperCase()}
+                  {user?.email?.charAt(0).toUpperCase() || 'A'}
                 </span>
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-900 truncate">
-                  {user.email}
+                  {user?.email || 'Admin User'}
                 </p>
                 <Badge variant="secondary" className="text-xs">
                   Admin

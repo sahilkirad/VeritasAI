@@ -105,6 +105,34 @@ class IntakeCurationAgent:
             self.logger.error(f"Failed to initialize agent's Google Cloud clients: {e}", exc_info=True)
             raise
 
+    def _extract_gemini_response_text(self, response) -> str:
+        """
+        Extract text from Gemini response, handling multiple content parts.
+        
+        Args:
+            response: Gemini GenerateContentResponse object
+        
+        Returns:
+            str: Extracted text content
+        """
+        try:
+            # Try standard text property first
+            return response.text
+        except ValueError as e:
+            if "Multiple content parts" in str(e):
+                # Handle multiple parts - extract from first part or concatenate
+                self.logger.warning("Multiple content parts detected, extracting from first part")
+                if response.candidates and len(response.candidates) > 0:
+                    candidate = response.candidates[0]
+                    if candidate.content and candidate.content.parts:
+                        # Use first part (they're usually duplicates)
+                        first_part_text = candidate.content.parts[0].text
+                        self.logger.debug(f"Extracted from first part: {len(first_part_text)} chars")
+                        return first_part_text
+                raise ValueError(f"Cannot extract text from response: {e}")
+            else:
+                raise
+
     def run(self, file_data: bytes, filename: str, file_type: str) -> Dict[str, Any]:
         """
         Main entry point for the agent. Processes a single file and generates Memo 1.
@@ -181,7 +209,13 @@ class IntakeCurationAgent:
         6. **Risk Assessment**: Identify key risks, red flags, and mitigation strategies
         7. **Investment Thesis**: Formulate initial investment recommendation and rationale
         
-        RESPONSE FORMAT: Respond ONLY with a valid JSON object containing the following keys. Do not include any other text, explanations, or markdown formatting.
+        **CRITICAL - RESPONSE FORMAT:**
+        Return ONLY a valid JSON object. No markdown, no code blocks, no explanations before or after.
+        Your response must start with { and end with }.
+        Do not wrap in ```json``` or any other formatting.
+        Ensure ALL brackets, braces, and quotes are properly closed.
+        Double-check JSON syntax before returning.
+        
         If a specific piece of information is not found, return a relevant empty value (e.g., an empty string "" or an empty list []).
 
         JSON Schema (CORE FIELDS - Extract with high precision):
@@ -325,8 +359,16 @@ class IntakeCurationAgent:
         response = self.gemini_model.generate_content([prompt, pdf_part])
         self.logger.info("PDF processing and memo generation complete.")
         
+        # Extract text from Gemini response (handles multiple content parts)
+        memo_json_str = self._extract_gemini_response_text(response)
+        
+        # Log response details for debugging
+        self.logger.debug(f"Raw response length: {len(memo_json_str)} chars")
+        self.logger.debug(f"First 200 chars: {memo_json_str[:200]}")
+        self.logger.debug(f"Last 200 chars: {memo_json_str[-200:]}")
+        
         # Parse the JSON response
-        result = self._parse_json_from_text(response.text)
+        result = self._parse_json_from_text(memo_json_str)
         
         # Post-process to ensure critical fields are never "Not specified"
         result = self._ensure_critical_fields(result)
@@ -497,8 +539,16 @@ class IntakeCurationAgent:
         response = self.gemini_model.generate_content(prompt)
         self.logger.info("Memo 1 generation from text complete.")
         
+        # Extract text from Gemini response (handles multiple content parts)
+        memo_json_str = self._extract_gemini_response_text(response)
+        
+        # Log response details for debugging
+        self.logger.debug(f"Raw response length: {len(memo_json_str)} chars")
+        self.logger.debug(f"First 200 chars: {memo_json_str[:200]}")
+        self.logger.debug(f"Last 200 chars: {memo_json_str[-200:]}")
+        
         # Parse the JSON response
-        result = self._parse_json_from_text(response.text)
+        result = self._parse_json_from_text(memo_json_str)
         
         # Post-process to ensure critical fields are never "Not specified"
         result = self._ensure_critical_fields(result)
@@ -542,7 +592,7 @@ class IntakeCurationAgent:
         except (TypeError, ValueError) as e:
             self.logger.error(f"Memo data validation failed: {e}")
             return False
-
+        
     def _parse_json_from_text(self, text: str) -> Dict[str, Any]:
         """Safely extracts and sanitizes JSON from model response."""
         self.logger.debug(f"Attempting to parse JSON from model response: {text[:200]}...")
@@ -581,6 +631,13 @@ class IntakeCurationAgent:
             else:
                 json_str = cleaned_text
             
+        # Add comprehensive logging before parsing
+        self.logger.debug(f"Response length: {len(text)} characters")
+        self.logger.debug(f"Cleaned text length: {len(cleaned_text)} characters")
+        self.logger.debug(f"JSON string length: {len(json_str)} characters")
+        self.logger.debug(f"First 500 chars: {json_str[:500]}")
+        self.logger.debug(f"Last 500 chars: {json_str[-500:]}")
+        
         try:
             return json.loads(json_str)
         except json.JSONDecodeError as e:

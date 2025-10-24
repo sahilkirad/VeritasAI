@@ -559,9 +559,9 @@ def process_ingestion_task(event: pubsub_fn.CloudEvent) -> None:
             ))
         else:
             print("No founder email provided, using standard intake agent")
-            ingestion_result = agent.run(
-                file_data=file_data, filename=file_path, file_type=file_type
-            )
+        ingestion_result = agent.run(
+            file_data=file_data, filename=file_path, file_type=file_type
+        )
         
         if ingestion_result.get("status") == "SUCCESS":
             print(f"Successfully ingested {file_path}. Memo 1 generated. Validating data before saving...")

@@ -17,7 +17,31 @@
       "**/.*",
       "**/node_modules/**"
     ],
+    "headers": [
+      {
+        "source": "/_next/static/**/*.js",
+        "headers": [
+          {
+            "key": "Content-Type",
+            "value": "application/javascript"
+          }
+        ]
+      },
+      {
+        "source": "/_next/static/**/*.css",
+        "headers": [
+          {
+            "key": "Content-Type",
+            "value": "text/css"
+          }
+        ]
+      }
+    ],
     "rewrites": [
+      {
+        "source": "/_next/static/**",
+        "destination": "/_next/static/**"
+      },
       {
         "source": "**",
         "destination": "/index.html"

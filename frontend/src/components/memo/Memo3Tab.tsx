@@ -1022,7 +1022,7 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
           <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
             <h4 className="font-semibold text-blue-800 mb-2">Pricing Strategy from Pitch Deck</h4>
             <div className="text-sm text-blue-700 space-y-2">
-              <p><strong>Pricing Strategy:</strong> {enhancedDiligenceData?.pricing_strategy || "Not specified in pitch deck"}</p>
+              <p><strong>Pricing Strategy:</strong> {typeof enhancedDiligenceData?.pricing_strategy === 'string' ? enhancedDiligenceData.pricing_strategy : typeof enhancedDiligenceData?.pricing_strategy === 'object' ? JSON.stringify(enhancedDiligenceData.pricing_strategy) : "Not specified in pitch deck"}</p>
               <p><strong>Go-to-Market Strategy:</strong> {enhancedDiligenceData?.go_to_market || "Not specified"}</p>
               <p><strong>Target Market:</strong> {enhancedDiligenceData?.target_market || "Not specified"}</p>
               </div>
@@ -1195,7 +1195,7 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
             <div className="p-3 bg-orange-50 rounded-lg border border-orange-200">
               <div className="text-sm space-y-2">
                 <div><strong>How payments are collected and processed:</strong> Direct payments, online gateways, invoicing. - {enhancedDiligenceData.payment_collection || "Payment collection method not specified"}</div>
-                <div><strong>Payment frequency:</strong> (monthly, annual, one-time). - {enhancedDiligenceData.payment_frequency || enhancedDiligenceData.pricing_strategy || "Payment frequency details from pitch deck"}</div>
+                <div><strong>Payment frequency:</strong> (monthly, annual, one-time). - {enhancedDiligenceData.payment_frequency || (typeof enhancedDiligenceData.pricing_strategy === 'string' ? enhancedDiligenceData.pricing_strategy : typeof enhancedDiligenceData.pricing_strategy === 'object' ? JSON.stringify(enhancedDiligenceData.pricing_strategy) : "Payment frequency details from pitch deck")}</div>
                 <div><strong>Refund and cancellation policies:</strong> (if applicable). - {enhancedDiligenceData.refund_policy || "N/A"}</div>
               </div>
             </div>

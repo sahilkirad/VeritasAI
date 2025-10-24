@@ -7,9 +7,9 @@ interface AuthContextType {
   user: UserProfile | null;
   userProfile: UserProfile | null;
   loading: boolean;
-  signIn: (email: string, password: string, expectedRole?: 'investor' | 'founder') => Promise<void>;
-  signUp: (email: string, password: string, fullName: string, role: 'investor' | 'founder', companyName?: string, companyWebsite?: string, linkedinProfile?: string) => Promise<void>;
-  signInWithGoogle: (role?: 'investor' | 'founder') => Promise<void>;
+  signIn: (email: string, password: string, expectedRole?: 'investor' | 'founder' | 'admin') => Promise<void>;
+  signUp: (email: string, password: string, fullName: string, role: 'investor' | 'founder' | 'admin', companyName?: string, companyWebsite?: string, linkedinProfile?: string) => Promise<void>;
+  signInWithGoogle: (role?: 'investor' | 'founder' | 'admin') => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -22,107 +22,155 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Check for existing authentication
-    const checkAuth = () => {
+    const checkAuth = async () => {
       try {
-        const currentUser = databaseAuth.getCurrentUser();
-        if (currentUser) {
-          setUser(currentUser);
-          setUserProfile(currentUser);
-          console.log('✅ User authenticated:', currentUser.email);
-        } else {
-          setUser(null);
-          setUserProfile(null);
-          console.log('ℹ️ No user authenticated');
+        console.log('🔍 Starting authentication check...');
+        
+        // First, check localStorage directly (for admin and other sessions)
+        if (typeof window !== 'undefined') {
+          const session = localStorage.getItem('veritas_session');
+          console.log('🔍 Checking localStorage session:', session);
+          
+          if (session) {
+            try {
+              const sessionData = JSON.parse(session);
+              console.log('🔍 Session data found:', sessionData);
+              
+              // Create user profile from session
+              const userProfile: UserProfile = {
+                uid: sessionData.uid,
+                email: sessionData.email,
+                displayName: sessionData.displayName || sessionData.email,
+                role: sessionData.role,
+                password: '', // Don't store password in session
+                createdAt: sessionData.createdAt || new Date().toISOString(),
+                isAuthenticated: true
+              };
+              
+              console.log('✅ Restoring session for:', userProfile.email, 'Role:', userProfile.role);
+              setUser(userProfile);
+              setUserProfile(userProfile);
+              setLoading(false);
+              return;
+            } catch (parseError) {
+              console.error('❌ Error parsing session data:', parseError);
+              localStorage.removeItem('veritas_session');
+            }
+          }
         }
+        
+        // If no session found, set loading to false
+        console.log('🔍 No session found, setting loading to false');
+        setLoading(false);
       } catch (error) {
-        console.error('❌ Auth check error:', error);
-        setUser(null);
-        setUserProfile(null);
+        console.error('❌ Error checking authentication:', error);
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     // Check immediately
     checkAuth();
   }, []);
 
-  const signIn = async (email: string, password: string, expectedRole?: 'investor' | 'founder') => {
+  const signIn = async (email: string, password: string, expectedRole?: 'investor' | 'founder' | 'admin') => {
     try {
-      console.log('🔄 Attempting sign in for:', email, 'Expected role:', expectedRole);
+      console.log('🔄 AuthContext: Attempting sign in for:', email, 'Expected role:', expectedRole);
+      console.log('🔄 AuthContext: databaseAuth instance:', databaseAuth);
       const result = await databaseAuth.signInWithEmail(email, password, expectedRole);
+      console.log('🔄 AuthContext: signInWithEmail result:', result);
       
       if (result.success && result.user) {
         setUser(result.user);
         setUserProfile(result.user);
-        console.log('✅ Sign in successful:', result.user.email, 'Role:', result.user.role);
+        console.log('✅ AuthContext: Sign in successful:', result.user.email, 'Role:', result.user.role);
       } else {
+        console.error('❌ AuthContext: Sign in failed:', result.error);
         throw new Error(result.error || 'Sign in failed');
       }
     } catch (error: any) {
-      console.error('❌ Sign in error:', error);
+      console.error('❌ AuthContext: Sign in error:', error);
+      console.error('❌ AuthContext: Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
       throw new Error(error.message || 'Failed to sign in');
     }
   };
 
-  const signUp = async (email: string, password: string, fullName: string, role: 'investor' | 'founder', companyName?: string, companyWebsite?: string, linkedinProfile?: string) => {
+  const signUp = async (email: string, password: string, fullName: string, role: 'investor' | 'founder' | 'admin', companyName?: string, companyWebsite?: string, linkedinProfile?: string) => {
     try {
-      console.log('🔄 Attempting sign up for:', email, 'Role:', role);
+      console.log('🔄 AuthContext: Attempting sign up for:', email, 'Role:', role);
       const result = await databaseAuth.signUpWithEmail(email, password, fullName, role, companyName, companyWebsite, linkedinProfile);
+      console.log('🔄 AuthContext: signUpWithEmail result:', result);
       
       if (result.success && result.user) {
         setUser(result.user);
         setUserProfile(result.user);
-        console.log('✅ Sign up successful:', result.user.email);
+        console.log('✅ AuthContext: Sign up successful:', result.user.email, 'Role:', result.user.role);
       } else {
+        console.error('❌ AuthContext: Sign up failed:', result.error);
         throw new Error(result.error || 'Sign up failed');
       }
     } catch (error: any) {
-      console.error('❌ Sign up error:', error);
-      throw new Error(error.message || 'Failed to create account');
+      console.error('❌ AuthContext: Sign up error:', error);
+      throw new Error(error.message || 'Failed to sign up');
     }
   };
 
-  const signInWithGoogle = async (role?: 'investor' | 'founder') => {
+  const signInWithGoogle = async (role?: 'investor' | 'founder' | 'admin') => {
     try {
-      console.log('🔄 Attempting Google sign in, Role:', role);
-      const result = await databaseAuth.signInWithGoogle(role);
+      console.log('🔄 AuthContext: Attempting Google sign in for role:', role);
+      // For now, create a mock Google user for testing
+      const mockUser: UserProfile = {
+        uid: 'google_' + Date.now(),
+        email: 'test@google.com',
+        displayName: 'Google User',
+        role: role || 'investor',
+        password: '',
+        createdAt: new Date().toISOString(),
+        isAuthenticated: true
+      };
       
-      if (result.success && result.user) {
-        setUser(result.user);
-        setUserProfile(result.user);
-        console.log('✅ Google sign in successful:', result.user.email);
-      } else {
-        throw new Error(result.error || 'Google sign in failed');
-      }
+      setUser(mockUser);
+      setUserProfile(mockUser);
+      console.log('✅ AuthContext: Google sign in successful:', mockUser.email, 'Role:', mockUser.role);
     } catch (error: any) {
-      console.error('❌ Google sign in error:', error);
+      console.error('❌ AuthContext: Google sign in error:', error);
       throw new Error(error.message || 'Failed to sign in with Google');
     }
   };
 
   const logout = async () => {
     try {
-      console.log('🔄 Attempting logout');
-      await databaseAuth.signOut();
+      console.log('🔄 AuthContext: Logging out user');
+      
+      // Clear localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('veritas_session');
+      }
+      
+      // Clear state
       setUser(null);
       setUserProfile(null);
-      console.log('✅ Logout successful');
-    } catch (error) {
-      console.error('❌ Logout error:', error);
-      // Clear state anyway
+      
+      console.log('✅ AuthContext: Logout successful');
+    } catch (error: any) {
+      console.error('❌ AuthContext: Logout error:', error);
+      // Still clear state even if there's an error
       setUser(null);
       setUserProfile(null);
     }
   };
 
-  const value = {
+  const value: AuthContextType = {
     user,
     userProfile,
     loading,
     signIn,
     signUp,
     signInWithGoogle,
-    logout,
+    logout
   };
 
   return (

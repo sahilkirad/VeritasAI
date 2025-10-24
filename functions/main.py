@@ -12,6 +12,10 @@ import base64
 import tempfile
 import time
 import warnings
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Suppress Vertex AI SDK deprecation warning noise in logs
 warnings.filterwarnings(
@@ -72,6 +76,14 @@ def get_firebase_app():
         # App not initialized yet, initialize it
         # For Firebase Functions 2nd Gen, credentials are handled automatically
         return initialize_app()
+
+# Log environment configuration (without exposing sensitive values)
+def log_environment_config():
+    """Log environment configuration for debugging"""
+    print(f"Environment configuration:")
+    print(f"- PERPLEXITY_API_KEY configured: {bool(os.environ.get('PERPLEXITY_API_KEY'))}")
+    print(f"- GOOGLE_CLOUD_PROJECT: {os.environ.get('GOOGLE_CLOUD_PROJECT', 'Not set')}")
+    print(f"- VERTEX_AI_LOCATION: {os.environ.get('VERTEX_AI_LOCATION', 'asia-south1')}")
 
 # Declare global variables for clients and agents, but keep them as None.
 # They will be "lazy loaded" on the first function invocation for efficiency and to prevent timeouts.
@@ -444,6 +456,9 @@ def process_ingestion_task(event: pubsub_fn.CloudEvent) -> None:
     # Initialize Firebase app when function runs
     get_firebase_app()
     
+    # Log environment configuration for debugging
+    log_environment_config()
+    
     try:
         # Lazy load the agent
         agent = get_intake_agent()
@@ -549,7 +564,20 @@ def process_ingestion_task(event: pubsub_fn.CloudEvent) -> None:
             )
         
         if ingestion_result.get("status") == "SUCCESS":
-            print(f"Successfully ingested {file_path}. Memo 1 generated. Saving to Firestore...")
+            print(f"Successfully ingested {file_path}. Memo 1 generated. Validating data before saving...")
+            
+            # Validate memo data before storing
+            memo_1 = ingestion_result.get("memo_1", {})
+            if memo_1:
+                try:
+                    # Test JSON serialization
+                    json.dumps(memo_1)
+                    print("Memo data validation passed - data is JSON serializable")
+                except (TypeError, ValueError) as e:
+                    print(f"WARNING: Memo data validation failed: {e}")
+                    # Continue anyway but log the issue
+                    ingestion_result["validation_warning"] = f"Data serialization issue: {str(e)}"
+            
             db = firestore.client()
             doc_ref = db.collection("ingestionResults").add(ingestion_result)
             print(f"Successfully saved results for {file_path} to Firestore with ID: {doc_ref[1].id}")
@@ -1176,6 +1204,89 @@ def validate_market_size(req: https_fn.Request):
         
     except Exception as e:
         print(f"Error in validate_market_size: {e}")
+        headers = {
+            **get_cors_headers(req),
+            'Content-Type': 'application/json'
+        }
+        return https_fn.Response(json.dumps({"error": str(e)}), status=500, headers=headers)
+
+@https_fn.on_request(
+    memory=options.MemoryOption.MB_512,
+    timeout_sec=60,
+    invoker="public"
+)
+def check_memo(req: https_fn.Request):
+    """
+    Endpoint: GET /check_memo?fileName=<filename>
+    Returns: Memo ID and processing status for a given filename
+    """
+    try:
+        # Handle CORS preflight
+        if req.method == "OPTIONS":
+            headers = get_cors_headers(req)
+            return https_fn.Response("", status=200, headers=headers)
+
+        if req.method != "GET":
+            headers = get_cors_headers(req)
+            return https_fn.Response("Method not allowed", status=405, headers=headers)
+
+        # Get filename from query parameters
+        fileName = req.args.get('fileName')
+        if not fileName:
+            headers = get_cors_headers(req)
+            return https_fn.Response("Missing fileName parameter", status=400, headers=headers)
+
+        print(f"Checking memo status for filename: {fileName}")
+
+        # Initialize Firebase app
+        get_firebase_app()
+        db = firestore.client()
+
+        # Search for memo by filename in ingestionResults
+        ingestion_query = db.collection("ingestionResults").where("original_filename", "==", fileName)
+        ingestion_docs = ingestion_query.get()
+
+        if ingestion_docs:
+            # Found in ingestionResults
+            doc = ingestion_docs[0]
+            doc_data = doc.to_dict()
+            memo_1 = doc_data.get("memo_1", {})
+            
+            result = {
+                "memoId": doc.id,
+                "status": doc_data.get("status", "unknown"),
+                "title": memo_1.get("title", "Unknown"),
+                "founder_name": memo_1.get("founder_name", "Unknown"),
+                "timestamp": doc_data.get("timestamp", ""),
+                "processing_time_seconds": doc_data.get("processing_time_seconds", 0)
+            }
+            
+            print(f"Found memo in ingestionResults: {result}")
+            
+            headers = {
+                **get_cors_headers(req),
+                'Content-Type': 'application/json'
+            }
+            return https_fn.Response(json.dumps(result), status=200, headers=headers)
+
+        # If not found in ingestionResults, check if it's still processing
+        # This could be enhanced to check processing status in the future
+        result = {
+            "memoId": None,
+            "status": "processing",
+            "message": "File is still being processed"
+        }
+        
+        print(f"No memo found for filename: {fileName}")
+        
+        headers = {
+            **get_cors_headers(req),
+            'Content-Type': 'application/json'
+        }
+        return https_fn.Response(json.dumps(result), status=200, headers=headers)
+        
+    except Exception as e:
+        print(f"Error in check_memo: {e}")
         headers = {
             **get_cors_headers(req),
             'Content-Type': 'application/json'

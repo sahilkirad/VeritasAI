@@ -19,6 +19,30 @@ import Memo2Tab from '@/components/memo/Memo2Tab';
 import Memo3Tab from '@/components/memo/Memo3Tab';
 import MemoDebug from '@/components/memo/MemoDebug';
 
+// Helper function to safely convert market size data to string
+function convertMarketSizeToString(marketSizeData: any): string {
+  console.log('convertMarketSizeToString input:', marketSizeData);
+  console.log('convertMarketSizeToString input type:', typeof marketSizeData);
+  
+  if (typeof marketSizeData === 'string') {
+    console.log('Returning string as-is:', marketSizeData);
+    return marketSizeData;
+  }
+  if (typeof marketSizeData === 'object' && marketSizeData !== null) {
+    console.log('Converting object to string:', marketSizeData);
+    const parts = [];
+    if (marketSizeData.TAM) parts.push(`TAM: ${marketSizeData.TAM}`);
+    if (marketSizeData.SAM) parts.push(`SAM: ${marketSizeData.SAM}`);
+    if (marketSizeData.SOM) parts.push(`SOM: ${marketSizeData.SOM}`);
+    const result = parts.length > 0 ? parts.join(' | ') : 'Not specified';
+    console.log('Object conversion result:', result);
+    return result;
+  }
+  const result = marketSizeData?.toString() || 'Not specified';
+  console.log('Fallback conversion result:', result);
+  return result;
+}
+
 interface MemoData {
   id: string;
   memo_1?: {
@@ -30,9 +54,9 @@ interface MemoData {
     team_info?: string;
     problem?: string;
     solution?: string;
-    competition?: string[];
-    initial_flags?: string[];
-    validation_points?: string[];
+    competition?: any[];
+    initial_flags?: any[];
+    validation_points?: any[];
     founder_name?: string;
     founder_linkedin_url?: string;
     company_linkedin_url?: string;
@@ -65,7 +89,6 @@ interface MemoData {
     net_margin?: string;
     burn_rate?: string;
     runway?: string;
-    business_model?: string;
     growth_stage?: string;
     pre_money_valuation?: string;
     lead_investor?: string;
@@ -73,7 +96,7 @@ interface MemoData {
     round_stage?: string;
     
     // Product & Technology
-    product_features?: string[];
+    product_features?: any[];
     technology_advantages?: string;
     innovation_level?: string;
     scalability_plan?: string;
@@ -89,24 +112,24 @@ interface MemoData {
     
     // Team & Execution
     team_size?: string;
-    key_team_members?: string[];
-    advisory_board?: string[];
+    key_team_members?: any[];
+    advisory_board?: any[];
     execution_track_record?: string;
     
     // Growth & Traction
     user_growth?: string;
     revenue_growth?: string;
     customer_growth?: string;
-    key_milestones?: string[];
-    upcoming_milestones?: string[];
+    key_milestones?: any[];
+    upcoming_milestones?: any[];
     
     // Risk & Mitigation
-    key_risks?: string[];
+    key_risks?: any[];
     risk_mitigation?: string;
     regulatory_risks?: string;
     
     // Exit Strategy
-    potential_acquirers?: string[];
+    potential_acquirers?: any[];
     ipo_timeline?: string;
     exit_valuation?: string;
     
@@ -117,7 +140,7 @@ interface MemoData {
     funding_ask?: string;
     use_of_funds?: string;
     timeline?: string;
-    partnerships?: string;
+    partnerships?: string[];
     regulatory_considerations?: string;
     scalability?: string;
     intellectual_property?: string;
@@ -216,6 +239,8 @@ export default function DealMemoPage() {
           console.log('Company stage from Firestore:', memo1Data.company_stage);
           console.log('Headquarters from Firestore:', memo1Data.headquarters);
           console.log('Amount raising from Firestore:', memo1Data.amount_raising);
+          console.log('Market size from Firestore:', memo1Data.market_size);
+          console.log('Market size type:', typeof memo1Data.market_size);
           const memo: MemoData = {
             id: doc.id,
             filename: data.original_filename || 'Unknown File',
@@ -237,9 +262,21 @@ export default function DealMemoPage() {
               timestamp: data.timestamp,
               // Additional fields that might be in the data
               summary_analysis: memo1Data.summary_analysis || memo1Data.executive_summary,
-              market_size: memo1Data.market_size || memo1Data.total_addressable_market,
-              sam_market_size: memo1Data.sam_market_size || memo1Data.serviceable_available_market,
-              som_market_size: memo1Data.som_market_size || memo1Data.serviceable_obtainable_market,
+              market_size: (() => {
+                const converted = convertMarketSizeToString(memo1Data.market_size || memo1Data.total_addressable_market);
+                console.log('Converted market_size:', converted);
+                return converted;
+              })(),
+              sam_market_size: (() => {
+                const converted = convertMarketSizeToString(memo1Data.sam_market_size || memo1Data.serviceable_available_market);
+                console.log('Converted sam_market_size:', converted);
+                return converted;
+              })(),
+              som_market_size: (() => {
+                const converted = convertMarketSizeToString(memo1Data.som_market_size || memo1Data.serviceable_obtainable_market);
+                console.log('Converted som_market_size:', converted);
+                return converted;
+              })(),
               traction: memo1Data.traction || memo1Data.key_metrics,
               team: memo1Data.team || memo1Data.team_overview,
               
@@ -264,7 +301,6 @@ export default function DealMemoPage() {
               net_margin: memo1Data.net_margin,
               burn_rate: memo1Data.burn_rate,
               runway: memo1Data.runway,
-              business_model: memo1Data.business_model,
               growth_stage: memo1Data.growth_stage,
               pre_money_valuation: memo1Data.pre_money_valuation,
               lead_investor: memo1Data.lead_investor,
@@ -283,13 +319,15 @@ export default function DealMemoPage() {
               market_timing: memo1Data.market_timing,
               competitive_advantages: memo1Data.competitive_advantages,
               market_penetration: memo1Data.market_penetration,
-              industry_category: memo1Data.industry_category,
+              industry_category: Array.isArray(memo1Data.industry_category) 
+                ? memo1Data.industry_category.join(', ') 
+                : memo1Data.industry_category,
               target_market: memo1Data.target_market,
               
               // Team & Execution
               team_size: memo1Data.team_size,
-              key_team_members: memo1Data.key_team_members,
-              advisory_board: memo1Data.advisory_board,
+              key_team_members: memo1Data.key_team_members || [],
+              advisory_board: memo1Data.advisory_board || [],
               execution_track_record: memo1Data.execution_track_record,
               
               // Growth & Traction
@@ -340,6 +378,23 @@ export default function DealMemoPage() {
         console.log('First memo memo_1 data:', memos[0]?.memo_1);
         console.log('Company stage in mapped data:', memos[0]?.memo_1?.company_stage);
         console.log('Headquarters in mapped data:', memos[0]?.memo_1?.headquarters);
+        
+        // Debug critical fields that are showing as "Not specified"
+        if (memos[0]?.memo_1) {
+          console.log('=== FIRESTORE DATA DEBUG ===');
+          console.log('Raw Firestore memo1Data:', allMemosSnapshot.docs[0].data().memo_1);
+          console.log('Mapped company_stage:', memos[0].memo_1.company_stage);
+          console.log('Mapped headquarters:', memos[0].memo_1.headquarters);
+          console.log('Mapped founded_date:', memos[0].memo_1.founded_date);
+          console.log('Mapped amount_raising:', memos[0].memo_1.amount_raising);
+          console.log('Mapped post_money_valuation:', memos[0].memo_1.post_money_valuation);
+          console.log('Mapped current_revenue:', memos[0].memo_1.current_revenue);
+          console.log('Mapped customer_acquisition_cost:', memos[0].memo_1.customer_acquisition_cost);
+          console.log('Mapped gross_margin:', memos[0].memo_1.gross_margin);
+          console.log('Mapped use_of_funds:', memos[0].memo_1.use_of_funds);
+          console.log('Mapped potential_acquirers:', memos[0].memo_1.potential_acquirers);
+          console.log('=== END FIRESTORE DATA DEBUG ===');
+        }
         setAvailableMemos(memos);
         setLoading(false);
         return;
@@ -882,7 +937,13 @@ export default function DealMemoPage() {
 
         <TabsContent value="memo1">
           <Memo1Tab 
-            memo1={memoData.memo_1 || {}} 
+            memo1={(() => {
+              const memo1Data = memoData.memo_1 || {};
+              console.log('Passing memo1 data to Memo1Tab:', memo1Data);
+              console.log('Market size in memo1:', memo1Data.market_size);
+              console.log('Market size type in memo1:', typeof memo1Data.market_size);
+              return memo1Data;
+            })()} 
             memoId={memoData.id}
             onInterviewScheduled={(result) => {
               console.log('Interview scheduled:', result);

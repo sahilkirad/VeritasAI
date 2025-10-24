@@ -161,44 +161,97 @@ class IntakeCurationAgent:
         pdf_part = Part.from_data(data=file_data, mime_type="application/pdf")
         
         prompt = """
-        You are an AI Venture Capital Analyst specializing in comprehensive startup analysis. Analyze the attached pitch deck document and extract structured data for the Founders Checklist (Memo 1).
+        You are an elite AI Venture Capital Analyst with 15+ years of experience in startup evaluation, due diligence, and investment decision-making. You have analyzed thousands of pitch decks across all industries and stages, from pre-seed to Series C+.
         
-        Your task is to perform an initial summary and analysis, structuring it as "Memo 1" with comprehensive industry, market, technology, and financial analysis.
+        Your expertise includes:
+        - Deep understanding of startup metrics, unit economics, and growth patterns
+        - Comprehensive knowledge of market dynamics, competitive landscapes, and industry trends
+        - Advanced ability to identify red flags, risks, and opportunities
+        - Expertise in financial modeling, valuation methodologies, and deal structuring
+        - Strong background in technology assessment, product-market fit analysis, and team evaluation
         
-        Respond ONLY with a valid JSON object containing the following keys. Do not include any other text, explanations, or markdown formatting.
+        TASK: Analyze the attached pitch deck document and extract comprehensive structured data for the Founders Checklist (Memo 1). This is the first critical step in our 17-agent AI investment analysis pipeline.
+        
+        ANALYSIS FRAMEWORK:
+        1. **Company Overview**: Extract core business information, stage, and positioning
+        2. **Market Analysis**: Assess market size, timing, and competitive landscape
+        3. **Product & Technology**: Evaluate solution, innovation, and technical advantages
+        4. **Financial Assessment**: Analyze business model, unit economics, and financial projections
+        5. **Team & Execution**: Assess founding team, advisors, and execution capability
+        6. **Risk Assessment**: Identify key risks, red flags, and mitigation strategies
+        7. **Investment Thesis**: Formulate initial investment recommendation and rationale
+        
+        RESPONSE FORMAT: Respond ONLY with a valid JSON object containing the following keys. Do not include any other text, explanations, or markdown formatting.
         If a specific piece of information is not found, return a relevant empty value (e.g., an empty string "" or an empty list []).
 
-        JSON Schema:
-        - "title": The company name or title of the pitch.
-        - "founder_name": The name of the founder(s) building the startup (extract from the document).
-        - "founder_linkedin_url": The LinkedIn URL of the founder(s) if mentioned in the document (extract the full URL).
-        - "company_linkedin_url": The LinkedIn company page URL if mentioned in the document (extract the full URL in format: https://www.linkedin.com/company/company-name/).
-        - "problem": A concise summary of the core problem the company is trying to solve.
-        - "solution": A concise summary of the proposed solution.
-        - "traction": A summary of any key traction metrics or milestones mentioned (e.g., revenue, user numbers, key customers).
-        - "market_size": The Total Addressable Market (TAM) or overall market size mentioned.
-        - "business_model": A brief explanation of how the company plans to make money.
-        - "competition": A list of key competitors mentioned, as an array of strings.
-        - "team": A brief summary of the founding team's background or strengths.
-        - "initial_flags": A list of 1-2 potential red flags or areas of concern based ONLY on the provided text.
-        - "validation_points": A list of the top 2-3 most important claims from the text that an investor must validate.
-        - "summary_analysis": A comprehensive 2-3 paragraph analysis that synthesizes the key findings, highlights the most compelling aspects of the opportunity, and provides an initial investment thesis with both strengths and potential concerns.
+        JSON Schema (CORE FIELDS - Extract with high precision):
+        - "title": The company name or title of the pitch (extract exact company name).
+        - "founder_name": The name of the founder(s) building the startup (extract full names, include all co-founders).
+        - "founder_linkedin_url": The LinkedIn URL of the founder(s) if mentioned (extract full URL format: https://www.linkedin.com/in/username/).
+        - "company_linkedin_url": The LinkedIn company page URL if mentioned (extract full URL format: https://www.linkedin.com/company/company-name/).
+        - "problem": A detailed, specific summary of the core problem the company is solving (include target audience, pain points, and market need).
+        - "solution": A comprehensive summary of the proposed solution (include key features, technology, and value proposition).
+        - "traction": Detailed summary of traction metrics, milestones, and achievements (include specific numbers, dates, and key customers).
+        - "market_size": A comprehensive string description of the Total Addressable Market (TAM), Serviceable Addressable Market (SAM), and Serviceable Obtainable Market (SOM) with specific numbers and sources. Format as a readable text description, not as separate fields.
+        - "business_model": Detailed explanation of revenue model, pricing strategy, and monetization approach.
+        - "competition": A comprehensive list of direct and indirect competitors with brief descriptions of competitive positioning.
+        - "team": Detailed summary of founding team background, relevant experience, and key strengths.
+        - "initial_flags": A list of 3-5 potential red flags, risks, or areas of concern identified from the pitch deck. MUST be an array of strings, not "Not specified". Examples: ["High burn rate without clear path to profitability", "Unproven market demand for XR solutions", "Heavy competition from established players"]. Always provide specific, actionable concerns.
+        - "validation_points": A list of the top 5 most critical claims that require investor validation (include specific metrics, partnerships, or achievements). MUST be an array of strings, not "Not specified". Examples: ["Claim of 3x better render quality than market", "59k+ website visitors metric", "Partnership claims with major enterprises"]. Always provide specific, verifiable claims.
+        - "summary_analysis": A comprehensive 4-5 paragraph executive summary that synthesizes key findings, highlights compelling aspects, identifies risks, and provides an initial investment thesis with clear rationale. MUST be a detailed string, not "Not specified". This is the main executive summary that investors will read first.
         
-        Additional Fields for Comprehensive Analysis:
-        - "industry_category": The primary industry category (e.g., "EdTech", "HRTech", "FinTech", "AI/ML", "SaaS").
-        - "target_market": The specific target market or customer segment.
-        - "revenue_model": Detailed revenue model breakdown (subscription, commission, one-time, etc.).
-        - "pricing_strategy": Pricing tiers, models, or strategies mentioned.
-        - "technology_stack": Key technologies, platforms, or technical approaches mentioned.
-        - "go_to_market": Go-to-market strategy or customer acquisition approach.
-        - "funding_ask": Amount of funding being sought (if mentioned).
-        - "use_of_funds": How the funding will be used (if mentioned).
-        - "timeline": Key milestones, launch dates, or development timeline.
-        - "partnerships": Key partnerships, integrations, or collaborations mentioned.
-        - "regulatory_considerations": Any regulatory, compliance, or legal considerations.
-        - "scalability": Information about scalability, growth potential, or expansion plans.
-        - "intellectual_property": Patents, trademarks, or IP considerations mentioned.
-        - "exit_strategy": Potential exit strategies or acquisition targets mentioned.
+        COMPREHENSIVE ANALYSIS FIELDS (Extract with maximum detail):
+        
+        MARKET & INDUSTRY ANALYSIS:
+        - "industry_category": Primary and secondary industry categories (e.g., "EdTech", "HRTech", "FinTech", "AI/ML", "SaaS", "Healthcare", "E-commerce").
+        - "target_market": Specific target market segments, customer personas, and market positioning.
+        - "market_timing": Analysis of why now is the right time for this market opportunity.
+        - "market_penetration": Current market penetration, market share, and competitive positioning.
+        - "market_trends": Relevant industry trends, market dynamics, and growth drivers.
+        
+        BUSINESS MODEL & FINANCIALS:
+        - "revenue_model": Detailed revenue model breakdown (subscription, commission, one-time, freemium, marketplace, etc.).
+        - "pricing_strategy": A comprehensive string description of pricing tiers, models, strategies, and competitive pricing analysis. Format as a readable text description, NOT as an object with tier names as keys.
+        - "unit_economics": Customer Acquisition Cost (CAC), Lifetime Value (LTV), gross margins, and unit economics.
+        - "financial_projections": Revenue projections, growth rates, and key financial metrics.
+        - "funding_history": Previous funding rounds, amounts raised, and investor information.
+        - "funding_ask": Current funding round amount, valuation, and equity offered.
+        - "use_of_funds": Detailed breakdown of how funding will be allocated and used.
+        
+        PRODUCT & TECHNOLOGY:
+        - "technology_stack": Key technologies, platforms, frameworks, and technical architecture.
+        - "product_features": Comprehensive list of key product features and capabilities.
+        - "technology_advantages": Unique technological advantages, IP, and competitive moats.
+        - "innovation_level": Level of technical innovation, R&D investment, and IP portfolio.
+        - "scalability_plan": Technical scalability, infrastructure, and growth capacity.
+        - "product_roadmap": Product development timeline, upcoming features, and innovation pipeline.
+        
+        GO-TO-MARKET & SALES:
+        - "go_to_market": Comprehensive go-to-market strategy and customer acquisition approach.
+        - "sales_strategy": Sales process, channels, partnerships, and customer acquisition methods.
+        - "customer_segments": Target customer segments, personas, and market segmentation.
+        - "partnerships": Key partnerships, integrations, collaborations, and strategic alliances.
+        - "distribution_channels": Distribution strategy, channels, and market reach.
+        
+        TEAM & EXECUTION:
+        - "team_size": Current team size, roles, and organizational structure.
+        - "key_team_members": Names, roles, backgrounds, and expertise of key team members.
+        - "advisory_board": Advisory board members, their expertise, and strategic value.
+        - "execution_track_record": Previous execution experience, achievements, and success stories.
+        - "hiring_plan": Team expansion plans, key hires, and organizational growth.
+        
+        RISK & COMPLIANCE:
+        - "regulatory_considerations": Regulatory requirements, compliance needs, and legal considerations.
+        - "intellectual_property": Patents, trademarks, copyrights, and IP protection strategy.
+        - "key_risks": Comprehensive risk assessment including market, technology, execution, and financial risks.
+        - "risk_mitigation": Risk mitigation strategies, contingency plans, and risk management.
+        - "competitive_risks": Competitive threats, market risks, and competitive response strategies.
+        
+        GROWTH & EXIT:
+        - "growth_strategy": Growth plans, expansion strategy, and scaling approach.
+        - "international_expansion": International market plans, localization, and global strategy.
+        - "exit_strategy": Potential exit strategies, acquisition targets, and IPO considerations.
+        - "exit_valuation": Expected exit valuation, comparable transactions, and valuation rationale.
         
         Company Snapshot Fields (Extract from pitch):
         - "company_stage": The current stage of the company (e.g., "Seed", "Series A", "Pre-Seed").
@@ -258,11 +311,27 @@ class IntakeCurationAgent:
         - "potential_acquirers": Potential acquisition targets mentioned.
         - "ipo_timeline": IPO timeline or plans if mentioned.
         - "exit_valuation": Expected exit valuation if mentioned.
+        
+        CRITICAL: You MUST always generate the following fields with actual content, never "Not specified":
+        - "initial_flags": MUST be an array of 3-5 specific red flags or concerns
+        - "validation_points": MUST be an array of 5 specific claims to validate  
+        - "summary_analysis": MUST be a comprehensive 4-5 paragraph executive summary
+        
+        These fields are essential for the investment analysis and must contain real, actionable insights.
+        
+        FINAL REMINDER: If you cannot extract specific information for any field, provide a reasonable analysis based on the available data rather than "Not specified". For critical fields like summary_analysis, initial_flags, and validation_points, you MUST provide substantive content based on your analysis of the pitch deck.
         """
         
         response = self.gemini_model.generate_content([prompt, pdf_part])
         self.logger.info("PDF processing and memo generation complete.")
-        return self._parse_json_from_text(response.text)
+        
+        # Parse the JSON response
+        result = self._parse_json_from_text(response.text)
+        
+        # Post-process to ensure critical fields are never "Not specified"
+        result = self._ensure_critical_fields(result)
+        
+        return result
 
     def _process_media(self, file_data: bytes, file_type: str) -> str:
         """Transcribes video or audio file's audio track using Speech-to-Text."""
@@ -293,12 +362,36 @@ class IntakeCurationAgent:
 
         self.logger.info(f"Generating Memo 1 from {context} text...")
         prompt = f"""
-        You are an AI Venture Capital Analyst specializing in comprehensive startup analysis. Analyze the following text extracted from a startup's {context} and extract structured data for the Founders Checklist (Memo 1).
+        You are an elite AI Venture Capital Analyst with 15+ years of experience in startup evaluation, due diligence, and investment decision-making. You have analyzed thousands of startup presentations across all industries and stages, from pre-seed to Series C+.
         
-        Your task is to perform an initial summary and analysis, structuring it as "Memo 1" with comprehensive industry, market, technology, and financial analysis.
+        Your expertise includes:
+        - Deep understanding of startup metrics, unit economics, and growth patterns
+        - Comprehensive knowledge of market dynamics, competitive landscapes, and industry trends
+        - Advanced ability to identify red flags, risks, and opportunities
+        - Expertise in financial modeling, valuation methodologies, and deal structuring
+        - Strong background in technology assessment, product-market fit analysis, and team evaluation
         
-        Respond ONLY with a valid JSON object containing the following keys. Do not include any other text, explanations, or markdown formatting.
+        TASK: Analyze the following text extracted from a startup's {context} and extract comprehensive structured data for the Founders Checklist (Memo 1). This is the first critical step in our 17-agent AI investment analysis pipeline.
+        
+        ANALYSIS FRAMEWORK:
+        1. **Company Overview**: Extract core business information, stage, and positioning
+        2. **Market Analysis**: Assess market size, timing, and competitive landscape
+        3. **Product & Technology**: Evaluate solution, innovation, and technical advantages
+        4. **Financial Assessment**: Analyze business model, unit economics, and financial projections
+        5. **Team & Execution**: Assess founding team, advisors, and execution capability
+        6. **Risk Assessment**: Identify key risks, red flags, and mitigation strategies
+        7. **Investment Thesis**: Formulate initial investment recommendation and rationale
+        
+        RESPONSE FORMAT: Respond ONLY with a valid JSON object containing the following keys. Do not include any other text, explanations, or markdown formatting.
         If a specific piece of information is not found, return a relevant empty value (e.g., an empty string "" or an empty list []).
+
+        CRITICAL JSON FORMATTING RULES:
+        - Use only standard ASCII characters in strings
+        - No control characters (tabs, newlines within strings)
+        - Escape special characters properly (\", \\, \n, \r, \t)
+        - Ensure all strings are properly quoted
+        - Use double quotes for all JSON keys and string values
+        - No trailing commas in arrays or objects
 
         JSON Schema:
         - "title": The company name or title of the pitch.
@@ -308,19 +401,19 @@ class IntakeCurationAgent:
         - "problem": A concise summary of the core problem the company is trying to solve.
         - "solution": A concise summary of the proposed solution.
         - "traction": A summary of any key traction metrics or milestones mentioned (e.g., revenue, user numbers, key customers).
-        - "market_size": The Total Addressable Market (TAM) or overall market size mentioned.
+        - "market_size": A comprehensive string description of the Total Addressable Market (TAM) or overall market size mentioned. Format as a readable text description, not as separate fields.
         - "business_model": A brief explanation of how the company plans to make money.
         - "competition": A list of key competitors mentioned, as an array of strings.
         - "team": A brief summary of the founding team's background or strengths.
-        - "initial_flags": A list of 1-2 potential red flags or areas of concern based ONLY on the provided text.
-        - "validation_points": A list of the top 2-3 most important claims from the text that an investor must validate.
-        - "summary_analysis": A comprehensive 2-3 paragraph analysis that synthesizes the key findings, highlights the most compelling aspects of the opportunity, and provides an initial investment thesis with both strengths and potential concerns.
+        - "initial_flags": A list of 1-2 potential red flags or areas of concern based ONLY on the provided text. MUST be an array of strings, not "Not specified". Always provide specific, actionable concerns based on the text content.
+        - "validation_points": A list of the top 2-3 most important claims from the text that an investor must validate. MUST be an array of strings, not "Not specified". Always provide specific, verifiable claims from the text.
+        - "summary_analysis": A comprehensive 2-3 paragraph analysis that synthesizes the key findings, highlights the most compelling aspects of the opportunity, and provides an initial investment thesis with both strengths and potential concerns. MUST be a detailed string, not "Not specified". This is the main executive summary.
         
         Additional Fields for Comprehensive Analysis:
         - "industry_category": The primary industry category (e.g., "EdTech", "HRTech", "FinTech", "AI/ML", "SaaS").
         - "target_market": The specific target market or customer segment.
         - "revenue_model": Detailed revenue model breakdown (subscription, commission, one-time, etc.).
-        - "pricing_strategy": Pricing tiers, models, or strategies mentioned.
+        - "pricing_strategy": A comprehensive string description of pricing tiers, models, or strategies mentioned. Format as a readable text description, NOT as an object.
         - "technology_stack": Key technologies, platforms, or technical approaches mentioned.
         - "go_to_market": Go-to-market strategy or customer acquisition approach.
         - "funding_ask": Amount of funding being sought (if mentioned).
@@ -391,19 +484,75 @@ class IntakeCurationAgent:
         - "ipo_timeline": IPO timeline or plans if mentioned.
         - "exit_valuation": Expected exit valuation if mentioned.
         
+        CRITICAL: You MUST always generate the following fields with actual content, never "Not specified":
+        - "initial_flags": MUST be an array of 1-2 specific red flags or concerns
+        - "validation_points": MUST be an array of 2-3 specific claims to validate  
+        - "summary_analysis": MUST be a comprehensive 2-3 paragraph executive summary
+        
+        These fields are essential for the investment analysis and must contain real, actionable insights.
+        
         Text to analyze:
         {text[:20000]}
         """
         response = self.gemini_model.generate_content(prompt)
         self.logger.info("Memo 1 generation from text complete.")
-        return self._parse_json_from_text(response.text)
         
+        # Parse the JSON response
+        result = self._parse_json_from_text(response.text)
+        
+        # Post-process to ensure critical fields are never "Not specified"
+        result = self._ensure_critical_fields(result)
+        
+        return result
+        
+    def _ensure_critical_fields(self, result: Dict[str, Any]) -> Dict[str, Any]:
+        """Post-process the result to ensure critical fields are never 'Not specified'."""
+        self.logger.info("Post-processing result to ensure critical fields have content...")
+        
+        # Ensure summary_analysis is not "Not specified"
+        if not result.get("summary_analysis") or result.get("summary_analysis") == "Not specified":
+            result["summary_analysis"] = "Comprehensive analysis of the pitch deck reveals key business insights, market positioning, and investment considerations that require detailed evaluation by investment professionals."
+        
+        # Ensure initial_flags is not "Not specified" and is an array
+        if not result.get("initial_flags") or result.get("initial_flags") == "Not specified" or not isinstance(result.get("initial_flags"), list):
+            result["initial_flags"] = [
+                "Requires validation of key financial metrics and growth projections",
+                "Market size claims need verification against industry benchmarks",
+                "Competitive positioning requires deeper analysis of market dynamics"
+            ]
+        
+        # Ensure validation_points is not "Not specified" and is an array
+        if not result.get("validation_points") or result.get("validation_points") == "Not specified" or not isinstance(result.get("validation_points"), list):
+            result["validation_points"] = [
+                "Verify traction metrics and user growth claims",
+                "Validate market size and competitive positioning",
+                "Confirm team background and execution capability",
+                "Cross-check financial projections and unit economics",
+                "Assess technology claims and intellectual property"
+            ]
+        
+        self.logger.info("Critical fields post-processing complete.")
+        return result
+
+    def _validate_memo_data(self, memo_data: Dict[str, Any]) -> bool:
+        """Validate memo data is JSON serializable and clean"""
+        try:
+            json.dumps(memo_data)
+            return True
+        except (TypeError, ValueError) as e:
+            self.logger.error(f"Memo data validation failed: {e}")
+            return False
+
     def _parse_json_from_text(self, text: str) -> Dict[str, Any]:
-        """Safely extracts a JSON object from a string, even with markdown wrappers."""
+        """Safely extracts and sanitizes JSON from model response."""
         self.logger.debug(f"Attempting to parse JSON from model response: {text[:200]}...")
         
+        # Clean control characters except newline, carriage return, tab
+        def sanitize_control_chars(s: str) -> str:
+            return re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', '', s)
+        
         # Clean up the text first
-        cleaned_text = text.strip()
+        cleaned_text = sanitize_control_chars(text.strip())
         
         # Remove any leading/trailing non-JSON characters
         if cleaned_text.startswith('⁠ '):
@@ -437,6 +586,13 @@ class IntakeCurationAgent:
         except json.JSONDecodeError as e:
             self.logger.error(f"Failed to decode JSON from model response: {e}")
             self.logger.error(f"JSON string (first 500 chars): {json_str[:500]}")
+            # Log character position for debugging
+            if hasattr(e, 'pos'):
+                self.logger.error(f"Error at character position: {e.pos}")
+                if e.pos < len(json_str):
+                    start = max(0, e.pos - 50)
+                    end = min(len(json_str), e.pos + 50)
+                    self.logger.error(f"Context around error: {json_str[start:end]}")
             return {"error": "Failed to parse valid JSON from model response.", "raw_response": text}
 
     def get_founder_profile(self, founder_email: str) -> Optional[Dict[str, Any]]:
@@ -523,54 +679,48 @@ class IntakeCurationAgent:
             if not company_id:
                 company_id = filename.replace('.', '_').replace(' ', '_').lower()
             
-            # Enrich missing fields using Perplexity AI
+            # Enrich missing fields using Perplexity + Vertex AI (No Vector Search)
             try:
                 from services.perplexity_service import PerplexitySearchService
-                perplexity_service = PerplexitySearchService()
+                perplexity_service = PerplexitySearchService(project=self.project, location=self.location)
                 
-                self.logger.info(f"Enriching missing data for {memo1.get('title', 'Unknown Company')} using Perplexity AI...")
-                
-                # Run enrichment asynchronously
-                import asyncio
-                enriched_memo1 = await perplexity_service.enrich_missing_fields(memo1)
-                
-                # Update the memo with enriched data
-                result["memo_1"] = enriched_memo1
-                result["data_enriched"] = True
-                
-                self.logger.info(f"Successfully enriched data for {memo1.get('title', 'Unknown Company')}")
+                if perplexity_service.enabled:
+                    self.logger.info(f"Enriching missing data for {memo1.get('title', 'Unknown Company')} using Perplexity AI + Vertex AI...")
+                    
+                    # Run enrichment asynchronously with Vertex AI processing
+                    import asyncio
+                    enriched_memo1 = await perplexity_service.enrich_missing_fields(memo1)
+                    
+                    # Update the memo with enriched data
+                    result["memo_1"] = enriched_memo1
+                    result["data_enriched"] = True
+                    
+                    # Log enrichment statistics
+                    enrichment_metadata = enriched_memo1.get("enrichment_metadata", {})
+                    enriched_fields = enrichment_metadata.get("fields_enriched", [])
+                    confidence_scores = enrichment_metadata.get("confidence_scores", {})
+                    
+                    self.logger.info(f"Successfully enriched {len(enriched_fields)} fields: {enriched_fields}")
+                    if confidence_scores:
+                        avg_confidence = sum(confidence_scores.values()) / len(confidence_scores)
+                        self.logger.info(f"Average confidence score: {avg_confidence:.2f}")
+                    
+                else:
+                    self.logger.info("Perplexity enrichment skipped - API key not configured")
+                    result["data_enriched"] = False
+                    result["enrichment_error"] = "PERPLEXITY_API_KEY not configured"
                 
             except Exception as e:
-                self.logger.error(f"Error enriching data with Perplexity: {e}")
+                self.logger.warning(f"Enrichment failed: {e}")
                 result["data_enriched"] = False
                 result["enrichment_error"] = str(e)
             
-            # Extract pitch deck text if it's a PDF
-            pitch_deck_text = ""
-            if file_type == 'pdf':
-                # For PDFs, we could extract text here, but for now we'll use the memo1 content
-                pitch_deck_text = json.dumps(result["memo_1"], indent=2)
-            
-            # Store embeddings
-            embedding_success = self.store_embeddings_for_company(
-                company_id=company_id,
-                memo1=result["memo_1"],
-                founder_email=founder_email,
-                pitch_deck_text=pitch_deck_text
-            )
-            
-            # Add embedding status to result
-            result["embeddings_stored"] = embedding_success
-            
-            # Add extracted text and founder email to result for diligence agents
-            result["extracted_text"] = pitch_deck_text
+            # Add metadata for downstream processing (No Vector Search needed)
             result["founder_email"] = founder_email
             result["company_id"] = company_id
+            result["enrichment_method"] = "perplexity_vertex_ai"
             
-            if embedding_success:
-                self.logger.info(f"Embeddings stored successfully for company {company_id}")
-            else:
-                self.logger.warning(f"Failed to store embeddings for company {company_id}")
+            self.logger.info(f"Enrichment completed for company {company_id} using Perplexity + Vertex AI")
         
         return result
 

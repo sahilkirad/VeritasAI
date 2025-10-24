@@ -4,7 +4,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Logo } from "../components/icons/logo"
-import { ArrowRight } from "lucide-react"
+import { ArrowRight, Shield } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import { useRouter } from "next/navigation"
 
@@ -29,7 +29,7 @@ export default function LandingPage() {
     <div className="flex min-h-screen flex-col bg-[#eef5ff]">
       {user && (
         <div className="bg-blue-100 p-2 text-center text-sm">
-          <span>Logged in as: {user.email} ({user.role})</span>
+          <span>Logged in as: {String(user.email || 'Unknown')} ({String(user.role || 'Unknown')})</span>
           <Button 
             variant="outline" 
             size="sm" 
@@ -53,7 +53,7 @@ export default function LandingPage() {
             Shape your narrative. Build your profile. Connect with the right people.
           </p>
 
-          <div className="mt-12 grid w-full max-w-4xl grid-cols-1 gap-8 md:grid-cols-2">
+          <div className="mt-12 grid w-full max-w-6xl grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
             <Card className="text-left">
               <CardHeader>
                 <CardTitle className="font-headline text-xl">For Founders</CardTitle>
@@ -101,6 +101,35 @@ export default function LandingPage() {
                   <Button variant="outline" className="w-full bg-transparent" asChild>
                     <Link href="/investor/login">
                       <ArrowRight className="mr-2 h-4 w-4" /> Log In
+                    </Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="text-left">
+              <CardHeader>
+                <CardTitle className="font-headline text-xl flex items-center gap-2">
+                  <Shield className="h-5 w-5 text-purple-600" />
+                  Admin Portal
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col space-y-6">
+                <div>
+                  <p className="text-muted-foreground">
+                    Access the comprehensive admin dashboard for platform management.
+                  </p>
+                  <p className="mt-4 text-muted-foreground">
+                    Monitor deals, review AI-generated memos, and manage the investment pipeline.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Button className="w-full bg-purple-600 hover:bg-purple-700" asChild>
+                    <Link href="/admin">Access Admin Dashboard</Link>
+                  </Button>
+                  <Button variant="outline" className="w-full bg-transparent" asChild>
+                    <Link href="/admin">
+                      <ArrowRight className="mr-2 h-4 w-4" /> Admin Login
                     </Link>
                   </Button>
                 </div>

@@ -12,38 +12,48 @@ export default function FirebaseTest() {
 
   useEffect(() => {
     // Test Firebase Auth
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setAuthStatus('✅ Firebase Auth: Connected (User logged in)');
-      } else {
-        setAuthStatus('✅ Firebase Auth: Connected (No user)');
-      }
-    });
-
-    // Test Firestore
-    const testFirestore = async () => {
-      try {
-        const testDoc = doc(db, 'test', 'connection');
-        await setDoc(testDoc, { timestamp: new Date().toISOString() });
-        const docSnap = await getDoc(testDoc);
-        if (docSnap.exists()) {
-          setFirestoreStatus('✅ Firestore: Connected and working');
+    if (auth) {
+      const unsubscribe = onAuthStateChanged(auth, (user) => {
+        if (user) {
+          setAuthStatus('✅ Firebase Auth: Connected (User logged in)');
         } else {
-          setFirestoreStatus('❌ Firestore: Connected but write failed');
+          setAuthStatus('✅ Firebase Auth: Connected (No user)');
         }
-      } catch (error) {
-        setFirestoreStatus(`❌ Firestore: Error - ${error}`);
-      }
-    };
+      });
 
-    testFirestore();
+      // Test Firestore
+      const testFirestore = async () => {
+        if (db) {
+          try {
+            const testDoc = doc(db, 'test', 'connection');
+            await setDoc(testDoc, { timestamp: new Date().toISOString() });
+            const docSnap = await getDoc(testDoc);
+            if (docSnap.exists()) {
+              setFirestoreStatus('✅ Firestore: Connected and working');
+            } else {
+              setFirestoreStatus('❌ Firestore: Connected but write failed');
+            }
+          } catch (error) {
+            setFirestoreStatus(`❌ Firestore: Error - ${error}`);
+          }
+        } else {
+          setFirestoreStatus('❌ Firestore: Not initialized');
+        }
+      };
 
-    // Overall status
-    setTimeout(() => {
-      setStatus('✅ Firebase connection test complete');
-    }, 2000);
+      testFirestore();
 
-    return () => unsubscribe();
+      // Overall status
+      setTimeout(() => {
+        setStatus('✅ Firebase connection test complete');
+      }, 2000);
+
+      return () => unsubscribe();
+    } else {
+      setAuthStatus('❌ Firebase Auth: Not initialized');
+      setFirestoreStatus('❌ Firestore: Not initialized');
+      setStatus('❌ Firebase services not available');
+    }
   }, []);
 
   return (

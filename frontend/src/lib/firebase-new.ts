@@ -3,7 +3,7 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
-// Use the original Firebase configuration but with a different approach
+// Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyDJuzygstsuvpYofxhwnipGTH-3DzAkVQM",
   authDomain: "veritas-472301.firebaseapp.com",
@@ -14,38 +14,55 @@ const firebaseConfig = {
   measurementId: "G-PRT33XGJNS",
 };
 
-// Initialize Firebase with error handling
-let app: any;
-let auth: any, db: any, storage: any;
+// Initialize Firebase with proper singleton pattern
+let app: any = null;
+let auth: any = null, db: any = null, storage: any = null;
 
-try {
-  // Force initialize with a unique name to avoid conflicts
-  app = initializeApp(firebaseConfig, 'veritas-app-' + Math.random().toString(36).substr(2, 9));
-  
-  // Initialize services
-  auth = getAuth(app);
-  db = getFirestore(app);
-  storage = getStorage(app);
-  
-  console.log('✅ Firebase initialized successfully');
-} catch (error) {
-  console.error('❌ Firebase initialization failed:', error);
-  
-  // Fallback: try to get existing app
+// Only initialize Firebase once
+if (typeof window !== 'undefined') {
   try {
-    app = getApp();
+    // Check if Firebase is already initialized
+    const existingApps = getApps();
+    
+    if (existingApps.length > 0) {
+      app = existingApps[0];
+      console.log('✅ Using existing Firebase app');
+    } else {
+      // Initialize with a consistent name
+      app = initializeApp(firebaseConfig, 'veritas-app');
+      console.log('✅ Firebase initialized successfully');
+    }
+    
+    // Initialize services
     auth = getAuth(app);
     db = getFirestore(app);
     storage = getStorage(app);
-    console.log('✅ Using existing Firebase app');
-  } catch (fallbackError) {
-    console.error('❌ Fallback also failed:', fallbackError);
-    throw new Error('Firebase initialization completely failed');
+    
+    console.log('✅ Firebase services initialized:', {
+      auth: !!auth,
+      db: !!db,
+      storage: !!storage
+    });
+    
+  } catch (error) {
+    console.error('❌ Firebase initialization failed:', error);
+    // Don't throw error, just set to null and handle gracefully
+    app = null;
+    auth = null;
+    db = null;
+    storage = null;
+    console.warn('⚠️ Firebase services not available - some features may not work');
   }
 }
 
+// Export with null checks
 export { auth, db, storage };
 export default app;
+
+// Add safety checks for Firebase services
+export const getFirebaseAuth = () => auth;
+export const getFirebaseDb = () => db;
+export const getFirebaseStorage = () => storage;
 
 // Type the db export properly
 export type { Firestore } from 'firebase/firestore';

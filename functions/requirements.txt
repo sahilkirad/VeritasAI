@@ -18,3 +18,7 @@ pydantic>=2.0.0
 pypdf2
 # Async HTTP client for Perplexity API
 aiohttp>=3.8.0
+# Environment variable management
+python-dotenv>=1.0.0
+google-cloud-texttospeech>=2.16.2  # For AI voice
+playwright>=1.40.0  # Better than Puppeteer for Python

@@ -182,7 +182,12 @@ class DatabaseAuth {
       // Update authentication status
       console.log('🔄 Updating authentication status...');
       userProfile.isAuthenticated = true;
-      await setDoc(doc(this.db, 'users', userProfile.uid), userProfile);
+      
+      try {
+        await setDoc(doc(this.db, 'users', userProfile.uid), userProfile);
+      } catch (dbError) {
+        console.warn('⚠️ Could not update database, but continuing with login:', dbError);
+      }
 
       // Store session in localStorage
       if (typeof window !== 'undefined') {

@@ -700,7 +700,7 @@ def process_diligence_task(event: pubsub_fn.CloudEvent) -> None:
                 "memo_1_id": memo_1_id,
                 "status": "SUCCESS"
             }
-            doc_ref = db.collection("diligenceResults").add(diligence_result)
+            doc_ref = db.collection("diligenceReports").add(diligence_result)
             print(f"Successfully saved Memo 1 Diligence with ID: {doc_ref[1].id}")
         else:
             print(f"ERROR: DiligenceAgent failed. Reason: {memo_2_result.get('error')}")

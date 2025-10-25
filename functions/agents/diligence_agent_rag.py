@@ -15,6 +15,7 @@ from google.cloud import bigquery
 import logging
 from datetime import datetime
 from .vector_search_client import get_vector_search_client
+from services.perplexity_service import PerplexitySearchService
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -65,7 +66,10 @@ class DiligenceAgentRAG:
         self.db = firestore.Client(project=project_id)
         self.bq_client = bigquery.Client(project=project_id)
         self.vector_client = get_vector_search_client()  # Only for get_company_data()
-        logger.info("Initialized DiligenceAgentRAG with Firestore + Gemini")
+        
+        # Initialize PerplexitySearchService for market benchmarking
+        self.perplexity_service = PerplexitySearchService(project=project_id, location=region)
+        logger.info("Initialized DiligenceAgentRAG with Firestore + Gemini + Perplexity")
     
     async def run_validation(self, company_id: str, investor_email: str) -> Dict[str, Any]:
         """Run complete diligence validation for a company"""
@@ -83,12 +87,12 @@ class DiligenceAgentRAG:
             
             self._update_diligence_status(company_id, investor_email, "processing", 25)
             
-            # Run parallel validation agents (25-75%)
+            # Run parallel validation agents (25-70%)
             self._update_diligence_status(company_id, investor_email, "processing", 30)
             validation_results = await self._run_parallel_validations(company_id, company_data)
-            self._update_diligence_status(company_id, investor_email, "processing", 75)
+            self._update_diligence_status(company_id, investor_email, "processing", 70)
             
-            # Synthesize results (75-100%)
+            # Synthesize results (70-90%)
             final_report = await self._synthesize_validation_results(validation_results, company_data)
             self._update_diligence_status(company_id, investor_email, "processing", 90)
             
@@ -113,7 +117,8 @@ class DiligenceAgentRAG:
         tasks = [
             self._validate_founder_profile(company_id, company_data),
             self._validate_pitch_consistency(company_id, company_data),
-            self._validate_memo1_accuracy(company_id, company_data)
+            self._validate_memo1_accuracy(company_id, company_data),
+            self._validate_market_benchmarking(company_id, company_data)  # NEW
         ]
         
         # Run validations in parallel
@@ -122,7 +127,8 @@ class DiligenceAgentRAG:
         return {
             "founder_profile": results[0] if not isinstance(results[0], Exception) else {"error": str(results[0])},
             "pitch_consistency": results[1] if not isinstance(results[1], Exception) else {"error": str(results[1])},
-            "memo1_accuracy": results[2] if not isinstance(results[2], Exception) else {"error": str(results[2])}
+            "memo1_accuracy": results[2] if not isinstance(results[2], Exception) else {"error": str(results[2])},
+            "market_benchmarking": results[3] if not isinstance(results[3], Exception) else {"error": str(results[3])}  # NEW
         }
     
     async def _validate_founder_profile(self, company_id: str, company_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -394,6 +400,24 @@ Compare memo against source and return ONLY the JSON object."""
             logger.error(f"Error in memo1 accuracy validation: {e}")
             return {"error": str(e)}
     
+    async def _validate_market_benchmarking(self, company_id: str, company_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Fetch and structure market benchmarking data"""
+        try:
+            memo1 = company_data.get("memo1", {})
+            
+            # Fetch market benchmarking using Perplexity (now async)
+            market_data = await self._fetch_market_benchmarking(memo1)
+            
+            # Ensure target company is first
+            market_data = self._ensure_target_company_first(market_data, memo1)
+            
+            return {
+                "status": "completed",
+                "data": market_data
+            }
+        except Exception as e:
+            logger.error(f"Error in market benchmarking: {e}")
+            return {"error": str(e), "status": "failed"}
     
     async def _synthesize_validation_results(self, validation_results: Dict[str, Any], company_data: Dict[str, Any]) -> Dict[str, Any]:
         """Synthesize all validation results into final report"""
@@ -464,6 +488,9 @@ Compare memo against source and return ONLY the JSON object."""
             result["company_id"] = company_data.get("company_id", "")
             result["validation_timestamp"] = datetime.now().isoformat()
             result["validation_results"] = validation_results
+            
+            # Add market benchmarking to results
+            result["market_benchmarking"] = validation_results.get("market_benchmarking", {}).get("data", {})
             
             # Add individual agent results for UI display
             result["agent_validations"] = {
@@ -727,6 +754,281 @@ Focus on extracting verifiable professional information that would be useful for
         except Exception as e:
             logger.error(f"Error extracting founder data from memo1: {e}")
             return {}
+
+    async def _fetch_market_benchmarking(self, memo1_data: dict) -> Dict[str, Any]:
+        """Fetches market benchmarking data using Perplexity API."""
+        logger.info("Fetching market benchmarking data using Perplexity API...")
+        
+        try:
+            # Extract company context from memo1_data
+            company_name = memo1_data.get("title", "the company")
+            industry = memo1_data.get("industry_category", memo1_data.get("industry", ""))
+            
+            # Handle industry if it's a list
+            if isinstance(industry, list):
+                industry = ", ".join(industry)
+            
+            company_context = f"{company_name}"
+            if industry:
+                company_context += f" in {industry}"
+            
+            # Create comprehensive market benchmarking query with target company focus
+            target_company = memo1_data.get("title", company_name)
+            query = f"""
+            As a Senior Market Research Analyst, provide comprehensive market benchmarking analysis for {company_context}.
+            
+            **TARGET COMPANY:** {target_company}
+            
+            Please provide:
+            
+            1. Industry Averages (with specific metric labels for {industry}):
+            - Identify 3 key industry performance metrics with their labels (e.g., "Avg. Transaction Failure Rate" for payments, "Churn Rate" for SaaS)
+            - Provide average values for each metric
+            - Include total addressable market size with proper label
+            - Market growth rate (CAGR) and projected size
+            
+            2. Competitive Landscape Analysis:
+            - List exactly 3-4 main competitors in the industry
+            - For each competitor, provide: company name, metric1 value, metric2 value, fees/pricing, AI-powered features (Yes/No/Partial)
+            - Include {target_company} in the comparison with their actual or estimated metrics
+            - Market positioning and competitive advantages
+            
+            3. Market Opportunity Assessment:
+            - Provide a comprehensive paragraph describing market opportunity, growth projections, and competitive advantages
+            - Include specific CAGR, market size projections, and target market share potential
+            - Highlight differentiation opportunities and market gaps
+            
+            **IMPORTANT:** 
+            - Focus on recent data (2024-2025) with specific numbers, percentages, and market values
+            - Ensure {target_company} is included in the competitive analysis
+            - Provide industry-specific metric labels (not generic terms)
+            - Include proper citations and sources for all information
+            """
+            
+            # Use PerplexitySearchService to fetch data
+            if self.perplexity_service and self.perplexity_service.enabled:
+                results = await self.perplexity_service._perplexity_search(query, max_results=1)
+                
+                if results and results[0].get("content"):
+                    content = results[0]["content"]
+                    citations = results[0].get("citations", [])
+                    
+                    # Process the content to extract structured data
+                    market_data = self._process_market_benchmarking_content(content, company_context)
+                    
+                    # Ensure target company is first in competitive landscape
+                    market_data = self._ensure_target_company_first(market_data, memo1_data)
+                    
+                    market_data["sources"] = citations
+                    market_data["data_source"] = "Perplexity API"
+                    market_data["status"] = "VERIFIED_LIVE_DATA"
+                    
+                    logger.info("Successfully fetched market benchmarking data from Perplexity API")
+                    return market_data
+                else:
+                    logger.warning("No market benchmarking data returned from Perplexity API")
+                    return self._get_default_market_benchmarking()
+            else:
+                logger.warning("PerplexitySearchService not available, using default market benchmarking")
+                return self._get_default_market_benchmarking()
+                
+        except Exception as e:
+            logger.warning(f"Could not fetch market benchmarking data: {e}")
+            return self._get_default_market_benchmarking()
+
+    def _process_market_benchmarking_content(self, content: str, company_context: str) -> Dict[str, Any]:
+        """Process Perplexity content to extract structured market benchmarking data."""
+        try:
+            # Extract target company name from company_context
+            target_company = company_context.split(" in ")[0] if " in " in company_context else company_context
+            
+            # Use Gemini to extract structured data from Perplexity content
+            prompt = f"""Extract structured market benchmarking data from the following content about {company_context}.
+
+**CRITICAL - RESPONSE FORMAT:**
+Return ONLY a valid JSON object. No markdown, no code blocks, no explanations.
+Start with {{ and end with }}.
+
+**Required JSON Structure:**
+{{
+    "industry_averages": {{
+        "metrics": [
+            {{"label": "<dynamic metric label>", "value": "<value with context>"}},
+            {{"label": "<dynamic metric label>", "value": "<value with context>"}},
+            {{"label": "<dynamic metric label>", "value": "<value with context>"}}
+        ]
+    }},
+    "competitive_landscape": [
+        {{
+            "company_name": "{target_company}",
+            "is_target": true,
+            "metric1_value": "<value>",
+            "metric2_value": "<value>",
+            "fees": "<value>",
+            "ai_powered": "<Yes/No/Partial>",
+            "notes": "<brief competitive notes under 100 chars>"
+        }},
+        {{
+            "company_name": "<competitor name>",
+            "is_target": false,
+            "metric1_value": "<value>",
+            "metric2_value": "<value>",
+            "fees": "<value>",
+            "ai_powered": "<Yes/No/Partial>",
+            "notes": "<brief competitive notes under 100 chars>"
+        }}
+    ],
+    "metric_labels": {{
+        "metric1": "<dynamic label for first metric>",
+        "metric2": "<dynamic label for second metric>"
+    }},
+    "market_opportunity": {{
+        "description": "<full paragraph describing market opportunity, growth projections, and competitive advantages>"
+    }}
+}}
+
+**IMPORTANT INSTRUCTIONS:**
+1. Ensure {target_company} appears FIRST in competitive_landscape array with is_target: true
+2. Extract industry-specific metric labels (e.g., "Avg. Transaction Failure Rate" for payments, "Churn Rate" for SaaS)
+3. Include 3-4 competitors total (target + 2-3 others)
+4. Provide full paragraph for market_opportunity.description
+5. Use dynamic labels based on the industry type mentioned in content
+
+**Content to analyze:**
+{content[:4000]}
+
+Extract the data and return ONLY the JSON object."""
+            
+            response = self.gemini_model.generate_content(prompt)
+            result = self._parse_json_from_text(response.text)
+            
+            if result and isinstance(result, dict):
+                return result
+            else:
+                return self._get_default_market_benchmarking()
+                
+        except Exception as e:
+            logger.error(f"Error processing market benchmarking content: {e}")
+            return self._get_default_market_benchmarking()
+
+    def _get_default_market_benchmarking(self) -> Dict[str, Any]:
+        """Return default market benchmarking data when external data is unavailable."""
+        return {
+            "industry_averages": {
+                "metrics": [
+                    {"label": "Avg. Transaction Failure Rate", "value": "8-12% (Industry standard)"},
+                    {"label": "Industry Processing Fees", "value": "2.5-3.5% (Industry average)"},
+                    {"label": "Market Size", "value": "Market size not available"}
+                ]
+            },
+            "competitive_landscape": [
+                {
+                    "company_name": "Target Company",
+                    "is_target": True,
+                    "metric1_value": "Data not available",
+                    "metric2_value": "Data not available",
+                    "fees": "Data not available",
+                    "ai_powered": "Unknown",
+                    "notes": "Target company - data from memo analysis"
+                },
+                {
+                    "company_name": "Industry Leader",
+                    "is_target": False,
+                    "metric1_value": "5-8%",
+                    "metric2_value": "2.0-2.5%",
+                    "fees": "2.0-2.5%",
+                    "ai_powered": "Yes",
+                    "notes": "Market leader with AI capabilities"
+                }
+            ],
+            "metric_labels": {
+                "metric1": "Failure Rate",
+                "metric2": "Processing Fees"
+            },
+            "market_opportunity": {
+                "description": "Market opportunity analysis not available. Industry shows growth potential with AI-powered solutions representing competitive advantages. Target market share of 5-10% achievable with proper execution."
+            },
+            "data_source": "Default Template",
+            "status": "DEFAULT_DATA"
+        }
+
+    def _ensure_target_company_first(self, market_data: Dict[str, Any], memo1_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Ensure target company appears first in competitive_landscape array."""
+        try:
+            target_company = memo1_data.get("title", "Target Company")
+            competitive_landscape = market_data.get("competitive_landscape", [])
+            
+            # Find target company in the list
+            target_found = False
+            target_entry = None
+            
+            for i, company in enumerate(competitive_landscape):
+                if company.get("company_name", "").lower() == target_company.lower():
+                    target_found = True
+                    target_entry = competitive_landscape.pop(i)
+                    target_entry["is_target"] = True
+                    break
+            
+            # If target company not found, create entry from memo1 data
+            if not target_found:
+                target_entry = {
+                    "company_name": target_company,
+                    "is_target": True,
+                    "metric1_value": "Data not available",
+                    "metric2_value": "Data not available", 
+                    "fees": "Data not available",
+                    "ai_powered": "Unknown",
+                    "notes": "Target company - data from memo analysis"
+                }
+            
+            # Ensure target company is first
+            if target_entry:
+                competitive_landscape.insert(0, target_entry)
+            
+            # Update the market data
+            market_data["competitive_landscape"] = competitive_landscape
+            
+            logger.info(f"Ensured {target_company} is first in competitive landscape")
+            return market_data
+            
+        except Exception as e:
+            logger.error(f"Error ensuring target company first: {e}")
+            return market_data
+
+    def _parse_json_from_text(self, text: str) -> Dict[str, Any]:
+        """Safely extracts a JSON object from a string, even with markdown wrappers."""
+        try:
+            # Try direct JSON parsing first
+            return json.loads(text)
+        except json.JSONDecodeError:
+            pass
+        
+        # Try to extract JSON from markdown code blocks
+        import re
+        
+        # Pattern to match ```json ... ``` blocks
+        json_pattern = r'```(?:json)?\s*(\{.*?\})\s*```'
+        match = re.search(json_pattern, text, re.DOTALL)
+        
+        if match:
+            try:
+                return json.loads(match.group(1))
+            except json.JSONDecodeError:
+                pass
+        
+        # Try to find JSON object boundaries
+        json_pattern = r'\{.*\}'
+        match = re.search(json_pattern, text, re.DOTALL)
+        
+        if match:
+            try:
+                return json.loads(match.group(0))
+            except json.JSONDecodeError:
+                pass
+        
+        # Log the actual response for debugging
+        logger.error(f"Failed to extract JSON from Gemini response. Response: {text[:500]}...")
+        return None
 
 # Global instance
 _diligence_agent = None

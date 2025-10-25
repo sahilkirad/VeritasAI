@@ -645,30 +645,43 @@ export default function DiligencePage() {
                     <div>
                       <h3 className="font-semibold mb-3 text-lg">Industry Averages</h3>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <Card>
-                          <CardContent className="pt-6">
-                            <div className="text-center">
-                              <p className="text-3xl font-bold text-primary">8-12%</p>
-                              <p className="text-sm text-muted-foreground mt-2">Avg. Transaction Failure Rate</p>
-                            </div>
-                          </CardContent>
-                        </Card>
-                        <Card>
-                          <CardContent className="pt-6">
-                            <div className="text-center">
-                              <p className="text-3xl font-bold text-primary">2.5-3.5%</p>
-                              <p className="text-sm text-muted-foreground mt-2">Industry Processing Fees</p>
-                            </div>
-                          </CardContent>
-                        </Card>
-                        <Card>
-                          <CardContent className="pt-6">
-                            <div className="text-center">
-                              <p className="text-3xl font-bold text-primary">$45B</p>
-                              <p className="text-sm text-muted-foreground mt-2">Indian B2B Payments Market</p>
-                            </div>
-                          </CardContent>
-                        </Card>
+                        {diligenceResults?.market_benchmarking?.industry_averages?.metrics?.map((metric: any, index: number) => (
+                          <Card key={index}>
+                            <CardContent className="pt-6">
+                              <div className="text-center">
+                                <p className="text-3xl font-bold text-primary">{metric.value}</p>
+                                <p className="text-sm text-muted-foreground mt-2">{metric.label}</p>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )) || (
+                          <>
+                            <Card>
+                              <CardContent className="pt-6">
+                                <div className="text-center">
+                                  <p className="text-3xl font-bold text-primary">8-12%</p>
+                                  <p className="text-sm text-muted-foreground mt-2">Avg. Transaction Failure Rate</p>
+                                </div>
+                              </CardContent>
+                            </Card>
+                            <Card>
+                              <CardContent className="pt-6">
+                                <div className="text-center">
+                                  <p className="text-3xl font-bold text-primary">2.5-3.5%</p>
+                                  <p className="text-sm text-muted-foreground mt-2">Industry Processing Fees</p>
+                                </div>
+                              </CardContent>
+                            </Card>
+                            <Card>
+                              <CardContent className="pt-6">
+                                <div className="text-center">
+                                  <p className="text-3xl font-bold text-primary">$45B</p>
+                                  <p className="text-sm text-muted-foreground mt-2">Indian B2B Payments Market</p>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          </>
+                        )}
                       </div>
                     </div>
                     
@@ -680,36 +693,56 @@ export default function DiligencePage() {
                           <thead className="bg-muted">
                             <tr>
                               <th className="text-left p-3 font-semibold">Company</th>
-                              <th className="text-left p-3 font-semibold">Failure Rate</th>
-                              <th className="text-left p-3 font-semibold">Fees</th>
+                              <th className="text-left p-3 font-semibold">
+                                {diligenceResults?.market_benchmarking?.metric_labels?.metric1 || "Failure Rate"}
+                              </th>
+                              <th className="text-left p-3 font-semibold">
+                                {diligenceResults?.market_benchmarking?.metric_labels?.metric2 || "Fees"}
+                              </th>
                               <th className="text-left p-3 font-semibold">AI-Powered</th>
                             </tr>
                           </thead>
                           <tbody>
-                            <tr className="border-t">
-                              <td className="p-3">Arealis Gateway (Target)</td>
-                              <td className="p-3 font-semibold text-green-600">&lt;1%</td>
-                              <td className="p-3">1.8-2.2%</td>
-                              <td className="p-3">✓</td>
-                            </tr>
-                            <tr className="border-t bg-muted/30">
-                              <td className="p-3">Razorpay</td>
-                              <td className="p-3">8-10%</td>
-                              <td className="p-3">2.0%</td>
-                              <td className="p-3">Partial</td>
-                            </tr>
-                            <tr className="border-t">
-                              <td className="p-3">Paytm</td>
-                              <td className="p-3">9-11%</td>
-                              <td className="p-3">2.5%</td>
-                              <td className="p-3">No</td>
-                            </tr>
-                            <tr className="border-t bg-muted/30">
-                              <td className="p-3">Cashfree</td>
-                              <td className="p-3">7-9%</td>
-                              <td className="p-3">2.2%</td>
-                              <td className="p-3">Partial</td>
-                            </tr>
+                            {diligenceResults?.market_benchmarking?.competitive_landscape?.map((company: any, index: number) => (
+                              <tr key={index} className={`border-t ${company.is_target ? 'bg-green-50 dark:bg-green-950' : index % 2 === 1 ? 'bg-muted/30' : ''}`}>
+                                <td className="p-3">
+                                  {company.company_name}
+                                  {company.is_target && <span className="ml-2 text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded">Target</span>}
+                                </td>
+                                <td className={`p-3 ${company.is_target ? 'font-semibold text-green-600' : ''}`}>
+                                  {company.metric1_value}
+                                </td>
+                                <td className="p-3">{company.metric2_value}</td>
+                                <td className="p-3">{company.ai_powered}</td>
+                              </tr>
+                            )) || (
+                              <>
+                                <tr className="border-t">
+                                  <td className="p-3">Arealis Gateway (Target)</td>
+                                  <td className="p-3 font-semibold text-green-600">&lt;1%</td>
+                                  <td className="p-3">1.8-2.2%</td>
+                                  <td className="p-3">✓</td>
+                                </tr>
+                                <tr className="border-t bg-muted/30">
+                                  <td className="p-3">Razorpay</td>
+                                  <td className="p-3">8-10%</td>
+                                  <td className="p-3">2.0%</td>
+                                  <td className="p-3">Partial</td>
+                                </tr>
+                                <tr className="border-t">
+                                  <td className="p-3">Paytm</td>
+                                  <td className="p-3">9-11%</td>
+                                  <td className="p-3">2.5%</td>
+                                  <td className="p-3">No</td>
+                                </tr>
+                                <tr className="border-t bg-muted/30">
+                                  <td className="p-3">Cashfree</td>
+                                  <td className="p-3">7-9%</td>
+                                  <td className="p-3">2.2%</td>
+                                  <td className="p-3">Partial</td>
+                                </tr>
+                              </>
+                            )}
                           </tbody>
                         </table>
                       </div>
@@ -719,9 +752,8 @@ export default function DiligencePage() {
                     <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg">
                       <h3 className="font-semibold mb-2">Market Opportunity</h3>
                       <p className="text-sm text-muted-foreground">
-                        The Indian B2B payment gateway market is projected to grow at 18% CAGR, 
-                        reaching $82B by 2027. AI-powered solutions represent a significant competitive 
-                        advantage with potential to capture 15-20% of the mid-market segment.
+                        {diligenceResults?.market_benchmarking?.market_opportunity?.description || 
+                         "The Indian B2B payment gateway market is projected to grow at 18% CAGR, reaching $82B by 2027. AI-powered solutions represent a significant competitive advantage with potential to capture 15-20% of the mid-market segment."}
                       </p>
                     </div>
                   </div>

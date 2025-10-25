@@ -22,3 +22,5 @@ aiohttp>=3.8.0
 python-dotenv>=1.0.0
 # Vertex AI for structured data extraction
 vertexai>=1.38.0
+# Google Generative AI for Gemini API
+google-generativeai>=0.3.0

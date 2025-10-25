@@ -51,7 +51,7 @@ class PerplexitySearchService:
     
     async def _perplexity_search(self, query: str, max_results: int = 3) -> List[Dict[str, Any]]:
         """
-        Perform a search using Perplexity AI API.
+        Perform a search using Perplexity AI API with model fallback.
         
         Args:
             query: The search query
@@ -60,53 +60,101 @@ class PerplexitySearchService:
         Returns:
             List of search results with content and sources
         """
-        try:
-            # Log API key status (first 10 chars only for security)
-            api_key_preview = f"{self.api_key[:10]}..." if self.api_key else "None"
-            self.logger.debug(f"Using API key: {api_key_preview}")
-            
-            headers = {
-                "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            }
-            
-            # Use the correct model name and parameters for Perplexity
-            payload = {
-                "model": "sonar-medium-online",  # Valid Perplexity online search model
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": query
-                    }
-                ],
-                "temperature": 0.2,
-                "return_citations": True,
-                "search_recency_filter": "month"
-            }
-            
-            async with aiohttp.ClientSession() as session:
-                async with session.post(self.base_url, headers=headers, json=payload, timeout=aiohttp.ClientTimeout(total=30)) as response:
-                    response_text = await response.text()
-                    
-                    if response.status == 200:
-                        data = json.loads(response_text)
-                        content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
-                        citations = data.get("citations", [])
+        # Model fallback order as specified by user
+        models_to_try = [
+            "sonar",                    # Primary: fastest, most cost-effective
+            "sonar-pro",               # Fallback 1: enhanced capabilities
+            "sonar-reasoning",         # Fallback 2: advanced reasoning
+            "claude-3.5-sonnet",       # Fallback 3: Anthropic Claude
+            "gpt-4o"                   # Fallback 4: OpenAI GPT-4o
+        ]
+        
+        for model_index, model_name in enumerate(models_to_try):
+            try:
+                # Log API key status (first 10 chars only for security)
+                api_key_preview = f"{self.api_key[:10]}..." if self.api_key else "None"
+                self.logger.debug(f"Trying model {model_name} with API key: {api_key_preview}")
+                
+                headers = {
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json",
+                    "Accept": "application/json"
+                }
+                
+                # Build payload with current model
+                payload = {
+                    "model": model_name,
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": query
+                        }
+                    ],
+                    "temperature": 0.2,
+                    "max_tokens": 2000
+                }
+                
+                # Add model-specific parameters
+                if model_name.startswith("sonar"):
+                    payload["return_citations"] = True
+                    payload["search_domain_filter"] = "perplexity.ai"  # Fixed parameter name
+                elif model_name.startswith("claude"):
+                    payload["max_tokens"] = 1500
+                elif model_name.startswith("gpt"):
+                    payload["max_tokens"] = 1500
+                
+                # Log request details for debugging
+                self.logger.info(f"Perplexity API request - Model: {model_name}, Query length: {len(query)}")
+                
+                async with aiohttp.ClientSession() as session:
+                    async with session.post(
+                        self.base_url, 
+                        headers=headers, 
+                        json=payload, 
+                        timeout=aiohttp.ClientTimeout(total=30)
+                    ) as response:
+                        response_text = await response.text()
                         
-                        return [{
-                            "content": content,
-                            "citations": citations,
-                            "query": query
-                        }]
-                    else:
-                        self.logger.error(f"Perplexity API error {response.status}: {response_text}")
-                        self.logger.error(f"Request payload: {json.dumps(payload, indent=2)}")
-                        return []
-                        
-        except Exception as e:
-            self.logger.error(f"Exception in Perplexity search: {str(e)}", exc_info=True)
-            return []
+                        if response.status == 200:
+                            data = json.loads(response_text)
+                            content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+                            citations = data.get("citations", [])
+                            
+                            self.logger.info(f"Successfully used model: {model_name}")
+                            return [{
+                                "content": content,
+                                "citations": citations,
+                                "query": query,
+                                "model_used": model_name
+                            }]
+                        else:
+                            # Log detailed error information
+                            self.logger.error(f"Model {model_name} failed with status {response.status}")
+                            self.logger.error(f"Error response: {response_text}")
+                            self.logger.error(f"Request payload: {json.dumps(payload, indent=2)}")
+                            
+                            # If this is not the last model, try the next one
+                            if model_index < len(models_to_try) - 1:
+                                self.logger.info(f"Trying next model: {models_to_try[model_index + 1]}")
+                                continue
+                            else:
+                                self.logger.error("All models failed - no more fallbacks available")
+                                return []
+                            
+            except Exception as e:
+                self.logger.error(f"Exception with model {model_name}: {str(e)}", exc_info=True)
+                
+                # If this is not the last model, try the next one
+                if model_index < len(models_to_try) - 1:
+                    self.logger.info(f"Trying next model after exception: {models_to_try[model_index + 1]}")
+                    continue
+                else:
+                    self.logger.error("All models failed due to exceptions")
+                    return []
+        
+        # This should never be reached, but just in case
+        self.logger.error("Unexpected: All models exhausted without result")
+        return []
     
     def _identify_missing_fields(self, memo_data: Dict[str, Any]) -> List[str]:
         """

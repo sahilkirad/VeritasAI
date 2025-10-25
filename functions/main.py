@@ -89,6 +89,7 @@ def log_environment_config():
 # They will be "lazy loaded" on the first function invocation for efficiency and to prevent timeouts.
 publisher = None
 ingestion_agent = None
+validation_agent = None
 diligence_agent = None
 coordinator_agent = None
 feedback_agent = None
@@ -103,6 +104,15 @@ def get_intake_agent():
         ingestion_agent = IntakeCurationAgent(project="veritas-472301")
         ingestion_agent.set_up()
     return ingestion_agent
+
+def get_validation_agent():
+    """Lazy import of ValidationAgent"""
+    global validation_agent
+    if validation_agent is None:
+        from agents.validation_agent import ValidationAgent
+        validation_agent = ValidationAgent(project="veritas-472301")
+        validation_agent.set_up()  # Initialize the agent
+    return validation_agent
 
 def get_diligence_agent():
     """Lazy import of DiligenceAgent"""
@@ -577,6 +587,27 @@ def process_ingestion_task(event: pubsub_fn.CloudEvent) -> None:
                     print(f"WARNING: Memo data validation failed: {e}")
                     # Continue anyway but log the issue
                     ingestion_result["validation_warning"] = f"Data serialization issue: {str(e)}"
+                
+                # Add web-based validation using ValidationAgent
+                try:
+                    validation_agent = get_validation_agent()
+                    company_name = memo_1.get("title", "Unknown Company")
+                    
+                    print(f"🔍 Starting web validation for company: {company_name}")
+                    import asyncio
+                    validated_data = asyncio.run(validation_agent.validate_company_data(
+                        company_name, memo_1
+                    ))
+                    
+                    # Update ingestion result with validated data
+                    ingestion_result["memo_1"] = validated_data
+                    ingestion_result["validation_applied"] = True
+                    print(f"✅ Web validation completed - {validated_data.get('validation_metadata', {}).get('fields_validated', [])} fields enriched")
+                    
+                except Exception as validation_error:
+                    print(f"⚠️  Web validation failed, proceeding with original data: {str(validation_error)}")
+                    ingestion_result["validation_applied"] = False
+                    ingestion_result["validation_error"] = str(validation_error)
             
             db = firestore.client()
             doc_ref = db.collection("ingestionResults").add(ingestion_result)

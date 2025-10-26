@@ -45,6 +45,9 @@ interface ActivityItem {
 }
 
 export default function AdminOverviewPage() {
+  // Debug logging
+  console.log('🔍 AdminOverviewPage rendered')
+  
   // Use hybrid data (Firestore + BigQuery)
   const { liveMetrics, historicalMetrics, recentActivity, loading, error } = useOverviewData()
   
@@ -103,6 +106,12 @@ export default function AdminOverviewPage() {
     <FirebaseLoading>
       <FirebaseErrorBoundary error={error}>
         <div className="space-y-6">
+        {/* DEBUG: Admin Dashboard Overview Page */}
+        <div className="bg-red-100 border-2 border-red-500 p-4 rounded-lg text-center">
+          <h1 className="text-2xl font-bold text-red-700">🔍 ADMIN DASHBOARD OVERVIEW PAGE</h1>
+          <p className="text-red-600">This is the admin dashboard, not the landing page!</p>
+        </div>
+        
         {/* Welcome Section */}
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
@@ -318,4 +327,3 @@ export default function AdminOverviewPage() {
     </FirebaseLoading>
   )
 }
-

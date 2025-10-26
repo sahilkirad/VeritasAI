@@ -39,8 +39,8 @@ class GoogleValidationService:
             self.logger.info(f"Vertex AI initialized in project '{self.project}' and location '{self.location}'.")
             
             # Use Gemini 2.5 Flash for validation analysis
-            self.gemini_model = GenerativeModel("gemini-2.5-flash")
-            self.logger.info("GenerativeModel ('gemini-2.5-flash') initialized for validation analysis.")
+            self.gemini_model = GenerativeModel("gemini-1.5-flash")
+            self.logger.info("GenerativeModel ('gemini-1.5-flash') initialized for validation analysis.")
             
             self.logger.info("✅ GoogleValidationService setup complete.")
             

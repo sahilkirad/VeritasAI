@@ -181,6 +181,7 @@ interface DiligenceData {
 export default function DealMemoPage() {
   const [memoData, setMemoData] = useState<MemoData | null>(null);
   const [diligenceData, setDiligenceData] = useState<DiligenceData | null>(null);
+  const [diligenceDocId, setDiligenceDocId] = useState<string | null>(null);
   const [availableMemos, setAvailableMemos] = useState<MemoData[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("memo1");
@@ -475,6 +476,7 @@ export default function DealMemoPage() {
           if (!diligenceSnapshot.empty) {
             const diligenceDoc = diligenceSnapshot.docs[0];
             const diligenceData = diligenceDoc.data();
+            setDiligenceDocId(diligenceDoc.id); // Store the real ID
 
             console.log('Diligence Data:', diligenceData);
 
@@ -566,6 +568,7 @@ export default function DealMemoPage() {
       if (!diligenceSnapshot.empty) {
         const diligenceDoc = diligenceSnapshot.docs[0];
         const diligenceData = diligenceDoc.data();
+        setDiligenceDocId(diligenceDoc.id); // Store the real ID
 
         console.log('Diligence Data:', diligenceData);
 
@@ -960,7 +963,7 @@ export default function DealMemoPage() {
         </TabsContent>
 
         <TabsContent value="memo3">
-          <Memo3Tab diligenceData={diligenceData} memo1Data={memoData.memo_1} memoId={memoData.id} />
+          <Memo3Tab diligenceData={diligenceData} memo1Data={memoData.memo_1} memoId={memoData.id} diligenceDocId={diligenceDocId} />
         </TabsContent>
       </Tabs>
 

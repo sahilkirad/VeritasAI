@@ -229,8 +229,8 @@ class DiligenceAgent:
             self.logger.info(f"Vertex AI initialized in project '{self.project}' and location '{self.location}'.")
             
             # Use Gemini 1.5 Pro for maximum accuracy in diligence analysis
-            self.gemini_model = GenerativeModel("gemini-2.5-flash")
-            self.logger.info("GenerativeModel ('gemini-2.5-flash') initialized for diligence analysis.")
+            self.gemini_model = GenerativeModel("gemini-1.5-flash")
+            self.logger.info("GenerativeModel ('gemini-1.5-flash') initialized for diligence analysis.")
             
             # Initialize Firestore client
             self.db = firestore.client()

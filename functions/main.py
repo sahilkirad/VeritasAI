@@ -915,460 +915,129 @@ def ai_feedback(req: https_fn.Request) -> https_fn.Response:
         headers = get_cors_headers(req)
         return https_fn.Response(json.dumps({"error": str(e)}), status=500, headers=headers)
 
-
-# --- 8. Diligence Hub Endpoints ---
+# --- 10. Memo 3 Generation Endpoint ---
 
 @https_fn.on_request(
     memory=options.MemoryOption.MB_512,
-    timeout_sec=300
+    timeout_sec=540
 )
-def run_diligence(req: https_fn.Request):
+def generate_memo_3(req: https_fn.Request) -> https_fn.Response:
     """
-    Endpoint: POST /run_diligence
-    Body: { company_id, investor_email }
-    Returns: Validation report
+    HTTP endpoint to generate Memo 3 (Final Investment Decision)
+    
+    POST /generate_memo_3
+    Body: {
+        "memo_1_id": "<firestore_doc_id>",
+        "memo_2_id": "<firestore_doc_id>"
+    }
+    
+    Returns: Memo 3 JSON with investment recommendation, conditions, projections
     """
+    
+    get_firebase_app()
+    
     try:
-        # Handle CORS preflight
-        if req.method == "OPTIONS":
+        # Handle CORS
+        if req.method == 'OPTIONS':
             headers = get_cors_headers(req)
-            return https_fn.Response("", status=200, headers=headers)
-
-        # Extract and validate parameters
+            return https_fn.Response('', status=204, headers=headers)
+        
+        if req.method != 'POST':
+            return https_fn.Response(
+                json.dumps({"error": "Method not allowed"}),
+                status=405
+            )
+        
         data = req.get_json()
-        if not data:
-            return https_fn.Response('No JSON data provided', status=400)
-
-        company_id = data.get("company_id")
-        investor_email = data.get("investor_email")
-
-        # Validate required parameters
-        if not company_id:
-            return https_fn.Response('Missing required parameter: company_id', status=400)
+        memo_1_id = data.get('memo_1_id')
+        memo_2_id = data.get('memo_2_id')
         
-        if not investor_email:
-            return https_fn.Response('Missing required parameter: investor_email', status=400)
-
-        # Lazy-initialize the diligence agent
-        from agents.diligence_agent_rag import get_diligence_agent
-        agent = get_diligence_agent()
-        
-        print(f"Running diligence for company: {company_id}, investor: {investor_email}")
-        
-        # Run diligence validation asynchronously
-        import asyncio
-        result = asyncio.run(agent.run_validation(company_id, investor_email))
-        
-        # Add detailed logging
-        print(f"Diligence completed. Result keys: {list(result.keys())}")
-        print(f"Result size: {len(json.dumps(result))} bytes")
-        
-        # Debug: log score presence to detect zero rendering issues
-        try:
-            overall = result.get('overall_score')
-            av = result.get('agent_validations', {})
-            fp = (av.get('founder_profile') or {}).get('credibility_score')
-            pc = (av.get('pitch_consistency') or {}).get('consistency_score')
-            ma = (av.get('memo1_accuracy') or {}).get('accuracy_score')
-            print(f"Score summary -> overall:{overall}, fp:{fp}, pc:{pc}, ma:{ma}")
-        except Exception as _e:
-            print(f"Score summary logging failed: {_e}")
-
-        # Return results with proper JSON content type
-        headers = {
-            **get_cors_headers(req),
-            'Content-Type': 'application/json'
-        }
-        return https_fn.Response(json.dumps(result), status=200, headers=headers)
-        
-    except Exception as e:
-        print(f"Error in run_diligence: {e}")
-        headers = {
-            **get_cors_headers(req),
-            'Content-Type': 'application/json'
-        }
-        return https_fn.Response(json.dumps({"error": str(e)}), status=500, headers=headers)
-
-
-@https_fn.on_request(
-    memory=options.MemoryOption.MB_512,
-    timeout_sec=60
-)
-def query_diligence(req: https_fn.Request):
-    """
-    Endpoint: POST /query_diligence
-    Body: { company_id, question }
-    Returns: AI-generated answer with sources
-    """
-    try:
-        # Handle CORS preflight
-        if req.method == "OPTIONS":
+        if not memo_1_id or not memo_2_id:
             headers = get_cors_headers(req)
-            return https_fn.Response("", status=200, headers=headers)
-
-        # Extract and validate parameters
-        data = req.get_json()
-        if not data:
-            return https_fn.Response('No JSON data provided', status=400)
-
-        company_id = data.get("company_id")
-        question = data.get("question")
-
-        # Validate required parameters
-        if not company_id:
-            return https_fn.Response('Missing required parameter: company_id', status=400)
+            return https_fn.Response(
+                json.dumps({"error": "Missing memo_1_id or memo_2_id"}),
+                status=400,
+                headers=headers
+            )
         
-        if not question:
-            return https_fn.Response('Missing required parameter: question', status=400)
-
-        # Lazy-initialize the diligence agent
-        from agents.diligence_agent_rag import get_diligence_agent
-        agent = get_diligence_agent()
+        print(f"Generating Memo 3 for Memo1: {memo_1_id}, Memo2: {memo_2_id}")
         
-        print(f"Querying diligence for company: {company_id}, question: {question}")
-        
-        # Query diligence data
-        import asyncio
-        result = asyncio.run(agent.query_diligence(company_id, question))
-        
-        # Add detailed logging
-        print(f"Query completed. Result keys: {list(result.keys())}")
-        print(f"Answer: {result.get('answer', 'NO ANSWER FIELD')[:100]}...")
-        
-        # Return results with proper JSON content type
-        headers = {
-            **get_cors_headers(req),
-            'Content-Type': 'application/json'
-        }
-        return https_fn.Response(json.dumps(result), status=200, headers=headers)
-        
-    except Exception as e:
-        print(f"Error in query_diligence: {e}")
-        headers = {
-            **get_cors_headers(req),
-            'Content-Type': 'application/json'
-        }
-        return https_fn.Response(json.dumps({"error": str(e)}), status=500, headers=headers)
-
-# --- 9. Validation Endpoints ---
-
-@https_fn.on_request(
-    memory=options.MemoryOption.MB_512,
-    timeout_sec=300,
-    invoker="public"
-)
-def validate_memo_data(req: https_fn.Request):
-    """
-    Endpoint: POST /validate_memo_data
-    Body: { memo_data }
-    Returns: Validation results with Google references
-    """
-    try:
-        # Handle CORS preflight
-        if req.method == "OPTIONS":
-            headers = get_cors_headers(req)
-            return https_fn.Response("", status=200, headers=headers)
-
-        # Extract and validate parameters
-        data = req.get_json()
-        if not data:
-            return https_fn.Response('No JSON data provided', status=400)
-
-        memo_data = data.get("memo_data")
-        if not memo_data:
-            return https_fn.Response('Missing required parameter: memo_data', status=400)
-
-        # Lazy-initialize the validation service
-        from services.google_validation_service import GoogleValidationService
-        validation_service = GoogleValidationService()
-        validation_service.set_up()
-        
-        print(f"Validating memo data for company: {memo_data.get('title', 'Unknown')}")
-        
-        # Run validation
-        result = validation_service.validate_memo_data(memo_data)
-        
-        # Store validation result in Firestore
-        memo_id = data.get("memo_id")
-        memo_type = data.get("memo_type", "memo_1")
-        
-        if memo_id:
-            try:
-                db = firestore.client()
-                
-                if memo_type == "diligence":
-                    # Store in diligenceResults collection
-                    diligence_doc_ref = db.collection("diligenceResults").document(memo_id)
-                    diligence_doc_ref.update({
-                        "validation_result": result
-                    })
-                    print(f"Validation result stored in diligenceResults for memo: {memo_id}")
-                else:
-                    # Store in ingestionResults collection under memo_1
-                    memo_doc_ref = db.collection("ingestionResults").document(memo_id)
-                    memo_doc_ref.update({
-                        "memo_1.validation_result": result
-                    })
-                    print(f"Validation result stored in ingestionResults for memo: {memo_id}")
-                    
-            except Exception as e:
-                print(f"Error storing validation result: {e}")
-                # Don't fail the request if storage fails
-        
-        # Return results with proper JSON content type
-        headers = {
-            **get_cors_headers(req),
-            'Content-Type': 'application/json'
-        }
-        return https_fn.Response(json.dumps(result), status=200, headers=headers)
-        
-    except Exception as e:
-        print(f"Error in validate_memo_data: {e}")
-        headers = {
-            **get_cors_headers(req),
-            'Content-Type': 'application/json'
-        }
-        return https_fn.Response(json.dumps({"error": str(e)}), status=500, headers=headers)
-
-@https_fn.on_request(
-    memory=options.MemoryOption.MB_512,
-    timeout_sec=300,
-    invoker="public"
-)
-def validate_market_size(req: https_fn.Request):
-    """
-    Endpoint: POST /validate_market_size
-    Body: { market_size_claim, industry_category }
-    Returns: Market size validation results
-    """
-    try:
-        # Handle CORS preflight
-        if req.method == "OPTIONS":
-            headers = get_cors_headers(req)
-            return https_fn.Response("", status=200, headers=headers)
-
-        # Extract and validate parameters
-        data = req.get_json()
-        if not data:
-            return https_fn.Response('No JSON data provided', status=400)
-
-        market_size_claim = data.get("market_size_claim")
-        industry_category = data.get("industry_category", "technology")
-        
-        if not market_size_claim:
-            return https_fn.Response('Missing required parameter: market_size_claim', status=400)
-
-        # Lazy-initialize the validation service
-        from services.google_validation_service import GoogleValidationService
-        validation_service = GoogleValidationService()
-        validation_service.set_up()
-        
-        print(f"Validating market size: {market_size_claim} for industry: {industry_category}")
-        
-        # Run validation
-        result = validation_service.validate_market_size(market_size_claim, industry_category)
-        
-        # Store validation result in Firestore
-        memo_id = data.get("memo_id")
-        memo_type = data.get("memo_type", "memo_1")
-        
-        if memo_id:
-            try:
-                db = firestore.client()
-                
-                if memo_type == "diligence":
-                    # Store in diligenceResults collection
-                    diligence_doc_ref = db.collection("diligenceResults").document(memo_id)
-                    diligence_doc_ref.update({
-                        "market_validation_result": result
-                    })
-                    print(f"Market validation result stored in diligenceResults for memo: {memo_id}")
-                else:
-                    # Store in ingestionResults collection under memo_1
-                    memo_doc_ref = db.collection("ingestionResults").document(memo_id)
-                    memo_doc_ref.update({
-                        "memo_1.market_validation_result": result
-                    })
-                    print(f"Market validation result stored in ingestionResults for memo: {memo_id}")
-                    
-            except Exception as e:
-                print(f"Error storing market validation result: {e}")
-                # Don't fail the request if storage fails
-        
-        # Return results with proper JSON content type
-        headers = {
-            **get_cors_headers(req),
-            'Content-Type': 'application/json'
-        }
-        return https_fn.Response(json.dumps(result), status=200, headers=headers)
-        
-    except Exception as e:
-        print(f"Error in validate_market_size: {e}")
-        headers = {
-            **get_cors_headers(req),
-            'Content-Type': 'application/json'
-        }
-        return https_fn.Response(json.dumps({"error": str(e)}), status=500, headers=headers)
-
-@https_fn.on_request(
-    memory=options.MemoryOption.MB_512,
-    timeout_sec=60,
-    invoker="public"
-)
-def check_memo(req: https_fn.Request):
-    """
-    Endpoint: GET /check_memo?fileName=<filename>
-    Returns: Memo ID and processing status for a given filename
-    """
-    try:
-        # Handle CORS preflight
-        if req.method == "OPTIONS":
-            headers = get_cors_headers(req)
-            return https_fn.Response("", status=200, headers=headers)
-
-        if req.method != "GET":
-            headers = get_cors_headers(req)
-            return https_fn.Response("Method not allowed", status=405, headers=headers)
-
-        # Get filename from query parameters
-        fileName = req.args.get('fileName')
-        if not fileName:
-            headers = get_cors_headers(req)
-            return https_fn.Response("Missing fileName parameter", status=400, headers=headers)
-
-        print(f"Checking memo status for filename: {fileName}")
-
-        # Initialize Firebase app
-        get_firebase_app()
+        # Fetch Memo 1 and Memo 2 from Firestore
         db = firestore.client()
-
-        # Search for memo by filename in ingestionResults
-        ingestion_query = db.collection("ingestionResults").where("original_filename", "==", fileName)
-        ingestion_docs = ingestion_query.get()
-
-        if ingestion_docs:
-            # Found in ingestionResults
-            doc = ingestion_docs[0]
-            doc_data = doc.to_dict()
-            memo_1 = doc_data.get("memo_1", {})
-            
-            result = {
-                "memoId": doc.id,
-                "status": doc_data.get("status", "unknown"),
-                "title": memo_1.get("title", "Unknown"),
-                "founder_name": memo_1.get("founder_name", "Unknown"),
-                "timestamp": doc_data.get("timestamp", ""),
-                "processing_time_seconds": doc_data.get("processing_time_seconds", 0)
-            }
-            
-            print(f"Found memo in ingestionResults: {result}")
-            
-            headers = {
-                **get_cors_headers(req),
-                'Content-Type': 'application/json'
-            }
-            return https_fn.Response(json.dumps(result), status=200, headers=headers)
-
-        # If not found in ingestionResults, check if it's still processing
-        # This could be enhanced to check processing status in the future
-        result = {
-            "memoId": None,
-            "status": "processing",
-            "message": "File is still being processed"
-        }
         
-        print(f"No memo found for filename: {fileName}")
-        
-        headers = {
-            **get_cors_headers(req),
-            'Content-Type': 'application/json'
-        }
-        return https_fn.Response(json.dumps(result), status=200, headers=headers)
-        
-    except Exception as e:
-        print(f"Error in check_memo: {e}")
-        headers = {
-            **get_cors_headers(req),
-            'Content-Type': 'application/json'
-        }
-        return https_fn.Response(json.dumps({"error": str(e)}), status=500, headers=headers)
-
-@https_fn.on_request(
-    memory=options.MemoryOption.MB_512,
-    timeout_sec=300,
-    invoker="public"
-)
-def validate_competitors(req: https_fn.Request):
-    """
-    Endpoint: POST /validate_competitors
-    Body: { competitors, industry_category }
-    Returns: Competitor validation results
-    """
-    try:
-        # Handle CORS preflight
-        if req.method == "OPTIONS":
+        # Fetch Memo 1 from ingestionResults collection
+        memo_1_doc = db.collection('ingestionResults').document(memo_1_id).get()
+        if not memo_1_doc.exists:
             headers = get_cors_headers(req)
-            return https_fn.Response("", status=200, headers=headers)
-
-        # Extract and validate parameters
-        data = req.get_json()
-        if not data:
-            return https_fn.Response('No JSON data provided', status=400)
-
-        competitors = data.get("competitors", [])
-        industry_category = data.get("industry_category", "technology")
+            return https_fn.Response(
+                json.dumps({"error": "Memo 1 not found in ingestionResults"}),
+                status=404,
+                headers=headers
+            )
         
-        if not competitors:
-            return https_fn.Response('Missing required parameter: competitors', status=400)
-
-        # Lazy-initialize the validation service
-        from services.google_validation_service import GoogleValidationService
-        validation_service = GoogleValidationService()
-        validation_service.set_up()
+        # Fetch Memo 2 from diligenceResults collection
+        memo_2_doc = db.collection('diligenceResults').document(memo_2_id).get()
+        if not memo_2_doc.exists:
+            headers = get_cors_headers(req)
+            return https_fn.Response(
+                json.dumps({"error": "Memo 2 not found in diligenceResults"}),
+                status=404,
+                headers=headers
+            )
         
-        print(f"Validating competitors: {competitors} for industry: {industry_category}")
+        memo_1_data = memo_1_doc.to_dict()
+        memo_2_data = memo_2_doc.to_dict()
         
-        # Run validation
-        result = validation_service.validate_competitors(competitors, industry_category)
+        # Initialize FinalDiligenceAgent
+        from agents.comprehensive_agents import FinalDiligenceAgent, AgentConfig
         
-        # Store validation result in Firestore
-        memo_id = data.get("memo_id")
-        memo_type = data.get("memo_type", "memo_1")
+        config = AgentConfig(
+            project="veritas-472301",
+            location="asia-south1",
+            model="gemini-1.5-flash"
+        )
         
-        if memo_id:
-            try:
-                db = firestore.client()
-                
-                if memo_type == "diligence":
-                    # Store in diligenceResults collection
-                    diligence_doc_ref = db.collection("diligenceResults").document(memo_id)
-                    diligence_doc_ref.update({
-                        "competitor_validation_result": result
-                    })
-                    print(f"Competitor validation result stored in diligenceResults for memo: {memo_id}")
-                else:
-                    # Store in ingestionResults collection under memo_1
-                    memo_doc_ref = db.collection("ingestionResults").document(memo_id)
-                    memo_doc_ref.update({
-                        "memo_1.competitor_validation_result": result
-                    })
-                    print(f"Competitor validation result stored in ingestionResults for memo: {memo_id}")
-                    
-            except Exception as e:
-                print(f"Error storing competitor validation result: {e}")
-                # Don't fail the request if storage fails
+        agent = FinalDiligenceAgent(config)
+        agent.set_up()
         
-        # Return results with proper JSON content type
-        headers = {
-            **get_cors_headers(req),
-            'Content-Type': 'application/json'
+        # Generate Memo 3 asynchronously
+        import asyncio
+        memo_3_result = asyncio.run(agent.generate_memo_3(
+            memo_1_data=memo_1_data.get('memo_1', {}),
+            memo_2_data=memo_2_data,
+            validation_data={},
+            risk_data={}
+        ))
+        
+        # Store in Firestore
+        memo_3_data = {
+            **memo_3_result['memo_3'],
+            'memo_1_id': memo_1_id,
+            'memo_2_id': memo_2_id,
+            'timestamp': firestore.SERVER_TIMESTAMP,
+            'status': 'COMPLETED'
         }
-        return https_fn.Response(json.dumps(result), status=200, headers=headers)
+        
+        doc_ref = db.collection('memo3Results').add(memo_3_data)
+        
+        print(f"Memo 3 generated and stored with ID: {doc_ref[1].id}")
+        
+        headers = get_cors_headers(req)
+        return https_fn.Response(
+            json.dumps({
+                'success': True,
+                'memo_3_id': doc_ref[1].id,
+                'data': memo_3_result['memo_3']
+            }),
+            status=200,
+            headers=headers
+        )
         
     except Exception as e:
-        print(f"Error in validate_competitors: {e}")
-        headers = {
-            **get_cors_headers(req),
-            'Content-Type': 'application/json'
-        }
-        return https_fn.Response(json.dumps({"error": str(e)}), status=500, headers=headers)
+        print(f"Error generating Memo 3: {e}")
+        headers = get_cors_headers(req)
+        return https_fn.Response(
+            json.dumps({"error": str(e)}),
+            status=500,
+            headers=headers
+        )

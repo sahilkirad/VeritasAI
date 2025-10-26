@@ -27,7 +27,7 @@ class FeedbackAgent:
 
     def __init__(
         self,
-        model: str = "gemini-2.5-flash",
+        model: str = "gemini-1.5-flash",
         project: str = "veritas-472301",
         location: str = "asia-south1"
     ):

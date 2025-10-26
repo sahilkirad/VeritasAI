@@ -41,7 +41,7 @@ class PerplexitySearchService:
         if VERTEX_AI_AVAILABLE and self.enabled:
             try:
                 vertexai.init(project=self.project, location=self.location)
-                self.vertex_model = GenerativeModel("gemini-2.5-flash")
+                self.vertex_model = GenerativeModel("gemini-1.5-flash")
                 self.logger.info("Vertex AI initialized for structured data extraction")
             except Exception as e:
                 self.logger.warning(f"Vertex AI initialization failed: {e}")

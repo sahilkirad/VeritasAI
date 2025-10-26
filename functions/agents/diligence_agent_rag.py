@@ -60,7 +60,7 @@ class DiligenceAgentRAG:
         vertexai.init(project=project_id, location=region)
         
         # Initialize Gemini model
-        self.gemini_model = GenerativeModel("gemini-2.5-flash")
+        self.gemini_model = GenerativeModel("gemini-1.5-flash")
         
         # Initialize clients
         self.db = firestore.Client(project=project_id)

@@ -38,7 +38,7 @@ class InvestorRecommendationAgent:
 
     def __init__(
         self,
-        model: str = "gemini-2.5-flash",
+        model: str = "gemini-1.5-flash",
         project: str = "",
         location: str = "asia-south1"
     ):

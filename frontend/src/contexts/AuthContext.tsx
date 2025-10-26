@@ -21,64 +21,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for existing authentication
     const checkAuth = async () => {
       try {
-        console.log('🔍 Starting authentication check...');
-        
-        // First, check localStorage directly (for admin and other sessions)
         if (typeof window !== 'undefined') {
-          const session = localStorage.getItem('veritas_session');
-          console.log('🔍 Checking localStorage session:', session);
+          const session = localStorage.getItem('veritas_session')
           
           if (session) {
             try {
-              const sessionData = JSON.parse(session);
-              console.log('🔍 Session data found:', sessionData);
+              const sessionData = JSON.parse(session)
               
-              // Check if session has required fields
-              if (!sessionData.displayName && sessionData.role === 'admin') {
-                console.log('⚠️ Old session format detected, clearing...');
-                localStorage.removeItem('veritas_session');
-                setLoading(false);
-                return;
+              // Validate session has required fields
+              if (sessionData.role && sessionData.email && sessionData.displayName) {
+                const userProfile: UserProfile = {
+                  uid: sessionData.uid,
+                  email: sessionData.email,
+                  displayName: sessionData.displayName,
+                  role: sessionData.role,
+                  password: '',
+                  createdAt: sessionData.createdAt || new Date().toISOString(),
+                  isAuthenticated: true
+                }
+                
+                setUser(userProfile)
+                setUserProfile(userProfile)
+                setLoading(false)
+                return
               }
-              
-              // Create user profile from session
-              const userProfile: UserProfile = {
-                uid: sessionData.uid,
-                email: sessionData.email,
-                displayName: sessionData.displayName || sessionData.email,
-                role: sessionData.role,
-                password: '', // Don't store password in session
-                createdAt: sessionData.createdAt || new Date().toISOString(),
-                isAuthenticated: true
-              };
-              
-              console.log('✅ Restoring session for:', userProfile.email, 'Role:', userProfile.role);
-              setUser(userProfile);
-              setUserProfile(userProfile);
-              setLoading(false);
-              return;
             } catch (parseError) {
-              console.error('❌ Error parsing session data:', parseError);
-              localStorage.removeItem('veritas_session');
+              localStorage.removeItem('veritas_session')
             }
           }
         }
         
-        // If no session found, set loading to false
-        console.log('🔍 No session found, setting loading to false');
-        setLoading(false);
+        setLoading(false)
       } catch (error) {
-        console.error('❌ Error checking authentication:', error);
-        setLoading(false);
+        setLoading(false)
       }
-    };
+    }
 
-    // Check immediately
-    checkAuth();
-  }, []);
+    checkAuth()
+  }, [])
 
   const signIn = async (email: string, password: string, expectedRole?: 'investor' | 'founder' | 'admin') => {
     try {

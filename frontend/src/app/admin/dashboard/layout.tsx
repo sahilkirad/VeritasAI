@@ -34,22 +34,47 @@ export default function AdminDashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const { user, logout } = useAuth()
+  const { user, logout, loading } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [notifications, setNotifications] = useState(0)
+  const [isAuthorized, setIsAuthorized] = useState(false)
 
   useEffect(() => {
-    console.log('🔍 Admin layout - checking user:', user);
-    console.log('🔍 User role:', user?.role);
-    console.log('🔍 Is admin?', user?.role === 'admin');
+    if (loading) return
     
-    // Bypass admin check - allow access
-    console.log('✅ Admin allowed access');
-    // Simulate notification count
-    setNotifications(3)
+    // Check session from localStorage
+    const session = localStorage.getItem('veritas_session')
+    if (session) {
+      try {
+        const sessionData = JSON.parse(session)
+        if (sessionData.role === 'admin') {
+          setIsAuthorized(true)
+          setNotifications(3)
+          return
+        }
+      } catch (e) {}
+    }
+    
+    // Check AuthContext
+    if (user?.role === 'admin') {
+      setIsAuthorized(true)
+      setNotifications(3)
+      return
+    }
+    
+    // Not authorized, redirect to admin login
+    router.push('/admin')
   }, [user, router])
+
+  if (loading || !isAuthorized) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    )
+  }
 
   const handleLogout = async () => {
     try {

@@ -14,6 +14,7 @@ export default function AdminDashboardPage() {
       return
     }
 
+
     // Check localStorage directly for admin session
     const session = typeof window !== 'undefined' ? localStorage.getItem('veritas_session') : null
     

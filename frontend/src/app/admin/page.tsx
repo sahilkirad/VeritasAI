@@ -30,7 +30,6 @@ export default function AdminLoginPage() {
     setMessage("")
 
     try {
-      // Instant email-only authentication for admin
       if (email === "admin@veritas.com") {
         // Create admin user profile
         const adminUser = {
@@ -43,21 +42,24 @@ export default function AdminLoginPage() {
           isAuthenticated: true
         }
         
-        // Store session in localStorage (matching the existing auth system)
+        // Store session in localStorage with ALL required fields
         if (typeof window !== 'undefined') {
           localStorage.setItem('veritas_session', JSON.stringify({
             uid: adminUser.uid,
             email: adminUser.email,
-            role: adminUser.role
+            displayName: adminUser.displayName,
+            role: adminUser.role,
+            createdAt: adminUser.createdAt
           }))
         }
         
         setMessage("✅ Admin access granted! Redirecting...")
         
-        // Redirect to dashboard immediately with a hard navigation
+        // Force a page refresh to ensure AuthContext picks up the new session
+        // This helps with deployment timing issues
         setTimeout(() => {
-          window.location.href = '/admin/dashboard'
-        }, 1000)
+          window.location.href = '/admin/dashboard/overview'
+        }, 500)
       } else {
         setMessage("❌ Only admin@veritas.com is authorized for admin access.")
       }

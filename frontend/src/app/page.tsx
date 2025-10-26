@@ -11,6 +11,10 @@ import { useRouter } from "next/navigation"
 export default function LandingPage() {
   const { user, logout } = useAuth()
   const router = useRouter()
+  
+  // Debug logging
+  console.log('🔍 Landing page rendered - user:', user)
+  console.log('🔍 Landing page rendered - pathname:', typeof window !== 'undefined' ? window.location.pathname : 'SSR')
 
   const handleLogout = async () => {
     try {

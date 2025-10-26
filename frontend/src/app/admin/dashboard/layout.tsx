@@ -42,31 +42,42 @@ export default function AdminDashboardLayout({
   const [isAuthorized, setIsAuthorized] = useState(false)
 
   useEffect(() => {
+    console.log('🔍 Admin layout - loading:', loading)
+    console.log('🔍 Admin layout - user:', user)
+    
     if (loading) return
     
     // Check session from localStorage
     const session = localStorage.getItem('veritas_session')
+    console.log('🔍 Admin layout - session:', session)
+    
     if (session) {
       try {
         const sessionData = JSON.parse(session)
+        console.log('🔍 Admin layout - sessionData:', sessionData)
         if (sessionData.role === 'admin') {
+          console.log('✅ Admin layout - localStorage admin found')
           setIsAuthorized(true)
           setNotifications(3)
           return
         }
-      } catch (e) {}
+      } catch (e) {
+        console.log('❌ Admin layout - session parse error:', e)
+      }
     }
     
     // Check AuthContext
     if (user?.role === 'admin') {
+      console.log('✅ Admin layout - AuthContext admin found')
       setIsAuthorized(true)
       setNotifications(3)
       return
     }
     
+    console.log('❌ Admin layout - not authorized, redirecting to /admin')
     // Not authorized, redirect to admin login
     router.push('/admin')
-  }, [user, router])
+  }, [user, loading, router])
 
   if (loading || !isAuthorized) {
     return (

@@ -31,6 +31,11 @@ export default function AdminLoginPage() {
 
     try {
       if (email === "admin@veritas.com") {
+        // FIRST: Clear any old session format
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('veritas_session')
+        }
+        
         // Create admin user profile
         const adminUser = {
           uid: 'admin-001',
@@ -42,7 +47,7 @@ export default function AdminLoginPage() {
           isAuthenticated: true
         }
         
-        // Store session in localStorage with ALL required fields
+        // Store NEW session format with ALL required fields
         if (typeof window !== 'undefined') {
           localStorage.setItem('veritas_session', JSON.stringify({
             uid: adminUser.uid,
@@ -51,12 +56,13 @@ export default function AdminLoginPage() {
             role: adminUser.role,
             createdAt: adminUser.createdAt
           }))
+          
+          // Log to verify new format
+          console.log('✅ NEW session stored:', localStorage.getItem('veritas_session'))
         }
         
         setMessage("✅ Admin access granted! Redirecting...")
         
-        // Force a page refresh to ensure AuthContext picks up the new session
-        // This helps with deployment timing issues
         setTimeout(() => {
           window.location.href = '/admin/dashboard/overview'
         }, 500)

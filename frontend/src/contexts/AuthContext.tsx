@@ -36,6 +36,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               const sessionData = JSON.parse(session);
               console.log('🔍 Session data found:', sessionData);
               
+              // Check if session has required fields
+              if (!sessionData.displayName && sessionData.role === 'admin') {
+                console.log('⚠️ Old session format detected, clearing...');
+                localStorage.removeItem('veritas_session');
+                setLoading(false);
+                return;
+              }
+              
               // Create user profile from session
               const userProfile: UserProfile = {
                 uid: sessionData.uid,

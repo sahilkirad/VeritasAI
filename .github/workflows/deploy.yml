@@ -30,7 +30,9 @@ jobs:
     - name: Build frontend
       run: |
         cd frontend
-        npm run build
+        npm run build:static
+      env:
+        NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
         
     - name: Setup Python
       uses: actions/setup-python@v4

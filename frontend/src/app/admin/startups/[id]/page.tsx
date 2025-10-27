@@ -44,19 +44,35 @@ export default function StartupDetailPage() {
         setLoading(true)
         setError(null)
         
+        // Validate startup ID
+        if (!startupId || startupId.trim() === '') {
+          setError('Invalid startup ID')
+          return
+        }
+        
         console.log('🔄 Fetching startup:', startupId)
         const data = await getStartupById(startupId)
         
         if (!data) {
-          setError('Startup not found')
+          setError('Startup not found. Please check the URL or try again.')
           return
         }
         
         setStartup(data)
         console.log('✅ Loaded startup:', data.companyName)
-      } catch (err) {
+      } catch (err: any) {
         console.error('❌ Error fetching startup:', err)
-        setError('Failed to load startup data')
+        
+        // Provide more specific error messages
+        if (err.message?.includes('connection')) {
+          setError('Connection error. Please check your internet connection and try again.')
+        } else if (err.message?.includes('Invalid startup ID')) {
+          setError('Invalid startup ID. Please navigate back to the startups list.')
+        } else if (err.message?.includes('Failed to fetch startup data after')) {
+          setError('Unable to load startup data. Please try again in a moment.')
+        } else {
+          setError('Failed to load startup data. Please try again.')
+        }
       } finally {
         setLoading(false)
       }
@@ -118,6 +134,15 @@ export default function StartupDetailPage() {
   }
 
   if (error || !startup) {
+    const handleRetry = () => {
+      if (startupId) {
+        setError(null)
+        setLoading(true)
+        // Re-trigger the useEffect by updating a dependency
+        window.location.reload()
+      }
+    }
+
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-4">
@@ -128,18 +153,41 @@ export default function StartupDetailPage() {
             </Button>
           </Link>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Startup Not Found</h1>
+            <h1 className="text-3xl font-bold tracking-tight">
+              {error?.includes('not found') ? 'Startup Not Found' : 'Error Loading Startup'}
+            </h1>
           </div>
         </div>
         
         <Card className="border-red-200 bg-red-50">
           <CardContent className="pt-6">
-            <p className="text-red-600">{error || 'Startup not found'}</p>
-            <Link href="/admin/startups">
-              <Button variant="outline" className="mt-2">
-                Return to Startups List
-              </Button>
-            </Link>
+            <div className="space-y-4">
+              <p className="text-red-600">{error || 'Startup not found'}</p>
+              
+              <div className="flex gap-2">
+                <Button 
+                  onClick={handleRetry}
+                  variant="outline" 
+                  className="border-red-300 text-red-700 hover:bg-red-100"
+                >
+                  Try Again
+                </Button>
+                <Link href="/admin/startups">
+                  <Button variant="outline">
+                    Return to Startups List
+                  </Button>
+                </Link>
+              </div>
+              
+              {error?.includes('connection') && (
+                <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                  <p className="text-sm text-yellow-800">
+                    <strong>Connection Issue:</strong> This might be a temporary network problem. 
+                    Try refreshing the page or check your internet connection.
+                  </p>
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>

@@ -95,7 +95,23 @@ export function StartupTable({
   });
 
   const handleRowClick = (startupId: string) => {
-    router.push(`/admin/startups/${startupId}`);
+    // Validate startup ID before navigation
+    if (!startupId || typeof startupId !== 'string' || startupId.trim() === '') {
+      console.error('❌ Invalid startup ID for navigation:', startupId);
+      return;
+    }
+    
+    // Encode special characters in the ID for URL safety
+    const encodedId = encodeURIComponent(startupId);
+    console.log('🔄 Navigating to startup details:', encodedId);
+    
+    try {
+      router.push(`/admin/startups/${encodedId}`);
+    } catch (error) {
+      console.error('❌ Navigation error:', error);
+      // Fallback: try direct URL navigation
+      window.location.href = `/admin/startups/${encodedId}`;
+    }
   };
 
   const formatDate = (dateString: string) => {

@@ -1,6 +1,6 @@
 // Startup data service for admin dashboard
 import { collection, getDocs, doc, getDoc, query, orderBy, limit } from 'firebase/firestore';
-import { db } from '../firebase-new';
+import { db, getFirebaseDb } from '../firebase-new';
 import { Startup, FilterOptions, SortOptions, MemoOneData, MemoTwoData, MemoThreeData } from '../types/startup';
 
 // Fetch all startups from Firestore
@@ -27,28 +27,75 @@ export async function getAllStartups(): Promise<Startup[]> {
   }
 }
 
-// Fetch single startup by ID
+// Fetch single startup by ID with retry logic and better error handling
 export async function getStartupById(id: string): Promise<Startup | null> {
-  try {
-    console.log('🔄 Fetching startup by ID:', id);
-    
-    const startupRef = doc(db, 'ingestionResults', id);
-    const startupSnap = await getDoc(startupRef);
-    
-    if (!startupSnap.exists()) {
-      console.log('❌ Startup not found:', id);
-      return null;
-    }
-    
-    const data = startupSnap.data();
-    const startup = transformToStartup(id, data);
-    
-    console.log('✅ Successfully fetched startup:', startup.companyName);
-    return startup;
-  } catch (error) {
-    console.error('❌ Error fetching startup by ID:', error);
-    throw new Error('Failed to fetch startup data');
+  // Check if Firebase is properly initialized
+  const firebaseDb = getFirebaseDb();
+  if (!firebaseDb) {
+    console.error('❌ Firebase not initialized');
+    throw new Error('Database connection not available. Please refresh the page.');
   }
+
+  // Validate and sanitize ID
+  if (!id || typeof id !== 'string') {
+    console.error('❌ Invalid startup ID:', id);
+    throw new Error('Invalid startup ID provided');
+  }
+
+  // Decode URL-encoded ID if needed
+  const decodedId = decodeURIComponent(id);
+  console.log('🔄 Fetching startup by ID:', decodedId);
+
+  // Retry logic for Firestore queries
+  const maxRetries = 3;
+  let lastError: any = null;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`🔄 Attempt ${attempt}/${maxRetries} to fetch startup:`, decodedId);
+      
+      const startupRef = doc(firebaseDb, 'ingestionResults', decodedId);
+      const startupSnap = await getDoc(startupRef);
+      
+      if (!startupSnap.exists()) {
+        console.log('❌ Startup not found in Firestore:', decodedId);
+        return null;
+      }
+      
+      const data = startupSnap.data();
+      if (!data) {
+        console.log('❌ Startup data is empty:', decodedId);
+        return null;
+      }
+      
+      const startup = transformToStartup(decodedId, data);
+      
+      console.log('✅ Successfully fetched startup:', startup.companyName);
+      return startup;
+    } catch (error: any) {
+      lastError = error;
+      console.error(`❌ Attempt ${attempt}/${maxRetries} failed:`, error);
+      
+      // Check if it's a connection error
+      if (error.message?.includes('connection') || 
+          error.message?.includes('network') ||
+          error.code === 'unavailable') {
+        console.log(`🔄 Connection error on attempt ${attempt}, retrying...`);
+        if (attempt < maxRetries) {
+          // Wait before retry (exponential backoff)
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+          continue;
+        }
+      }
+      
+      // For non-connection errors, don't retry
+      break;
+    }
+  }
+
+  // All retries failed
+  console.error('❌ All attempts failed to fetch startup:', decodedId, lastError);
+  throw new Error(`Failed to fetch startup data after ${maxRetries} attempts: ${lastError?.message || 'Unknown error'}`);
 }
 
 // Transform Firestore document to Startup interface

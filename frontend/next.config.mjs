@@ -21,24 +21,24 @@ const envConfig = {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Only enable static export for production builds, not development
-  ...(process.env.NODE_ENV === 'production' && { 
-    output: 'export',
-    trailingSlash: false,
-    images: {
-      unoptimized: true
-    },
-    // Disable server-side features for static export
-    experimental: {
-      esmExternals: false
-    },
-    // Ensure proper asset handling
-    distDir: 'out',
-    // Force static file serving
-    generateBuildId: async () => {
-      return 'static-build'
-    }
-  }),
+  // Disable static export for now to support dynamic routes
+  // ...(process.env.NODE_ENV === 'production' && { 
+  //   output: 'export',
+  //   trailingSlash: false,
+  //   images: {
+  //     unoptimized: true
+  //   },
+  //   // Disable server-side features for static export
+  //   experimental: {
+  //     esmExternals: false
+  //   },
+  //   // Ensure proper asset handling
+  //   distDir: 'out',
+  //   // Force static file serving
+  //   generateBuildId: async () => {
+  //     return 'static-build'
+  //   }
+  // }),
   eslint: {
     ignoreDuringBuilds: true,
   },

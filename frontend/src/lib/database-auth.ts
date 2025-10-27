@@ -86,6 +86,18 @@ class DatabaseAuth {
         };
       }
 
+      // For admin role, check if this is the first admin
+      if (role === 'admin') {
+        const isFirst = await this.isFirstAdmin();
+        if (!isFirst) {
+          return {
+            success: false,
+            user: null,
+            error: 'Admin registration is closed. Only the first admin can self-register.'
+          };
+        }
+      }
+
       // Hash password
       const hashedPassword = await this.hashPassword(password);
 
@@ -300,6 +312,24 @@ class DatabaseAuth {
   // Check if user is authenticated
   isAuthenticated(): boolean {
     return this.getCurrentUser() !== null;
+  }
+
+  // Check if this is the first admin (no admin exists yet)
+  private async isFirstAdmin(): Promise<boolean> {
+    try {
+      const usersRef = collection(this.db, 'users');
+      const adminQuery = query(usersRef, where('role', '==', 'admin'));
+      const snapshot = await getDocs(adminQuery);
+      return snapshot.empty;
+    } catch (error) {
+      console.error('❌ Error checking for first admin:', error);
+      return false;
+    }
+  }
+
+  // Public method to check if first admin exists (for UI)
+  async canCreateAdmin(): Promise<boolean> {
+    return await this.isFirstAdmin();
   }
 
   // Google OAuth with real Google authentication

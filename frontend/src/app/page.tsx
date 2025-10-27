@@ -111,6 +111,27 @@ export default function LandingPage() {
               </CardContent>
             </Card>
 
+            <Card className="text-left">
+              <CardHeader>
+                <CardTitle className="font-headline text-xl">For Administrators</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col space-y-6">
+                <div>
+                  <p className="text-muted-foreground">
+                    Access the admin console to manage the platform and monitor operations.
+                  </p>
+                  <p className="mt-4 text-muted-foreground">
+                    Comprehensive dashboard for platform management and analytics.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Button className="w-full" asChild>
+                    <Link href="/admin/login">Access Admin Console</Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
           </div>
         </div>
       </main>

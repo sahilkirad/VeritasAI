@@ -1029,7 +1029,7 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
               </div>
 
           {/* Product Features */}
-          {diligenceData?.product_features && diligenceData.product_features.length > 0 && (
+          {diligenceData?.product_features && Array.isArray(diligenceData.product_features) && diligenceData.product_features.length > 0 && (
             <div>
               <h4 className="font-semibold mb-3">Product Features from Pitch Deck</h4>
               <div className="grid gap-2 md:grid-cols-2">
@@ -1210,9 +1210,11 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
                 <p>{enhancedDiligenceData.scalability_plan || "Revenue model scalability details from pitch deck"}</p>
                 <p><strong>Key scalability levers that we will focus on:</strong></p>
                 <ul className="list-disc list-inside space-y-1 ml-4">
-                  {enhancedDiligenceData.key_milestones?.map((milestone: any, index: number) => (
-                    <li key={index}>{milestone}</li>
-                  )) || (
+                  {Array.isArray(enhancedDiligenceData.key_milestones) && enhancedDiligenceData.key_milestones.length > 0 ? (
+                    enhancedDiligenceData.key_milestones.map((milestone: any, index: number) => (
+                      <li key={index}>{typeof milestone === 'string' ? milestone : JSON.stringify(milestone)}</li>
+                    ))
+                  ) : (
                     <li>Scalability details from pitch deck</li>
                   )}
                 </ul>
@@ -1390,7 +1392,7 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
             <h4 className="font-semibold text-yellow-800 mb-2">Risks and Mitigation from Pitch Deck</h4>
             <div className="text-sm space-y-3">
               {/* Key Risks */}
-              {diligenceData?.key_risks && diligenceData.key_risks.length > 0 && (
+              {diligenceData?.key_risks && Array.isArray(diligenceData.key_risks) && diligenceData.key_risks.length > 0 && (
               <div>
                 <p className="font-medium text-yellow-800 mb-2">Identified Risks</p>
                   <ul className="space-y-2">
@@ -1451,7 +1453,7 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
                 </div>
                 
           {/* Potential Acquirers */}
-          {diligenceData?.potential_acquirers && diligenceData.potential_acquirers.length > 0 && (
+          {diligenceData?.potential_acquirers && Array.isArray(diligenceData.potential_acquirers) && diligenceData.potential_acquirers.length > 0 && (
             <div>
               <h4 className="font-semibold mb-2">Potential Acquirers</h4>
               <ul className="text-sm text-muted-foreground space-y-1">
@@ -1485,7 +1487,7 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
             </div>
 
           {/* Key Team Members */}
-          {diligenceData?.key_team_members && diligenceData.key_team_members.length > 0 && (
+          {diligenceData?.key_team_members && Array.isArray(diligenceData.key_team_members) && diligenceData.key_team_members.length > 0 && (
             <div>
               <h4 className="font-semibold mb-2">Key Team Members</h4>
               <ul className="text-sm text-muted-foreground space-y-1">
@@ -1497,7 +1499,7 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
           )}
 
           {/* Advisory Board */}
-          {diligenceData?.advisory_board && diligenceData.advisory_board.length > 0 && (
+          {diligenceData?.advisory_board && Array.isArray(diligenceData.advisory_board) && diligenceData.advisory_board.length > 0 && (
             <div>
               <h4 className="font-semibold mb-2">Advisory Board</h4>
               <ul className="text-sm text-muted-foreground space-y-1">
@@ -1552,7 +1554,7 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
           <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
             <h4 className="font-semibold text-purple-800 mb-2">Next Steps</h4>
             <div className="text-sm text-purple-700 space-y-1">
-              {diligenceData?.due_diligence_next_steps && diligenceData.due_diligence_next_steps.length > 0 ? (
+              {diligenceData?.due_diligence_next_steps && Array.isArray(diligenceData.due_diligence_next_steps) && diligenceData.due_diligence_next_steps.length > 0 ? (
                 diligenceData.due_diligence_next_steps.map((step, index) => (
                   <p key={index}>• {step}</p>
                 ))
@@ -1762,23 +1764,31 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
                 <div className="p-4 bg-green-50 rounded-lg">
                   <h4 className="font-semibold text-green-800 mb-3">Key Strengths</h4>
                   <ul className="space-y-1 text-sm">
-                    {diligenceData.validation_result.validation_result.overall_assessment.key_strengths?.map((strength, index) => (
-                      <li key={index} className="flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-green-600" />
-                        {strength}
-                      </li>
-                    ))}
+                    {diligenceData.validation_result.validation_result.overall_assessment.key_strengths && Array.isArray(diligenceData.validation_result.validation_result.overall_assessment.key_strengths) ? (
+                      diligenceData.validation_result.validation_result.overall_assessment.key_strengths.map((strength, index) => (
+                        <li key={index} className="flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-green-600" />
+                          {strength}
+                        </li>
+                      ))
+                    ) : (
+                      <li className="text-gray-500">No key strengths identified</li>
+                    )}
                   </ul>
                 </div>
                 <div className="p-4 bg-red-50 rounded-lg">
                   <h4 className="font-semibold text-red-800 mb-3">Key Concerns</h4>
                   <ul className="space-y-1 text-sm">
-                    {diligenceData.validation_result.validation_result.overall_assessment.key_concerns?.map((concern, index) => (
-                      <li key={index} className="flex items-center gap-2">
-                        <AlertTriangle className="h-4 w-4 text-red-600" />
-                        {concern}
-                      </li>
-                    ))}
+                    {diligenceData.validation_result.validation_result.overall_assessment.key_concerns && Array.isArray(diligenceData.validation_result.validation_result.overall_assessment.key_concerns) ? (
+                      diligenceData.validation_result.validation_result.overall_assessment.key_concerns.map((concern, index) => (
+                        <li key={index} className="flex items-center gap-2">
+                          <AlertTriangle className="h-4 w-4 text-red-600" />
+                          {concern}
+                        </li>
+                      ))
+                    ) : (
+                      <li className="text-gray-500">No key concerns identified</li>
+                    )}
                   </ul>
                 </div>
               </div>
@@ -1792,23 +1802,31 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
                   <div>
                     <h5 className="font-medium text-blue-700 mb-2">Immediate Actions</h5>
                     <ul className="space-y-1 text-sm">
-                      {diligenceData.validation_result.validation_result.recommendations.immediate_actions?.map((action, index) => (
-                        <li key={index} className="flex items-center gap-2">
-                          <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                          {action}
-                        </li>
-                      ))}
+                      {diligenceData.validation_result.validation_result.recommendations.immediate_actions && Array.isArray(diligenceData.validation_result.validation_result.recommendations.immediate_actions) ? (
+                        diligenceData.validation_result.validation_result.recommendations.immediate_actions.map((action, index) => (
+                          <li key={index} className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                            {action}
+                          </li>
+                        ))
+                      ) : (
+                        <li className="text-gray-500">No immediate actions identified</li>
+                      )}
                     </ul>
                   </div>
                   <div>
                     <h5 className="font-medium text-blue-700 mb-2">Next Steps</h5>
                     <ul className="space-y-1 text-sm">
-                      {diligenceData.validation_result.validation_result.recommendations.next_steps?.map((step, index) => (
-                        <li key={index} className="flex items-center gap-2">
-                          <div className="w-2 h-2 bg-green-600 rounded-full"></div>
-                          {step}
-                        </li>
-                      ))}
+                      {diligenceData.validation_result.validation_result.recommendations.next_steps && Array.isArray(diligenceData.validation_result.validation_result.recommendations.next_steps) ? (
+                        diligenceData.validation_result.validation_result.recommendations.next_steps.map((step, index) => (
+                          <li key={index} className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-green-600 rounded-full"></div>
+                            {step}
+                          </li>
+                        ))
+                      ) : (
+                        <li className="text-gray-500">No next steps identified</li>
+                      )}
                     </ul>
                   </div>
                 </div>

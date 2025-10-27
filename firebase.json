@@ -52,6 +52,14 @@
         "destination": "/_next/static/**"
       },
       {
+        "source": "/admin/startups/**",
+        "destination": "/admin/startups.html"
+      },
+      {
+        "source": "/admin/investors/**",
+        "destination": "/admin/investors.html"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }

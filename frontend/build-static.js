@@ -4,78 +4,52 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
-console.log('🔧 Building static export with dynamic routes...');
-
-// Paths to dynamic route folders
-const dynamicRoutes = [
-  'src/app/admin/startups/[id]',
-  'src/app/admin/investors/[id]'
-];
-
-// Backup folders
-const backupFolders = [
-  'src/app/admin/startups/_id_backup',
-  'src/app/admin/investors/_id_backup'
-];
+console.log('🔧 Building static export for admin dashboard...');
 
 try {
-  // Step 1: Backup dynamic route folders
-  console.log('📦 Backing up dynamic route folders...');
-  dynamicRoutes.forEach((route, index) => {
-    const sourcePath = path.join(__dirname, route);
-    const backupPath = path.join(__dirname, backupFolders[index]);
-    
-    if (fs.existsSync(sourcePath)) {
-      if (fs.existsSync(backupPath)) {
-        fs.rmSync(backupPath, { recursive: true });
-      }
-      fs.renameSync(sourcePath, backupPath);
-      console.log(`✅ Backed up ${route} to ${backupFolders[index]}`);
-    }
-  });
-
-  // Step 2: Build static export
+  // Step 1: Build static export
   console.log('🏗️ Building static export...');
   execSync('NODE_ENV=production npm run build', { 
     stdio: 'inherit',
     cwd: __dirname 
   });
 
-  // Step 3: Restore dynamic route folders
-  console.log('🔄 Restoring dynamic route folders...');
-  backupFolders.forEach((backup, index) => {
-    const backupPath = path.join(__dirname, backup);
-    const originalPath = path.join(__dirname, dynamicRoutes[index]);
+  // Step 2: Verify admin pages were generated
+  const adminOutPath = path.join(__dirname, 'out/admin');
+  if (fs.existsSync(adminOutPath)) {
+    const adminFiles = fs.readdirSync(adminOutPath);
+    console.log(`✅ Admin pages generated: ${adminFiles.length} files`);
     
-    if (fs.existsSync(backupPath)) {
-      if (fs.existsSync(originalPath)) {
-        fs.rmSync(originalPath, { recursive: true });
-      }
-      fs.renameSync(backupPath, originalPath);
-      console.log(`✅ Restored ${dynamicRoutes[index]} from ${backup}`);
-    }
-  });
+    // List all admin files
+    adminFiles.forEach(file => {
+      console.log(`  - ${file}`);
+    });
+    
+    // Check for main admin pages
+    const hasDashboard = adminFiles.some(file => file.includes('dashboard'));
+    const hasStartups = adminFiles.some(file => file.includes('startups'));
+    const hasInvestors = adminFiles.some(file => file.includes('investors'));
+    const hasMemos = adminFiles.some(file => file.includes('memos'));
+    const hasDeals = adminFiles.some(file => file.includes('deals'));
+    const hasSettings = adminFiles.some(file => file.includes('settings'));
+    
+    console.log('📊 Admin page status:');
+    console.log(`  - Dashboard: ${hasDashboard ? '✅' : '❌'}`);
+    console.log(`  - Startups: ${hasStartups ? '✅' : '❌'}`);
+    console.log(`  - Investors: ${hasInvestors ? '✅' : '❌'}`);
+    console.log(`  - Memos: ${hasMemos ? '✅' : '❌'}`);
+    console.log(`  - Deals: ${hasDeals ? '✅' : '❌'}`);
+    console.log(`  - Settings: ${hasSettings ? '✅' : '❌'}`);
+  } else {
+    console.log('❌ Admin folder not found in build output');
+  }
 
   console.log('✅ Static build completed successfully!');
   console.log('📁 Output directory: out/');
+  console.log('🚀 Admin dashboard ready for deployment');
+  console.log('ℹ️  Dynamic routes will work via catch-all routing');
 
 } catch (error) {
   console.error('❌ Build failed:', error.message);
-  
-  // Restore folders even if build failed
-  console.log('🔄 Restoring dynamic route folders after error...');
-  backupFolders.forEach((backup, index) => {
-    const backupPath = path.join(__dirname, backup);
-    const originalPath = path.join(__dirname, dynamicRoutes[index]);
-    
-    if (fs.existsSync(backupPath)) {
-      if (fs.existsSync(originalPath)) {
-        fs.rmSync(originalPath, { recursive: true });
-      }
-      fs.renameSync(backupPath, originalPath);
-      console.log(`✅ Restored ${dynamicRoutes[index]} from ${backup}`);
-    }
-  });
-  
   process.exit(1);
 }

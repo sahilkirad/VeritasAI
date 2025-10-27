@@ -26,7 +26,7 @@ jobs:
     - name: Build frontend
       run: |
         cd frontend
-        npm run build:static
+        npm run build
       env:
         NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
         

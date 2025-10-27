@@ -1,0 +1,16 @@
+{
+  "startupIds": [
+    "sample-startup-1",
+    "sample-startup-2",
+    "sample-startup-3"
+  ],
+  "investorIds": [
+    "investor-1",
+    "investor-2",
+    "investor-3"
+  ],
+  "fetchedAt": "2025-10-27T15:41:02.360Z",
+  "totalStartups": 3,
+  "totalInvestors": 3,
+  "fallback": true
+}

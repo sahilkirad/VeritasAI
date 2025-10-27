@@ -21,24 +21,24 @@ const envConfig = {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Enable static export for Firebase Hosting
-  ...(process.env.NODE_ENV === 'production' && { 
-    output: 'export',
-    trailingSlash: false,
-    images: {
-      unoptimized: true
-    },
-    // Disable server-side features for static export
-    experimental: {
-      esmExternals: false
-    },
-    // Ensure proper asset handling
-    distDir: 'out',
-    // Force static file serving
-    generateBuildId: async () => {
-      return 'static-build'
-    }
-  }),
+  // Static export disabled for now - using regular build
+  // ...(process.env.NODE_ENV === 'production' && { 
+  //   output: 'export',
+  //   trailingSlash: false,
+  //   images: {
+  //     unoptimized: true
+  //   },
+  //   // Disable server-side features for static export
+  //   experimental: {
+  //     esmExternals: false
+  //   },
+  //   // Ensure proper asset handling
+  //   distDir: 'out',
+  //   // Force static file serving
+  //   generateBuildId: async () => {
+  //     return 'static-build'
+  //   }
+  // }),
   eslint: {
     ignoreDuringBuilds: true,
   },

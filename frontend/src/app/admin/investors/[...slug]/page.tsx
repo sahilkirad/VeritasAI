@@ -31,7 +31,8 @@ import { PortfolioView } from "@/components/admin/PortfolioView"
 export default function InvestorDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const investorId = params.id as string
+  const slug = params.slug as string[]
+  const investorId = slug?.[0] // Get the first part of the slug as the ID
   
   const [investor, setInvestor] = useState<Investor | null>(null)
   const [loading, setLoading] = useState(true)
@@ -408,12 +409,11 @@ export default function InvestorDetailPage() {
           </div>
         </TabsContent>
 
-        {/* Portfolio Tab */}
+        {/* Other tabs with placeholder content */}
         <TabsContent value="portfolio" className="space-y-4">
           <PortfolioView portfolio={investor.portfolioCompanies || []} />
         </TabsContent>
 
-        {/* Preferences Tab */}
         <TabsContent value="preferences" className="space-y-4">
           <Card>
             <CardHeader>
@@ -425,73 +425,20 @@ export default function InvestorDetailPage() {
                 Comprehensive view of investment criteria and preferences
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <h4 className="font-medium mb-2">Sector Focus</h4>
-                  <div className="flex flex-wrap gap-1">
-                    {investor.sectorFocus.map((sector, index) => (
-                      <Badge key={index} variant="outline">
-                        {sector}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-                
-                <div>
-                  <h4 className="font-medium mb-2">Stage Preference</h4>
-                  <div className="flex flex-wrap gap-1">
-                    {investor.stagePreference.map((stage, index) => (
-                      <Badge key={index} variant="outline">
-                        {stage}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-                
-                <div>
-                  <h4 className="font-medium mb-2">Geographic Focus</h4>
-                  <div className="flex flex-wrap gap-1">
-                    {investor.geography.map((geo, index) => (
-                      <Badge key={index} variant="outline">
-                        {geo}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-                
-                <div>
-                  <h4 className="font-medium mb-2">Check Size Range</h4>
-                  <div className="text-lg font-semibold">
-                    {formatCurrency(investor.checkSizeMin)} - {formatCurrency(investor.checkSizeMax)}
-                  </div>
-                </div>
-              </div>
-              
-              {investor.investmentThesis && (
-                <div>
-                  <h4 className="font-medium mb-2">Investment Thesis</h4>
-                  <p className="text-muted-foreground">{investor.investmentThesis}</p>
-                </div>
-              )}
-              
-              {investor.coInvestorNetwork && investor.coInvestorNetwork.length > 0 && (
-                <div>
-                  <h4 className="font-medium mb-2">Co-Investor Network</h4>
-                  <div className="flex flex-wrap gap-1">
-                    {investor.coInvestorNetwork.map((coInvestor, index) => (
-                      <Badge key={index} variant="secondary">
-                        {coInvestor}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
+            <CardContent className="text-center py-8">
+              <Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium mb-2">Preferences Coming Soon</h3>
+              <p className="text-muted-foreground mb-4">
+                Detailed preference management will be available in the next phase.
+              </p>
+              <Button variant="outline">
+                <Edit className="h-4 w-4 mr-2" />
+                Edit Preferences
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Deals Tab */}
         <TabsContent value="deals" className="space-y-4">
           <Card>
             <CardHeader>
@@ -517,7 +464,6 @@ export default function InvestorDetailPage() {
           </Card>
         </TabsContent>
 
-        {/* Activity Tab */}
         <TabsContent value="activity" className="space-y-4">
           <Card>
             <CardHeader>

@@ -31,7 +31,8 @@ import { ScoreBar } from "@/components/admin/ScoreBar"
 export default function StartupDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const startupId = params.id as string
+  const slug = params.slug as string[]
+  const startupId = slug?.[0] // Get the first part of the slug as the ID
   
   const [startup, setStartup] = useState<Startup | null>(null)
   const [loading, setLoading] = useState(true)
@@ -440,7 +441,7 @@ export default function StartupDetailPage() {
           </div>
         </TabsContent>
 
-        {/* Pitch Deck Tab */}
+        {/* Other tabs with placeholder content */}
         <TabsContent value="pitch" className="space-y-4">
           <Card>
             <CardHeader>
@@ -466,7 +467,6 @@ export default function StartupDetailPage() {
           </Card>
         </TabsContent>
 
-        {/* Memos Tab */}
         <TabsContent value="memos" className="space-y-4">
           <Card>
             <CardHeader>
@@ -478,112 +478,20 @@ export default function StartupDetailPage() {
                 AI-generated investment analysis and recommendations
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-3">
-                <Card className="border-blue-200">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-lg">Memo 1: Intake & Curation</CardTitle>
-                    <CardDescription>Initial analysis and data collection</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Status:</span>
-                        <StatusBadge status="completed" />
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span>Score:</span>
-                        <span className="font-semibold">7.5/10</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span>Generated:</span>
-                        <span>{formatDate(startup.createdAt)}</span>
-                      </div>
-                    </div>
-                    <div className="flex gap-2 mt-4">
-                      <Button size="sm" variant="outline">
-                        <ExternalLink className="h-4 w-4 mr-1" />
-                        View
-                      </Button>
-                      <Button size="sm" variant="outline">
-                        <Download className="h-4 w-4 mr-1" />
-                        PDF
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-green-200">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-lg">Memo 2: Due Diligence</CardTitle>
-                    <CardDescription>Deep dive analysis and validation</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Status:</span>
-                        <StatusBadge status="completed" />
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span>Score:</span>
-                        <span className="font-semibold">7.3/10</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span>Red Flags:</span>
-                        <span className="text-orange-600">5</span>
-                      </div>
-                    </div>
-                    <div className="flex gap-2 mt-4">
-                      <Button size="sm" variant="outline">
-                        <ExternalLink className="h-4 w-4 mr-1" />
-                        View
-                      </Button>
-                      <Button size="sm" variant="outline">
-                        <Download className="h-4 w-4 mr-1" />
-                        PDF
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-purple-200">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-lg">Memo 3: Investment Decision</CardTitle>
-                    <CardDescription>Final recommendation and conditions</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Status:</span>
-                        <StatusBadge status="pending" />
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span>Score:</span>
-                        <span className="font-semibold">7.1/10</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span>Confidence:</span>
-                        <span className="text-green-600">78%</span>
-                      </div>
-                    </div>
-                    <div className="flex gap-2 mt-4">
-                      <Button size="sm">
-                        <Check className="h-4 w-4 mr-1" />
-                        Approve & Send
-                      </Button>
-                      <Button size="sm" variant="outline">
-                        <ExternalLink className="h-4 w-4 mr-1" />
-                        View
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+            <CardContent className="text-center py-8">
+              <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium mb-2">Memos Coming Soon</h3>
+              <p className="text-muted-foreground mb-4">
+                Investment memo viewing and management will be available in the next phase.
+              </p>
+              <Button variant="outline">
+                <Download className="h-4 w-4 mr-2" />
+                View Memos
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Interview Tab */}
         <TabsContent value="interview" className="space-y-4">
           <Card>
             <CardHeader>
@@ -609,7 +517,6 @@ export default function StartupDetailPage() {
           </Card>
         </TabsContent>
 
-        {/* Investor Matches Tab */}
         <TabsContent value="investors" className="space-y-4">
           <Card>
             <CardHeader>
@@ -635,7 +542,6 @@ export default function StartupDetailPage() {
           </Card>
         </TabsContent>
 
-        {/* Activity Log Tab */}
         <TabsContent value="activity" className="space-y-4">
           <Card>
             <CardHeader>

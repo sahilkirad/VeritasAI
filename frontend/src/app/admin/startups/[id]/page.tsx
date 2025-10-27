@@ -29,12 +29,6 @@ import { getStartupById } from "@/lib/services/startupService"
 import { StatusBadge } from "@/components/admin/StatusBadge"
 import { ScoreBar } from "@/components/admin/ScoreBar"
 
-// Generate static params for static export
-export async function generateStaticParams() {
-  // Return empty array to let dynamic routes be handled client-side
-  return []
-}
-
 export default function StartupDetailPage() {
   const params = useParams()
   const router = useRouter()

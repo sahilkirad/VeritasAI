@@ -28,12 +28,6 @@ import { getInvestorById } from "@/lib/services/investorService"
 import { EngagementScore } from "@/components/admin/EngagementScore"
 import { PortfolioView } from "@/components/admin/PortfolioView"
 
-// Generate static params for static export
-export async function generateStaticParams() {
-  // Return empty array to let dynamic routes be handled client-side
-  return []
-}
-
 export default function InvestorDetailPage() {
   const params = useParams()
   const router = useRouter()

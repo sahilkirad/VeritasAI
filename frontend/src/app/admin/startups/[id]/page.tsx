@@ -64,8 +64,8 @@ export default function StartupDetailPage() {
         console.error('❌ Error fetching startup:', err)
         
         // Provide more specific error messages
-        if (err.message?.includes('connection')) {
-          setError('Connection error. Please check your internet connection and try again.')
+        if (err.message?.includes('connection') || err.message?.includes('Receiving end does not exist')) {
+          setError('Connection error. This might be caused by browser extensions or network issues. Please try disabling ad blockers or try in an incognito window.')
         } else if (err.message?.includes('Invalid startup ID')) {
           setError('Invalid startup ID. Please navigate back to the startups list.')
         } else if (err.message?.includes('Failed to fetch startup data after')) {
@@ -182,9 +182,15 @@ export default function StartupDetailPage() {
               {error?.includes('connection') && (
                 <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
                   <p className="text-sm text-yellow-800">
-                    <strong>Connection Issue:</strong> This might be a temporary network problem. 
-                    Try refreshing the page or check your internet connection.
+                    <strong>Connection Issue:</strong> This error is often caused by browser extensions or ad blockers. 
+                    Try these solutions:
                   </p>
+                  <ul className="text-sm text-yellow-700 mt-2 ml-4 list-disc">
+                    <li>Disable ad blockers or privacy extensions temporarily</li>
+                    <li>Try opening the page in an incognito/private window</li>
+                    <li>Refresh the page and try again</li>
+                    <li>Check your internet connection</li>
+                  </ul>
                 </div>
               )}
             </div>

@@ -54,6 +54,11 @@ export async function getStartupById(id: string): Promise<Startup | null> {
     try {
       console.log(`🔄 Attempt ${attempt}/${maxRetries} to fetch startup:`, decodedId);
       
+      // Add a small delay to avoid rapid-fire requests
+      if (attempt > 1) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+      
       const startupRef = doc(firebaseDb, 'ingestionResults', decodedId);
       const startupSnap = await getDoc(startupRef);
       
@@ -79,8 +84,10 @@ export async function getStartupById(id: string): Promise<Startup | null> {
       // Check if it's a connection error
       if (error.message?.includes('connection') || 
           error.message?.includes('network') ||
-          error.code === 'unavailable') {
-        console.log(`🔄 Connection error on attempt ${attempt}, retrying...`);
+          error.message?.includes('Receiving end does not exist') ||
+          error.code === 'unavailable' ||
+          error.code === 'unauthenticated') {
+        console.log(`🔄 Connection error on attempt ${attempt}, retrying...`, error.message);
         if (attempt < maxRetries) {
           // Wait before retry (exponential backoff)
           await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
@@ -93,8 +100,28 @@ export async function getStartupById(id: string): Promise<Startup | null> {
     }
   }
 
-  // All retries failed
+  // All retries failed - try fallback approach
   console.error('❌ All attempts failed to fetch startup:', decodedId, lastError);
+  
+  // If it's a WebSocket/connection error, try a different approach
+  if (lastError?.message?.includes('Receiving end does not exist') || 
+      lastError?.message?.includes('connection')) {
+    console.log('🔄 Trying fallback approach for connection error...');
+    
+    try {
+      // Try to get all startups and find the one we need
+      const allStartups = await getAllStartups();
+      const foundStartup = allStartups.find(s => s.id === decodedId);
+      
+      if (foundStartup) {
+        console.log('✅ Found startup via fallback method:', foundStartup.companyName);
+        return foundStartup;
+      }
+    } catch (fallbackError) {
+      console.error('❌ Fallback method also failed:', fallbackError);
+    }
+  }
+  
   throw new Error(`Failed to fetch startup data after ${maxRetries} attempts: ${lastError?.message || 'Unknown error'}`);
 }
 

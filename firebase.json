@@ -24,6 +24,10 @@
           {
             "key": "Content-Type",
             "value": "application/javascript"
+          },
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=31536000, immutable"
           }
         ]
       },
@@ -33,6 +37,10 @@
           {
             "key": "Content-Type",
             "value": "text/css"
+          },
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=31536000, immutable"
           }
         ]
       },
@@ -52,12 +60,8 @@
         "destination": "/_next/static/**"
       },
       {
-        "source": "/admin/startups/**",
-        "destination": "/admin/startups.html"
-      },
-      {
-        "source": "/admin/investors/**",
-        "destination": "/admin/investors.html"
+        "source": "/interview/**",
+        "destination": "/interview/index.html"
       },
       {
         "source": "**",

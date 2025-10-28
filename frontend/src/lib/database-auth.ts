@@ -126,7 +126,9 @@ class DatabaseAuth {
         localStorage.setItem(this.SESSION_KEY, JSON.stringify({
           uid: userProfile.uid,
           email: userProfile.email,
-          role: userProfile.role
+          displayName: userProfile.displayName,
+          role: userProfile.role,
+          createdAt: userProfile.createdAt
         }));
       }
 
@@ -207,7 +209,9 @@ class DatabaseAuth {
         localStorage.setItem(this.SESSION_KEY, JSON.stringify({
           uid: userProfile.uid,
           email: userProfile.email,
-          role: userProfile.role
+          displayName: userProfile.displayName,
+          role: userProfile.role,
+          createdAt: userProfile.createdAt
         }));
       }
 

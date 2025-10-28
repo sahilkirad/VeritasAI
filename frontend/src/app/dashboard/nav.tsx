@@ -37,7 +37,8 @@ export const navItems = [
   { href: '/dashboard/diligence', icon: ShieldCheck, label: 'Diligence Hub' },
   { href: '/dashboard/interview', icon: Bot, label: 'AI Interview' },
   { href: '/dashboard/memo', icon: FileText, label: 'Deal Memo' },
-  { href: '/dashboard/create-room', icon: MessageCircle, label: 'Create a Room' }, // Add this line
+  { href: '/dashboard/messages', icon: MessageCircle, label: 'Messages' },
+  { href: '/dashboard/create-room', icon: MessageCircle, label: 'Create a Room' },
   { href: '/dashboard/billing', icon: CreditCard, label: 'Billing' },
   { href: '/dashboard/settings', icon: Settings, label: 'Settings' },
 ];

@@ -38,16 +38,44 @@ export default function InvestorLoginPage() {
     setIsLoading(true)
     setError("")
     
+    // Basic validation
+    if (!email.trim()) {
+      setError("Please enter your email address")
+      setIsLoading(false)
+      return
+    }
+    
+    if (!password.trim()) {
+      setError("Please enter your password")
+      setIsLoading(false)
+      return
+    }
+    
     try {
-      await signIn(email, password, 'investor')
+      console.log('🔄 Attempting investor login for:', email)
+      await signIn(email.trim(), password, 'investor')
+      console.log('✅ Investor login successful, redirecting to dashboard')
       router.push("/dashboard")
     } catch (error: any) {
-      setError(error.message || "Failed to sign in")
+      console.error('❌ Investor login error:', error)
+      setError(error.message || "Failed to sign in. Please check your credentials and try again.")
     } finally {
       setIsLoading(false)
     }
   }
 
+
+  // Show loading spinner while checking authentication
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="text-center">
+          <AvengersLoader size="lg" className="mx-auto mb-4" />
+          <p className="text-muted-foreground">Checking authentication...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
@@ -65,12 +93,13 @@ export default function InvestorLoginPage() {
         <CardContent>
           <form onSubmit={handleEmailSignIn} className="grid gap-4">
             {error && (
-              <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
-                {error}
+              <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md flex items-start gap-2">
+                <div className="w-4 h-4 text-red-500 mt-0.5">⚠</div>
+                <div>{error}</div>
               </div>
             )}
             <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Email Address</Label>
               <Input 
                 id="email" 
                 type="email" 
@@ -78,12 +107,14 @@ export default function InvestorLoginPage() {
                 required 
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                disabled={isLoading || loading}
+                className="transition-all duration-200"
               />
             </div>
             <div className="grid gap-2">
               <div className="flex items-center">
                 <Label htmlFor="password">Password</Label>
-                <Link href="#" className="ml-auto inline-block text-sm underline" prefetch={false}>
+                <Link href="#" className="ml-auto inline-block text-sm underline hover:text-primary" prefetch={false}>
                   Forgot password?
                 </Link>
               </div>
@@ -93,16 +124,22 @@ export default function InvestorLoginPage() {
                 required 
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                disabled={isLoading || loading}
+                className="transition-all duration-200"
               />
             </div>
-            <Button type="submit" className="w-full" disabled={isLoading || loading}>
+            <Button 
+              type="submit" 
+              className="w-full transition-all duration-200" 
+              disabled={isLoading || loading}
+            >
               {isLoading ? (
                 <>
                   <AvengersLoader size="sm" className="mr-2" />
                   Signing In...
                 </>
               ) : (
-                "Sign In"
+                "Sign In to Dashboard"
               )}
             </Button>
           </form>

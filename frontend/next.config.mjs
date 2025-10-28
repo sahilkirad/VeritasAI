@@ -21,7 +21,7 @@ const envConfig = {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Enable static export for Firebase Hosting
+  // Use static export but with dynamic routes support
   output: 'export',
   trailingSlash: false,
   images: {
@@ -38,6 +38,10 @@ const nextConfig = {
   },
   typescript: {
     ignoreBuildErrors: true,
+  },
+  // Enable dynamic routes for interview functionality
+  generateBuildId: async () => {
+    return 'build-' + Date.now()
   },
   env: {
     // Set environment variables for build time

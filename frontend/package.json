@@ -1,7 +1,11 @@
 {
-  "name": "my-v0-project",
+  "name": "veritas-frontend",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
   "scripts": {
     "build": "next build",
     "build:static": "node build-static.js",

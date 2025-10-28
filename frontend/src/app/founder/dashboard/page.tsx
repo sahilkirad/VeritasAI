@@ -3,11 +3,13 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowUpRight, DollarSign, Users, TrendingUp, CheckCircle, PlusCircle, LineChart, BarChart, RefreshCw, User } from "lucide-react";
+import { ArrowUpRight, DollarSign, Users, TrendingUp, CheckCircle, PlusCircle, LineChart, BarChart, RefreshCw, User, MessageSquare, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GoogleAnalyticsDialog } from "@/components/GoogleAnalyticsDialog";
 import { AnalyticsDataDisplay } from "@/components/AnalyticsDataDisplay";
 import { googleAnalyticsService, type AnalyticsData } from "@/lib/google-analytics";
+import { useChat } from "@/hooks/useChat";
+import { Badge } from "@/components/ui/badge";
 
 
 export default function FounderDashboardPage() {
@@ -15,6 +17,12 @@ export default function FounderDashboardPage() {
   const [isGoogleAnalyticsConnected, setIsGoogleAnalyticsConnected] = useState(false);
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
   const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
+  
+  // Mock user data - in real app, get from auth context
+  const userId = 'founder1';
+  const userRole = 'founder' as const;
+  
+  const { rooms, totalUnread } = useChat(userId, userRole);
   
 
   const sources = [
@@ -129,6 +137,125 @@ export default function FounderDashboardPage() {
                 </Card>
             ))}
        </div>
+
+        {/* Investor Rooms Card */}
+        <Card className="border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-green-900">
+              <MessageSquare className="h-5 w-5" />
+              Investor Rooms
+            </CardTitle>
+            <CardDescription className="text-green-700">
+              Connect with investors who are interested in your company. Build relationships and advance your funding conversations.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Stats Section */}
+              <div className="space-y-4">
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-green-900 flex items-center justify-center gap-2">
+                    {rooms.length}
+                    {totalUnread > 0 && (
+                      <Badge variant="destructive" className="text-xs animate-pulse">
+                        {totalUnread} new
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-sm text-green-700 font-medium">Active Conversations</p>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3 text-center">
+                  <div className="bg-white/60 rounded-lg p-3">
+                    <div className="text-lg font-semibold text-green-900">
+                      {rooms.filter(room => room.status === 'active').length}
+                    </div>
+                    <p className="text-xs text-green-600">Active</p>
+                  </div>
+                  <div className="bg-white/60 rounded-lg p-3">
+                    <div className="text-lg font-semibold text-green-900">
+                      {rooms.filter(room => room.unreadCount > 0).length}
+                    </div>
+                    <p className="text-xs text-green-600">Unread</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Recent Conversations */}
+              <div className="space-y-3">
+                <h4 className="font-semibold text-green-900 text-sm">Recent Conversations</h4>
+                {rooms.length > 0 ? (
+                  <div className="space-y-2">
+                    {rooms.slice(0, 3).map((room, index) => (
+                      <div key={room.id} className="bg-white/60 rounded-lg p-3 hover:bg-white/80 transition-colors">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-green-900 text-sm truncate">
+                              {room.investorName}
+                            </p>
+                            <p className="text-xs text-green-600 truncate">
+                              {room.investorFirm || 'Independent Investor'}
+                            </p>
+                          </div>
+                          {room.unreadCount > 0 && (
+                            <Badge variant="destructive" className="text-xs h-5 w-5 rounded-full p-0 flex items-center justify-center">
+                              {room.unreadCount}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-green-700 mt-1 truncate">
+                          {room.lastMessage}
+                        </p>
+                      </div>
+                    ))}
+                    {rooms.length > 3 && (
+                      <p className="text-xs text-green-600 text-center">
+                        +{rooms.length - 3} more conversations
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <MessageSquare className="h-8 w-8 text-green-300 mx-auto mb-2" />
+                    <p className="text-sm text-green-600">No conversations yet</p>
+                    <p className="text-xs text-green-500">Investors will reach out after reviewing your Memo 3</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Actions Section */}
+              <div className="space-y-3">
+                <h4 className="font-semibold text-green-900 text-sm">Quick Actions</h4>
+                <div className="space-y-2">
+                  <Link href="/founder/dashboard/messages" className="block">
+                    <Button className="w-full bg-green-600 hover:bg-green-700 text-white">
+                      <MessageSquare className="mr-2 h-4 w-4" />
+                      View All Messages
+                    </Button>
+                  </Link>
+                  
+                  <Button variant="outline" className="w-full border-green-300 text-green-700 hover:bg-green-50">
+                    <Users className="mr-2 h-4 w-4" />
+                    Find More Investors
+                  </Button>
+                  
+                  <Button variant="ghost" className="w-full text-green-600 hover:bg-green-50">
+                    <FileText className="mr-2 h-4 w-4" />
+                    Share Pitch Deck
+                  </Button>
+                </div>
+
+                {/* Tips */}
+                <div className="bg-green-100/50 rounded-lg p-3 mt-4">
+                  <h5 className="font-medium text-green-900 text-xs mb-1">💡 Pro Tip</h5>
+                  <p className="text-xs text-green-700">
+                    Respond quickly to investor messages to maintain their interest and momentum.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Profile Completion Call-to-Action */}
         <Card className="border-blue-200 bg-blue-50/50">

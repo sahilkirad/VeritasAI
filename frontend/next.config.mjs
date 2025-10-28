@@ -21,8 +21,8 @@ const envConfig = {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Disable static export for now to support dynamic routes
-  // output: 'export',
+  // Enable static export for Firebase Hosting
+  output: 'export',
   trailingSlash: false,
   images: {
     unoptimized: true

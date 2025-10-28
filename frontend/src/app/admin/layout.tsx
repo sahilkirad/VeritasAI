@@ -42,7 +42,6 @@ import { useAuth } from "@/contexts/AuthContext"
 
 const navItems = [
   { href: "/admin/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/admin/startups", icon: Users, label: "Startups" },
   { href: "/admin/investors", icon: Shield, label: "Investors" },
   { href: "/admin/memos", icon: FileText, label: "Memos" },
   { href: "/admin/deals", icon: TrendingUp, label: "Deals" },

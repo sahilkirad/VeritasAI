@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -21,12 +22,14 @@ import {
 import { ArrowLeft, Plus, RefreshCw, Download, MoreHorizontal, Eye, FileText, Brain, Zap, ExternalLink } from "lucide-react"
 import Link from "next/link"
 import { MemoSummary, MemoFilterOptions } from "@/lib/types/memo"
-import { getAllMemoSummaries, getMemoFilterOptions, filterMemoSummaries, getMemoStats } from "@/lib/services/memoService"
+import { getMemoFilterOptions, filterMemoSummaries, getMemoStats } from "@/lib/services/memoService"
+import { realtimeService } from "@/lib/services/realtimeService"
 import { FilterPanel } from "@/components/admin/FilterPanel"
 import { StatusBadge } from "@/components/admin/StatusBadge"
 import { ScoreBar } from "@/components/admin/ScoreBar"
 
 export default function AdminMemosPage() {
+  const router = useRouter()
   const [memos, setMemos] = useState<MemoSummary[]>([])
   const [filteredMemos, setFilteredMemos] = useState<MemoSummary[]>([])
   const [filters, setFilters] = useState<MemoFilterOptions>({})
@@ -39,32 +42,50 @@ export default function AdminMemosPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Fetch memos data
+  // Set up real-time memos data
   useEffect(() => {
-    const fetchMemos = async () => {
+    let unsubscribe: (() => void) | null = null
+
+    const setupRealtimeMemos = () => {
       try {
         setLoading(true)
         setError(null)
         
-        console.log('🔄 Fetching memos data...')
-        const data = await getAllMemoSummaries()
-        setMemos(data)
-        setFilteredMemos(data)
+        console.log('🔄 Setting up real-time memos listener...')
         
-        // Get filter options
-        const options = getMemoFilterOptions(data)
-        setFilterOptions(options)
-        
-        console.log(`✅ Loaded ${data.length} memos`)
+        unsubscribe = realtimeService.subscribeToMemos(
+          (data) => {
+            console.log(`📊 Real-time memos update: ${data.length} memos`)
+            setMemos(data)
+            setFilteredMemos(data)
+            
+            // Get filter options
+            const options = getMemoFilterOptions(data)
+            setFilterOptions(options)
+            
+            setLoading(false)
+          },
+          (error) => {
+            console.error('❌ Real-time memos error:', error)
+            setError('Failed to load memos data')
+            setLoading(false)
+          }
+        )
       } catch (err) {
-        console.error('❌ Error fetching memos:', err)
-        setError('Failed to load memos data')
-      } finally {
+        console.error('❌ Error setting up memos listener:', err)
+        setError('Failed to initialize memos data')
         setLoading(false)
       }
     }
 
-    fetchMemos()
+    setupRealtimeMemos()
+
+    // Cleanup function
+    return () => {
+      if (unsubscribe) {
+        unsubscribe()
+      }
+    }
   }, [])
 
   // Apply filters when they change
@@ -77,26 +98,24 @@ export default function AdminMemosPage() {
     setFilters(newFilters)
   }
 
-  const handleRefresh = async () => {
-    try {
-      setLoading(true)
-      const data = await getAllMemoSummaries()
-      setMemos(data)
-      setFilteredMemos(data)
-      
-      const options = getMemoFilterOptions(data)
-      setFilterOptions(options)
-    } catch (err) {
-      console.error('Error refreshing data:', err)
-      setError('Failed to refresh data')
-    } finally {
-      setLoading(false)
-    }
+  const handleRefresh = () => {
+    // Real-time data automatically refreshes, just show loading state briefly
+    setLoading(true)
+    setTimeout(() => setLoading(false), 1000)
   }
 
   const handleViewMemo = (memoId: string) => {
-    console.log('View memo:', memoId)
-    // TODO: Navigate to memo detail page
+    if (!memoId || typeof memoId !== 'string' || memoId.trim() === '') {
+      console.error('❌ Invalid memo ID for navigation:', memoId)
+      return
+    }
+    console.log('🔄 Navigating to memo details:', memoId)
+    try {
+      router.push(`/admin/memos/${memoId}`)
+    } catch (error) {
+      console.error('❌ Navigation error:', error)
+      window.location.href = `/admin/memos/${memoId}`
+    }
   }
 
   const handleGenerateMemo = (memoId: string, memoType: string) => {
@@ -280,7 +299,7 @@ export default function AdminMemosPage() {
                   <div>
                     <div className="font-semibold">{memo.startupName}</div>
                     <div className="text-sm text-muted-foreground">
-                      {memo.sector.join(', ')}
+                      {memo.sector?.join(', ') || 'Not specified'}
                     </div>
                   </div>
                 </TableCell>

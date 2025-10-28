@@ -18,41 +18,39 @@ const firebaseConfig = {
 let app: any = null;
 let auth: any = null, db: any = null, storage: any = null;
 
-// Only initialize Firebase once
-if (typeof window !== 'undefined') {
-  try {
-    // Check if Firebase is already initialized
-    const existingApps = getApps();
-    
-    if (existingApps.length > 0) {
-      app = existingApps[0];
-      console.log('✅ Using existing Firebase app');
-    } else {
-      // Initialize with a consistent name
-      app = initializeApp(firebaseConfig, 'veritas-app');
-      console.log('✅ Firebase initialized successfully');
-    }
-    
-    // Initialize services
-    auth = getAuth(app);
-    db = getFirestore(app);
-    storage = getStorage(app);
-    
-    console.log('✅ Firebase services initialized:', {
-      auth: !!auth,
-      db: !!db,
-      storage: !!storage
-    });
-    
-  } catch (error) {
-    console.error('❌ Firebase initialization failed:', error);
-    // Don't throw error, just set to null and handle gracefully
-    app = null;
-    auth = null;
-    db = null;
-    storage = null;
-    console.warn('⚠️ Firebase services not available - some features may not work');
+// Initialize Firebase with proper error handling
+try {
+  // Check if Firebase is already initialized
+  const existingApps = getApps();
+  
+  if (existingApps.length > 0) {
+    app = existingApps[0];
+    console.log('✅ Using existing Firebase app');
+  } else {
+    // Initialize with a consistent name
+    app = initializeApp(firebaseConfig, 'veritas-app');
+    console.log('✅ Firebase initialized successfully');
   }
+  
+  // Initialize services
+  auth = getAuth(app);
+  db = getFirestore(app);
+  storage = getStorage(app);
+  
+  console.log('✅ Firebase services initialized:', {
+    auth: !!auth,
+    db: !!db,
+    storage: !!storage
+  });
+  
+} catch (error) {
+  console.error('❌ Firebase initialization failed:', error);
+  // Don't throw error, just set to null and handle gracefully
+  app = null;
+  auth = null;
+  db = null;
+  storage = null;
+  console.warn('⚠️ Firebase services not available - some features may not work');
 }
 
 // Export with null checks

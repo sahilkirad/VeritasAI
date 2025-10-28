@@ -96,7 +96,21 @@ export function InvestorTable({
   });
 
   const handleRowClick = (investorId: string) => {
-    router.push(`/admin/investors/${investorId}`);
+    // Validate investor ID before navigation
+    if (!investorId || typeof investorId !== 'string' || investorId.trim() === '') {
+      console.error('❌ Invalid investor ID for navigation:', investorId);
+      return;
+    }
+    
+    console.log('🔄 Navigating to investor details:', investorId);
+    
+    try {
+      router.push(`/admin/investors/${investorId}`);
+    } catch (error) {
+      console.error('❌ Navigation error:', error);
+      // Fallback: try direct URL navigation
+      window.location.href = `/admin/investors/${investorId}`;
+    }
   };
 
   const formatDate = (dateString: string) => {

@@ -11,7 +11,7 @@ import {
   SelectValue 
 } from "@/components/ui/select"
 import { Search, X, Filter } from "lucide-react"
-import { FilterOptions } from "@/lib/types/startup"
+import { FilterOptions } from "@/lib/types/common"
 
 interface FilterPanelProps {
   filters: FilterOptions;

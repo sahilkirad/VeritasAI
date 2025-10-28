@@ -20,6 +20,7 @@ import {
 import Link from "next/link"
 import { collection, getDocs, query, orderBy, limit } from "firebase/firestore"
 import { db } from "@/lib/firebase-new"
+import { realtimeService } from "@/lib/services/realtimeService"
 
 interface DashboardStats {
   totalStartups: number
@@ -53,6 +54,8 @@ export default function AdminDashboardPage() {
   })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [memos, setMemos] = useState<any[]>([])
+  const [users, setUsers] = useState<any[]>([])
 
   // AI System Status (static for now)
   const aiSystems: AISystemStatus[] = [
@@ -113,50 +116,75 @@ export default function AdminDashboardPage() {
   ]
 
   useEffect(() => {
-    const fetchStats = async () => {
+    let memoUnsubscribe: (() => void) | null = null
+    let userUnsubscribe: (() => void) | null = null
+
+    const setupRealtimeData = () => {
       try {
         setLoading(true)
         setError(null)
 
-        // Fetch data from Firestore collections
-        const [usersSnapshot, memosSnapshot, ingestionSnapshot] = await Promise.all([
-          getDocs(collection(db, 'users')),
-          getDocs(collection(db, 'adminMemos')),
-          getDocs(collection(db, 'ingestionResults'))
-        ])
+        // Set up real-time memo listener
+        memoUnsubscribe = realtimeService.subscribeToMemos(
+          (memoData) => {
+            console.log('📊 Real-time memo update:', memoData.length)
+            setMemos(memoData)
+            updateStats(memoData, users)
+          },
+          (error) => {
+            console.error('❌ Memo listener error:', error)
+            setError('Failed to load memo data')
+          }
+        )
 
-        // Count users by role
-        const users = usersSnapshot.docs.map(doc => doc.data())
-        const totalInvestors = users.filter(user => user.role === 'investor').length
-        const totalFounders = users.filter(user => user.role === 'founder').length
+        // Set up real-time user listener
+        userUnsubscribe = realtimeService.subscribeToUsers(
+          (userData) => {
+            console.log('📊 Real-time user update:', userData.length)
+            setUsers(userData)
+            updateStats(memos, userData)
+          },
+          (error) => {
+            console.error('❌ User listener error:', error)
+            setError('Failed to load user data')
+          }
+        )
 
-        // Count memos and deals
-        const totalMemos = memosSnapshot.docs.length
-        const totalIngestionResults = ingestionSnapshot.docs.length
-
-        setStats({
-          totalStartups: totalFounders, // Using founders as proxy for startups
-          totalMemos: totalMemos + totalIngestionResults,
-          totalInvestors,
-          totalDeals: Math.floor(totalMemos * 0.3) // Mock calculation
-        })
-
+        setLoading(false)
       } catch (err) {
-        console.error('Error fetching dashboard stats:', err)
-        setError('Failed to load dashboard data')
-        // Set fallback stats
-        setStats({
-          totalStartups: 42,
-          totalMemos: 120,
-          totalInvestors: 25,
-          totalDeals: 15
-        })
-      } finally {
+        console.error('❌ Error setting up real-time listeners:', err)
+        setError('Failed to initialize real-time data')
         setLoading(false)
       }
     }
 
-    fetchStats()
+    const updateStats = (memoData: any[], userData: any[]) => {
+      try {
+        // Count users by role
+        const totalInvestors = userData.filter(user => user.role === 'investor').length
+        const totalFounders = userData.filter(user => user.role === 'founder').length
+
+        // Count memos and deals
+        const totalMemos = memoData.length
+
+        setStats({
+          totalStartups: totalFounders, // Using founders as proxy for startups
+          totalMemos: totalMemos,
+          totalInvestors,
+          totalDeals: Math.floor(totalMemos * 0.3) // Mock calculation
+        })
+      } catch (err) {
+        console.error('❌ Error updating stats:', err)
+      }
+    }
+
+    setupRealtimeData()
+
+    // Cleanup function
+    return () => {
+      if (memoUnsubscribe) memoUnsubscribe()
+      if (userUnsubscribe) userUnsubscribe()
+    }
   }, [])
 
   const getStatusIcon = (status: string) => {
@@ -312,13 +340,7 @@ export default function AdminDashboardPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Link href="/admin/startups">
-              <Button variant="outline" className="w-full h-20 flex flex-col gap-2">
-                <Users className="h-6 w-6" />
-                <span>View Startups</span>
-              </Button>
-            </Link>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             <Link href="/admin/investors">
               <Button variant="outline" className="w-full h-20 flex flex-col gap-2">
                 <TrendingUp className="h-6 w-6" />

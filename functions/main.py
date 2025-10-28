@@ -578,6 +578,11 @@ def process_ingestion_task(event: pubsub_fn.CloudEvent) -> None:
                     # Continue anyway but log the issue
                     ingestion_result["validation_warning"] = f"Data serialization issue: {str(e)}"
             
+            # Store founder email inside memo_1
+            founder_email = task_data.get("founder_email", "unknown@example.com")
+            if "memo_1" in ingestion_result and isinstance(ingestion_result["memo_1"], dict):
+                ingestion_result["memo_1"]["founder_email"] = founder_email
+            
             db = firestore.client()
             doc_ref = db.collection("ingestionResults").add(ingestion_result)
             print(f"Successfully saved results for {file_path} to Firestore with ID: {doc_ref[1].id}")
@@ -782,16 +787,15 @@ def trigger_diligence(req: https_fn.Request) -> https_fn.Response:
 
 @https_fn.on_request(
     region="asia-south1", 
-    memory=options.MemoryOption.MB_512
+    memory=options.MemoryOption.MB_512,
+    secrets=["SENDGRID_API_KEY", "SENDGRID_FROM_EMAIL"]
 )
 def schedule_ai_interview(req: https_fn.Request) -> https_fn.Response:
-    """HTTP endpoint to trigger the CoordinatorAgent for scheduling the AI interview."""
+    """HTTP endpoint to schedule AI interview with email notification."""
     
-    # Initialize Firebase app when function runs
     get_firebase_app()
 
     try:
-        # Handle CORS for testing
         if req.method == 'OPTIONS':
             headers = get_cors_headers(req)
             headers['Access-Control-Max-Age'] = '3600'
@@ -804,7 +808,6 @@ def schedule_ai_interview(req: https_fn.Request) -> https_fn.Response:
                 headers={'Content-Type': 'application/json'}
             )
 
-        # Extract and validate parameters
         data = req.get_json()
         if not data:
             return https_fn.Response('No JSON data provided', status=400)
@@ -812,33 +815,169 @@ def schedule_ai_interview(req: https_fn.Request) -> https_fn.Response:
         founder_email = data.get("founder_email")
         investor_email = data.get("investor_email") 
         startup_name = data.get("startup_name")
-        calendar_id = data.get("calendar_id")
+        company_id = data.get("company_id")
         
-        # Use environment variable instead of hardcoded
-        calendar_id = data.get("calendar_id") or os.getenv("DEFAULT_CALENDAR_ID", "93fe7cf38ab2552f7c40f0a9e3584f3fab5bbe5e006011eac718ca8e7cc34e4f@group.calendar.google.com")
+        # Debug logging - what did frontend send?
+        print(f"🔍 DEBUG: Received request data: {data}")
+        print(f"🔍 DEBUG: founder_email from request: '{founder_email}'")
+        print(f"🔍 DEBUG: Type of founder_email: {type(founder_email)}")
         
-        # Validate required parameters
-        if not all([founder_email, investor_email, startup_name]):
-            return https_fn.Response('Missing required parameters: founder_email, investor_email, startup_name', status=400)
+        if not all([founder_email, investor_email, startup_name, company_id]):
+            return https_fn.Response(
+                'Missing required parameters: founder_email, investor_email, startup_name, company_id', 
+                status=400
+            )
 
-        # Lazy-initialize the agent
-        agent = get_coordinator_agent()
-        
         print(f"Scheduling AI interview for {startup_name}")
-        print(f"Founder: {founder_email}")
-        print(f"Investor: {investor_email}")
-        print(f"Calendar: {calendar_id}")
+        print(f"Founder: {founder_email}, Investor: {investor_email}, Company: {company_id}")
+
+        # Generate unique interview ID
+        interview_id = f"interview_{int(time.time() * 1000)}_{company_id}"
         
-        result = agent.run(calendar_id, founder_email, investor_email, startup_name)
+        # Create interview URL
+        interview_url = f"https://veritas-472301.web.app/interview/{interview_id}"
         
-        # Return JSON response
+        # Store interview record in Firestore
+        db = firestore.client()
+        from datetime import datetime
+        interview_doc = {
+            'id': interview_id,
+            'interviewUrl': interview_url,
+            'companyId': company_id,
+            'founderEmail': founder_email,
+            'investorEmail': investor_email,
+            'startupName': startup_name,
+            'status': 'scheduled',
+            'scheduledAt': datetime.now().isoformat(),
+            'transcript': [],
+            'createdAt': datetime.now().isoformat(),
+            'updatedAt': datetime.now().isoformat()
+        }
+        
+        db.collection('interviews').document(interview_id).set(interview_doc)
+        print(f"Stored interview record: {interview_id}")
+        
+        # Send email to founder via SendGrid
+        try:
+            from sendgrid import SendGridAPIClient
+            from sendgrid.helpers.mail import Mail
+            
+            sendgrid_api_key = os.environ.get('SENDGRID_API_KEY')
+            sendgrid_from_email = os.environ.get('SENDGRID_FROM_EMAIL')
+            
+            # Debug logging
+            print(f"🔍 Debug: API Key exists: {sendgrid_api_key is not None}")
+            print(f"🔍 Debug: API Key length: {len(sendgrid_api_key) if sendgrid_api_key else 0}")
+            print(f"🔍 Debug: API Key prefix: {sendgrid_api_key[:5] if sendgrid_api_key else 'None'}")
+            print(f"🔍 Debug: From email: {sendgrid_from_email}")
+            
+            message = Mail(
+                from_email=sendgrid_from_email,
+                to_emails=founder_email,
+                subject=f'AI Interview Invitation from {investor_email}',
+                html_content=f'''
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <style>
+                        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #1f2937; margin: 0; padding: 0; }}
+                        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+                        .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px 30px; text-align: center; border-radius: 12px 12px 0 0; }}
+                        .header h1 {{ margin: 0; font-size: 28px; font-weight: 600; }}
+                        .content {{ background-color: #ffffff; padding: 40px 30px; border-left: 1px solid #e5e7eb; border-right: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb; border-radius: 0 0 12px 12px; }}
+                        .greeting {{ font-size: 18px; font-weight: 500; color: #111827; margin-bottom: 20px; }}
+                        .intro {{ font-size: 16px; color: #374151; margin-bottom: 25px; line-height: 1.7; }}
+                        .company-name {{ color: #667eea; font-weight: 600; }}
+                        .details-box {{ background-color: #f9fafb; border-left: 4px solid #667eea; padding: 20px; margin: 25px 0; border-radius: 6px; }}
+                        .details-box p {{ margin: 8px 0; font-size: 15px; color: #4b5563; }}
+                        .details-box strong {{ color: #111827; }}
+                        .button-container {{ text-align: center; margin: 35px 0; }}
+                        .button {{ display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 16px 40px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 6px rgba(102, 126, 234, 0.25); transition: transform 0.2s; }}
+                        .button:hover {{ transform: translateY(-2px); box-shadow: 0 6px 12px rgba(102, 126, 234, 0.3); }}
+                        .link-text {{ margin-top: 20px; font-size: 14px; color: #6b7280; text-align: center; }}
+                        .link-url {{ color: #667eea; word-break: break-all; }}
+                        .footer {{ text-align: center; margin-top: 40px; padding-top: 30px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 14px; }}
+                        .footer-signature {{ font-weight: 500; color: #374151; margin-top: 10px; }}
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <div class="header">
+                            <h1>🎙️ AI Interview Invitation</h1>
+                        </div>
+                        <div class="content">
+                            <p class="greeting">Hello,</p>
+                            
+                            <p class="intro">
+                                We're excited to invite you to participate in an AI-powered interview for <span class="company-name">{startup_name}</span>. 
+                                This interview will help us gain deeper insights into your company's vision, operations, and growth potential.
+                            </p>
+                            
+                            <div class="details-box">
+                                <p><strong>📋 What to Expect:</strong></p>
+                                <p>• 8-10 targeted questions about your company</p>
+                                <p>• Speech-to-text powered responses</p>
+                                <p>• Video monitoring for authenticity</p>
+                                <p>• Flexible pacing - answer at your own speed</p>
+                            </div>
+                            
+                            <div class="button-container">
+                                <a href="{interview_url}" class="button">Begin Interview</a>
+                            </div>
+                            
+                            <p class="link-text">
+                                Or copy and paste this link into your browser:<br>
+                                <span class="link-url">{interview_url}</span>
+                            </p>
+                            
+                            <div style="margin-top: 30px; padding: 20px; background-color: #fef3c7; border-radius: 6px; border-left: 4px solid #f59e0b;">
+                                <p style="margin: 0; font-size: 14px; color: #92400e;">
+                                    <strong>⚠️ Important:</strong> Please ensure you're in a quiet environment with a working microphone and camera before starting.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="footer">
+                            <p>If you have any questions or technical issues, please don't hesitate to reach out.</p>
+                            <p class="footer-signature">
+                                Best regards,<br>
+                                <strong>The Veritas AI Team</strong>
+                            </p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+                '''
+            )
+            
+            sg = SendGridAPIClient(sendgrid_api_key)
+            response = sg.send(message)
+            print(f"📧 Email sent to {founder_email}: Status {response.status_code}")
+            
+        except Exception as email_error:
+            print(f"⚠️ Email sending failed: {email_error}")
+            # Don't fail the whole function if email fails
+        
+        # Return success response
+        result = {
+            'status': 'SUCCESS',
+            'message': 'AI Interview scheduled successfully',
+            'interviewId': interview_id,
+            'interviewUrl': interview_url
+        }
+        
         headers = get_cors_headers(req)
         return https_fn.Response(json.dumps(result), status=200, headers=headers)
         
     except Exception as e:
         print(f"Error in schedule_ai_interview: {e}")
+        import traceback
+        traceback.print_exc()
         headers = get_cors_headers(req)
-        return https_fn.Response(json.dumps({"status": "FAILED", "error": str(e)}), status=500, headers=headers)
+        return https_fn.Response(
+            json.dumps({"status": "FAILED", "error": str(e)}), 
+            status=500, 
+            headers=headers
+        )
 
 def get_feedback_agent():
     """Lazy import of FeedbackAgent"""
@@ -1371,4 +1510,324 @@ def validate_competitors(req: https_fn.Request):
             **get_cors_headers(req),
             'Content-Type': 'application/json'
         }
+        return https_fn.Response(json.dumps({"error": str(e)}), status=500, headers=headers)
+
+
+# ============================================================================
+# AI INTERVIEW SYSTEM CLOUD FUNCTIONS
+# ============================================================================
+
+@https_fn.on_request(region="asia-south1", memory=options.MemoryOption.MB_512)
+def start_ai_interview(req: https_fn.Request) -> https_fn.Response:
+    """HTTP endpoint triggered when founder clicks 'Start AI Interview' button."""
+    
+    # Initialize Firebase app when function runs
+    get_firebase_app()
+
+    try:
+        # Handle CORS for testing
+        if req.method == 'OPTIONS':
+            headers = get_cors_headers(req)
+            headers['Access-Control-Max-Age'] = '3600'
+            return https_fn.Response('', status=204, headers=headers)
+
+        if req.method != 'POST':
+            return https_fn.Response(
+                json.dumps({"error": "Method not allowed"}),
+                status=405,
+                headers={'Content-Type': 'application/json'}
+            )
+
+        # Extract and validate parameters
+        data = req.get_json()
+        if not data:
+            return https_fn.Response('No JSON data provided', status=400)
+
+        interview_id = data.get("interview_id")
+        if not interview_id:
+            return https_fn.Response('Missing required parameter: interview_id', status=400)
+
+        print(f"Starting AI interview for: {interview_id}")
+
+        # Fetch interview record from Firestore
+        db = firestore.client()
+        interview_ref = db.collection('interviews').document(interview_id)
+        interview_doc = interview_ref.get()
+        
+        if not interview_doc.exists:
+            return https_fn.Response('Interview not found', status=404)
+        
+        interview_data = interview_doc.to_dict()
+        current_status = interview_data.get('status')
+        
+        # Verify status is 'scheduled' or 'waiting_for_founder'
+        if current_status not in ['scheduled', 'waiting_for_founder']:
+            return https_fn.Response(
+                f'Interview cannot be started. Current status: {current_status}', 
+                status=400
+            )
+
+        # Update status to 'in_progress' using plain datetime
+        from datetime import datetime
+        interview_ref.update({
+            'status': 'in_progress',
+            'startedAt': datetime.now().isoformat(),
+            'updatedAt': datetime.now().isoformat()
+        })
+
+        # Publish message to Pub/Sub: "bot-join-meeting" topic
+        global publisher
+        if publisher is None:
+            publisher = pubsub_v1.PublisherClient()
+
+        topic_path = publisher.topic_path("veritas-472301", "bot-join-meeting")
+        message_data = {
+            "interview_id": interview_id,
+            "meeting_link": interview_data.get('meetingLink'),
+            "company_id": interview_data.get('companyId'),
+            "founder_email": interview_data.get('founderEmail'),
+            "investor_email": interview_data.get('investorEmail')
+        }
+        message_bytes = json.dumps(message_data).encode("utf-8")
+
+        publish_future = publisher.publish(topic_path, data=message_bytes)
+        publish_future.result()
+
+        print(f"Published bot-join-meeting message for interview: {interview_id}")
+
+        # Return success response
+        result = {
+            'status': 'SUCCESS',
+            'message': 'AI Interview started successfully',
+            'interviewId': interview_id
+        }
+        
+        headers = get_cors_headers(req)
+        return https_fn.Response(json.dumps(result), status=200, headers=headers)
+        
+    except Exception as e:
+        print(f"Error in start_ai_interview: {e}")
+        import traceback
+        traceback.print_exc()
+        headers = get_cors_headers(req)
+        return https_fn.Response(json.dumps({"status": "FAILED", "error": str(e)}), status=500, headers=headers)
+
+
+@pubsub_fn.on_message_published(
+    topic="bot-join-meeting", 
+    timeout_sec=300,
+    memory=options.MemoryOption.MB_512
+)
+def conduct_interview(event: pubsub_fn.CloudEvent) -> None:
+    """Prepare interview questions - frontend handles recording"""
+    
+    # Initialize Firebase app when function runs
+    get_firebase_app()
+
+    try:
+        # Extract interview_id from message - handle new Pub/Sub event structure
+        import base64
+        
+        # New event structure uses event.data["message"]["data"]
+        if hasattr(event.data, 'message'):
+            message_bytes = base64.b64decode(event.data.message.data)
+        else:
+            # Fallback for direct data access
+            message_bytes = base64.b64decode(event.data["message"]["data"])
+        
+        message_data = json.loads(message_bytes.decode('utf-8'))
+        interview_id = message_data.get('interview_id')
+        company_id = message_data.get('company_id')
+        
+        if not interview_id:
+            print("Error: No interview_id in message")
+            return
+
+        print(f"Preparing interview questions: {interview_id}")
+
+        # Initialize QAGenerationAgent
+        from agents.qa_generation_agent import QAGenerationAgent
+        qa_agent = QAGenerationAgent(project="veritas-472301")
+        qa_agent.set_up()
+
+        # Generate questions based on Memo 1 + Diligence data
+        print(f"Generating questions for company: {company_id}")
+        questions = qa_agent.generate_questions(company_id)
+        print(f"Generated {len(questions)} questions")
+
+        # Store questions in Firestore
+        db = firestore.client()
+        interview_ref = db.collection('interviews').document(interview_id)
+        interview_ref.update({
+            'questions': questions,
+            'status': 'ready',
+            'updatedAt': datetime.now().isoformat()
+        })
+        
+        print(f"Stored {len(questions)} questions for interview {interview_id}")
+        
+    except Exception as e:
+        print(f"Error in conduct_interview: {e}")
+        import traceback
+        traceback.print_exc()
+        
+        # Update status to failed
+        try:
+            db = firestore.client()
+            interview_ref = db.collection('interviews').document(interview_id)
+            interview_ref.update({
+                'status': 'failed',
+                'error': str(e),
+                'updatedAt': datetime.now().isoformat()
+            })
+        except:
+            pass
+
+
+@pubsub_fn.on_message_published(topic="interview-completed", memory=512)
+def generate_interview_summary(event: pubsub_fn.CloudEvent) -> None:
+    """Generate post-interview analysis triggered by Pub/Sub."""
+    
+    # Initialize Firebase app when function runs
+    get_firebase_app()
+
+    try:
+        # Extract interview_id with proper Pub/Sub message parsing
+        import base64
+        if hasattr(event.data, 'message'):
+            message_bytes = base64.b64decode(event.data.message.data)
+        else:
+            message_bytes = base64.b64decode(event.data["message"]["data"])
+        message_data = json.loads(message_bytes.decode('utf-8'))
+        interview_id = message_data.get('interview_id')
+        company_id = message_data.get('company_id')
+        
+        if not interview_id:
+            print("Error: No interview_id in message")
+            return
+
+        print(f"Generating summary for interview: {interview_id}")
+
+        # Initialize InterviewSynthesisAgent
+        from agents.interview_synthesis_agent import InterviewSynthesisAgent
+        synthesis_agent = InterviewSynthesisAgent(project="veritas-472301")
+        synthesis_agent.set_up()
+
+        # Generate summary
+        summary = synthesis_agent.generate_summary(interview_id)
+        
+        print(f"Generated summary for interview: {interview_id}")
+        print(f"Confidence Score: {summary.get('confidenceScore', 'N/A')}/10")
+        
+    except Exception as e:
+        print(f"Error in generate_interview_summary: {e}")
+        import traceback
+        traceback.print_exc()
+
+
+@https_fn.on_request(region="asia-south1", memory=options.MemoryOption.MB_512)
+def submit_interview_answer(req: https_fn.Request) -> https_fn.Response:
+    """Process founder's recorded answer and get next question"""
+    
+    # Initialize Firebase app when function runs
+    get_firebase_app()
+    
+    try:
+        # Handle CORS for testing
+        if req.method == 'OPTIONS':
+            headers = get_cors_headers(req)
+            headers['Access-Control-Max-Age'] = '3600'
+            return https_fn.Response('', status=204, headers=headers)
+
+        if req.method != 'POST':
+            return https_fn.Response(
+                json.dumps({"error": "Method not allowed"}),
+                status=405,
+                headers={'Content-Type': 'application/json'}
+            )
+
+        # Extract and validate parameters
+        data = req.get_json()
+        if not data:
+            return https_fn.Response('No JSON data provided', status=400)
+
+        interview_id = data.get('interview_id')
+        question_number = data.get('question_number')
+        answer_text = data.get('answer_text')  # Transcribed by frontend
+        answer_audio_url = data.get('answer_audio_url')  # Optional
+        
+        if not all([interview_id, question_number is not None, answer_text]):
+            return https_fn.Response('Missing required parameters: interview_id, question_number, answer_text', status=400)
+
+        print(f"Processing answer for interview {interview_id}, question {question_number}")
+        
+        # Store answer in transcript
+        db = firestore.client()
+        interview_ref = db.collection('interviews').document(interview_id)
+        interview_doc = interview_ref.get()
+        
+        if not interview_doc.exists:
+            return https_fn.Response('Interview not found', status=404)
+        
+        interview_data = interview_doc.to_dict()
+        transcript = interview_data.get('transcript', [])
+        
+        # Add answer to transcript
+        transcript.append({
+            'speaker': 'founder',
+            'text': answer_text,
+            'timestamp': datetime.now().isoformat(),
+            'questionNumber': question_number,
+            'audioUrl': answer_audio_url
+        })
+        
+        # Update Firestore
+        interview_ref.update({
+            'transcript': transcript,
+            'updatedAt': datetime.now().isoformat()
+        })
+        
+        # Check if interview is complete
+        questions = interview_data.get('questions', [])
+        if question_number >= len(questions) - 1:
+            # Trigger summary generation
+            interview_ref.update({'status': 'generating_summary'})
+            
+            global publisher
+            if publisher is None:
+                publisher = pubsub_v1.PublisherClient()
+            
+            topic_path = publisher.topic_path("veritas-472301", "interview-completed")
+            message_data = {
+                "interview_id": interview_id,
+                "company_id": interview_data.get('companyId')
+            }
+            message_bytes = json.dumps(message_data).encode("utf-8")
+            publisher.publish(topic_path, data=message_bytes)
+            
+            result = {
+                'status': 'completed',
+                'message': 'Interview completed'
+            }
+            
+            headers = get_cors_headers(req)
+            return https_fn.Response(json.dumps(result), status=200, headers=headers)
+        
+        # Return next question
+        next_question = questions[question_number + 1] if question_number + 1 < len(questions) else None
+        
+        result = {
+            'status': 'continue',
+            'nextQuestion': next_question,
+            'questionNumber': question_number + 1
+        }
+        
+        headers = get_cors_headers(req)
+        return https_fn.Response(json.dumps(result), status=200, headers=headers)
+        
+    except Exception as e:
+        print(f"Error in submit_interview_answer: {e}")
+        import traceback
+        traceback.print_exc()
+        headers = get_cors_headers(req)
         return https_fn.Response(json.dumps({"error": str(e)}), status=500, headers=headers)

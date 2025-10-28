@@ -87,6 +87,7 @@ interface ValidationResult {
 
 interface Memo1Data {
   title?: string;
+  founder_email?: string;
   summary?: string;
   market_analysis?: string;
   financial_projections?: string;
@@ -481,6 +482,10 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
   };
 
   const handleScheduleInterview = async () => {
+    console.log('🚀 handleScheduleInterview called');
+    console.log('📧 enhancedMemo1.founder_email:', enhancedMemo1.founder_email);
+    console.log('📦 Full enhancedMemo1:', enhancedMemo1);
+    
     if (!user) {
       toast({
         title: "Authentication Required",
@@ -490,10 +495,9 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
       return;
     }
 
-    // Extract founder email from memo data or use a placeholder
-    const founderEmail = enhancedMemo1.founder_linkedin_url 
-      ? `founder@${enhancedMemo1.title?.toLowerCase().replace(/\s+/g, '') || 'startup'}.com`
-      : 'founder@startup.com';
+    // Use the real founder email from the ingestionResults document
+    const founderEmail = enhancedMemo1.founder_email || 'founder@startup.com';
+    console.log('✉️ Using founder email:', founderEmail);
 
     const startupName = enhancedMemo1.title || 'Startup';
 
@@ -506,19 +510,20 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
         startup_name: startupName
       });
 
-      const result = await apiClient.scheduleInterview({
-        founder_email: founderEmail,
-        investor_email: user.email,
-        startup_name: startupName,
-        calendar_id: '93fe7cf38ab2552f7c40f0a9e3584f3fab5bbe5e006011eac718ca8e7cc34e4f@group.calendar.google.com'
-      });
+      const companyId = memoId || `company_${Date.now()}`;
+      const result = await apiClient.scheduleInterview(
+        companyId,
+        founderEmail,
+        user.email,
+        startupName
+      );
 
       if (result.success && result.data?.status === 'SUCCESS') {
         console.log('✅ Interview scheduled successfully:', result.data);
         
         toast({
           title: "Interview Scheduled Successfully!",
-          description: `AI interview for ${startupName} has been scheduled. Check your calendar for details.`,
+          description: `Interview invitation has been sent to the founder. Interview URL: ${result.data.interviewUrl}`,
         });
 
         // Call the callback if provided

@@ -78,20 +78,6 @@ export default function MemoHeader({ memoData, diligenceData, onTriggerDiligence
         <Badge variant="outline" className="text-green-600 border-green-600">
           {memoData?.memo_1 ? 'Analysis Complete' : 'Processing'}
         </Badge>
-        {diligenceData ? (
-          <Badge variant="outline" className="text-blue-600 border-blue-600">
-            Diligence Complete
-          </Badge>
-        ) : (
-          <Button
-            onClick={handleTriggerDiligence}
-            size="sm"
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            <TrendingUp className="mr-2 h-4 w-4" />
-            Start Diligence
-          </Button>
-        )}
       </div>
     </div>
   );

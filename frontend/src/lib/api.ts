@@ -111,11 +111,121 @@ class ApiClient {
     });
   }
 
-  async scheduleInterview(interviewData: any): Promise<ApiResponse> {
-    return this.makeRequest('schedule_ai_interview', {
-      method: 'POST',
-      body: JSON.stringify(interviewData),
+  async scheduleInterview(companyId: string, founderEmail: string, investorEmail: string, startupName: string): Promise<ApiResponse> {
+    try {
+      const response = await fetch(API_ENDPOINTS.SCHEDULE_INTERVIEW, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          company_id: companyId,
+          founder_email: founderEmail,
+          investor_email: investorEmail,
+          startup_name: startupName
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      return { success: true, data };
+    } catch (error) {
+      console.error('API request failed:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
+  async startInterview(interviewId: string): Promise<ApiResponse> {
+    try {
+      const response = await fetch(API_ENDPOINTS.START_INTERVIEW, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          interview_id: interviewId
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      return { success: true, data };
+    } catch (error) {
+      console.error('API request failed:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
+  async getInterviewStatus(interviewId: string): Promise<ApiResponse> {
+    // This would typically be a Firestore listener in a real implementation
+    // For now, we'll return a mock response
+    return Promise.resolve({
+      success: true,
+      data: {
+        status: 'scheduled',
+        meetingLink: 'https://meet.google.com/example',
+        scheduledFor: new Date().toISOString()
+      }
     });
+  }
+
+  async getInterviewSummary(interviewId: string): Promise<ApiResponse> {
+    // This would fetch from Firestore in a real implementation
+    return Promise.resolve({
+      success: true,
+      data: {
+        executiveSummary: "Interview analysis completed successfully.",
+        confidenceScore: 8,
+        keyInsights: ["Strong technical knowledge", "Clear market understanding"],
+        redFlags: [],
+        recommendations: "Proceed with due diligence"
+      }
+    });
+  }
+
+  async submitAnswer(interviewId: string, questionNumber: number, answerText: string, videoUrl?: string): Promise<ApiResponse> {
+    try {
+      const response = await fetch(API_ENDPOINTS.SUBMIT_INTERVIEW_ANSWER, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          interview_id: interviewId,
+          question_number: questionNumber,
+          answer_text: answerText,
+          answer_audio_url: videoUrl || '' // Backend expects this field
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      return { success: true, data };
+    } catch (error) {
+      console.error('API request failed:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
   }
 
   async getAIRecommendations(founderEmail: string): Promise<ApiResponse> {
@@ -178,16 +288,21 @@ class ApiClient {
 export const apiClient = new ApiClient();
 
 export const API_ENDPOINTS = {
-  TRIGGER_DILIGENCE: process.env.NEXT_PUBLIC_TRIGGER_DILIGENCE_URL || 'https://asia-south1-veritas-472301.cloudfunctions.net/trigger_diligence',
-  ON_FILE_UPLOAD: process.env.NEXT_PUBLIC_ON_FILE_UPLOAD_URL || 'https://asia-south1-veritas-472301.cloudfunctions.net/on_file_upload',
+  TRIGGER_DILIGENCE: process.env.NEXT_PUBLIC_TRIGGER_DILIGENCE_URL || 'https://trigger-diligence-abvgpbhuca-el.a.run.app',
+  ON_FILE_UPLOAD: process.env.NEXT_PUBLIC_ON_FILE_UPLOAD_URL || 'https://on-file-upload-abvgpbhuca-el.a.run.app',
   PROCESS_INGESTION: process.env.NEXT_PUBLIC_PROCESS_INGESTION_URL || 'https://asia-south1-veritas-472301.cloudfunctions.net/process_ingestion_task',
   PROCESS_DILIGENCE: process.env.NEXT_PUBLIC_PROCESS_DILIGENCE_URL || 'https://asia-south1-veritas-472301.cloudfunctions.net/process_diligence_task',
-  SCHEDULE_INTERVIEW: process.env.NEXT_PUBLIC_SCHEDULE_INTERVIEW_URL || 'https://asia-south1-veritas-472301.cloudfunctions.net/schedule_ai_interview',
-  CHECK_MEMO: process.env.NEXT_PUBLIC_CHECK_MEMO_URL || 'https://asia-south1-veritas-472301.cloudfunctions.net/check_memo',
-  CHECK_DILIGENCE: process.env.NEXT_PUBLIC_CHECK_DILIGENCE_URL || 'https://asia-south1-veritas-472301.cloudfunctions.net/check_diligence',
-  VALIDATE_MEMO_DATA: process.env.NEXT_PUBLIC_VALIDATE_MEMO_DATA_URL || 'https://asia-south1-veritas-472301.cloudfunctions.net/validate_memo_data',
-  VALIDATE_MARKET_SIZE: process.env.NEXT_PUBLIC_VALIDATE_MARKET_SIZE_URL || 'https://asia-south1-veritas-472301.cloudfunctions.net/validate_market_size',
-  VALIDATE_COMPETITORS: process.env.NEXT_PUBLIC_VALIDATE_COMPETITORS_URL || 'https://asia-south1-veritas-472301.cloudfunctions.net/validate_competitors',
+  SCHEDULE_INTERVIEW: process.env.NEXT_PUBLIC_SCHEDULE_INTERVIEW_URL || 'https://schedule-ai-interview-abvgpbhuca-el.a.run.app',
+  START_INTERVIEW: process.env.NEXT_PUBLIC_START_INTERVIEW_URL || 'https://asia-south1-veritas-472301.cloudfunctions.net/start_ai_interview',
+  SUBMIT_INTERVIEW_ANSWER: process.env.NEXT_PUBLIC_SUBMIT_INTERVIEW_ANSWER_URL || 'https://asia-south1-veritas-472301.cloudfunctions.net/submit_interview_answer',
+  CHECK_MEMO: process.env.NEXT_PUBLIC_CHECK_MEMO_URL || 'https://check-memo-abvgpbhuca-el.a.run.app',
+  CHECK_DILIGENCE: process.env.NEXT_PUBLIC_CHECK_DILIGENCE_URL || 'https://check-diligence-abvgpbhuca-el.a.run.app',
+  VALIDATE_MEMO_DATA: process.env.NEXT_PUBLIC_VALIDATE_MEMO_DATA_URL || 'https://validate-memo-data-abvgpbhuca-el.a.run.app',
+  VALIDATE_MARKET_SIZE: process.env.NEXT_PUBLIC_VALIDATE_MARKET_SIZE_URL || 'https://validate-market-size-abvgpbhuca-el.a.run.app',
+  VALIDATE_COMPETITORS: process.env.NEXT_PUBLIC_VALIDATE_COMPETITORS_URL || 'https://validate-competitors-abvgpbhuca-el.a.run.app',
+  AI_FEEDBACK: process.env.NEXT_PUBLIC_AI_FEEDBACK_URL || 'https://ai-feedback-abvgpbhuca-el.a.run.app',
+  QUERY_DILIGENCE: process.env.NEXT_PUBLIC_QUERY_DILIGENCE_URL || 'https://query-diligence-abvgpbhuca-el.a.run.app',
+  RUN_DILIGENCE: process.env.NEXT_PUBLIC_RUN_DILIGENCE_URL || 'https://run-diligence-abvgpbhuca-el.a.run.app',
 };
 
 // Standalone uploadFile function for backward compatibility

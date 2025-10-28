@@ -47,6 +47,7 @@ interface MemoData {
   id: string;
   memo_1?: {
     title?: string;
+    founder_email?: string;
     summary?: string;
     business_model?: string;
     market_analysis?: string;
@@ -257,6 +258,7 @@ export default function DealMemoPage() {
               initial_flags: memo1Data.initial_flags || memo1Data.red_flags || [],
               validation_points: memo1Data.validation_points || memo1Data.key_validation_points || [],
               founder_name: memo1Data.founder_name || memo1Data.founder || 'Unknown',
+              founder_email: memo1Data.founder_email,
               founder_linkedin_url: memo1Data.founder_linkedin_url || memo1Data.founder_linkedin || '',
               company_linkedin_url: memo1Data.company_linkedin_url || memo1Data.company_linkedin || '',
               timestamp: data.timestamp,
@@ -942,6 +944,7 @@ export default function DealMemoPage() {
               console.log('Passing memo1 data to Memo1Tab:', memo1Data);
               console.log('Market size in memo1:', memo1Data.market_size);
               console.log('Market size type in memo1:', typeof memo1Data.market_size);
+              console.log('Founder email in memo1:', memo1Data.founder_email);
               return memo1Data;
             })()} 
             memoId={memoData.id}
@@ -949,7 +952,7 @@ export default function DealMemoPage() {
               console.log('Interview scheduled:', result);
               toast({
                 title: "Interview Scheduled",
-                description: "The AI interview has been successfully scheduled in your calendar.",
+                description: "Interview invitation has been sent to the founder successfully.",
               });
             }}
           />

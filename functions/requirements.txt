@@ -22,8 +22,10 @@ aiohttp>=3.8.0
 python-dotenv>=1.0.0
 
 google-cloud-texttospeech>=2.16.2  # For AI voice
-playwright>=1.40.0  # Better than Puppeteer for Python
 
 # Vertex AI for structured data extraction
 vertexai>=1.38.0
+
+# SendGrid for email notifications
+sendgrid>=6.9.0
 

@@ -3,6 +3,13 @@ rules_version = '2';
 // Allow authenticated users to read and write files
 service firebase.storage {
   match /b/{bucket}/o {
+    // Interview videos - MOVED TO TOP so it evaluates FIRST
+    match /interviews/{interviewId}/{fileName} {
+      allow read: if request.auth != null; // Only authenticated can read
+      allow write: if true; // Anyone can upload (unauthenticated founders)
+    }
+    
+    // General rule for everything else - evaluated AFTER interview rule
     match /{allPaths=**} {
       // Allow read and write for authenticated users
       allow read, write: if request.auth != null;

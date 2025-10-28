@@ -22,7 +22,7 @@ const envConfig = {
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Enable static export for Firebase Hosting
-  //output: 'export',
+  output: 'export',
   trailingSlash: false,
   images: {
     unoptimized: true
@@ -32,7 +32,7 @@ const nextConfig = {
     esmExternals: false
   },
   // Ensure proper asset handling
-  //distDir: 'out',
+  distDir: 'out',
   eslint: {
     ignoreDuringBuilds: true,
   },

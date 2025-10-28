@@ -5,6 +5,16 @@ import { useState, useEffect } from 'react';
 import StartInterviewButton from '@/components/StartInterviewButton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
+// For static export compatibility
+export function generateStaticParams() {
+  return [];
+}
+
+// Dynamic rendering for this route
+export const dynamic = 'force-dynamic';
+export const dynamicParams = true;
+export const revalidate = 0;
+
 export default function InterviewPage() {
   const params = useParams();
   const interviewId = params.interviewId as string;
@@ -13,7 +23,6 @@ export default function InterviewPage() {
 
   useEffect(() => {
     // Load interview data from Firestore
-    // For now, mock data
     setInterviewData({
       id: interviewId,
       startupName: 'DataCorp',
@@ -39,7 +48,7 @@ export default function InterviewPage() {
         <CardContent>
           <StartInterviewButton
             interviewId={interviewId}
-            meetingLink="" // No longer needed
+            meetingLink=""
           />
         </CardContent>
       </Card>

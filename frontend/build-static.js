@@ -15,7 +15,7 @@ try {
   });
 
   // Step 2: Verify admin pages were generated
-  const adminOutPath = path.join(__dirname, 'out/admin');
+  const adminOutPath = path.join(__dirname, 'out/server/app/admin');
   if (fs.existsSync(adminOutPath)) {
     const adminFiles = fs.readdirSync(adminOutPath);
     console.log(`✅ Admin pages generated: ${adminFiles.length} files`);

@@ -21,19 +21,15 @@ const envConfig = {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Enable static export for Firebase Hosting (production only)
-  ...(process.env.NODE_ENV === 'production' && { output: 'export' }),
+  // SSR mode - no static export needed
   trailingSlash: false,
   skipTrailingSlashRedirect: true,
   images: {
     unoptimized: true
   },
-  // Disable server-side features for static export
   experimental: {
     esmExternals: false
   },
-  // Ensure proper asset handling (production only)
-  ...(process.env.NODE_ENV === 'production' && { distDir: 'out' }),
   eslint: {
     ignoreDuringBuilds: true,
   },

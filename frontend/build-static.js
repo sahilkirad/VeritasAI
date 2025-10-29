@@ -9,7 +9,11 @@ console.log('🔧 Building static export for admin dashboard...');
 try {
   // Step 1: Build static export
   console.log('🏗️ Building static export...');
-  execSync('NODE_ENV=production npm run build', { 
+  // Set NODE_ENV for Windows compatibility
+  const isWindows = process.platform === 'win32';
+  const command = isWindows ? 'set NODE_ENV=production && npm run build' : 'NODE_ENV=production npm run build';
+  
+  execSync(command, { 
     stdio: 'inherit',
     cwd: __dirname 
   });

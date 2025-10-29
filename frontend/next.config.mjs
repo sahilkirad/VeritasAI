@@ -23,16 +23,15 @@ const envConfig = {
 const nextConfig = {
   // Use static export but with dynamic routes support
   output: 'export',
+  distDir: 'out',
   trailingSlash: false,
+  skipTrailingSlashRedirect: true,
   images: {
     unoptimized: true
   },
-  // Disable server-side features for static export
   experimental: {
     esmExternals: false
   },
-  // Ensure proper asset handling
-  distDir: 'out',
   eslint: {
     ignoreDuringBuilds: true,
   },

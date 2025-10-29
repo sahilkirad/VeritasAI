@@ -720,7 +720,7 @@ export default function DealMemoPage() {
   // Show available memos selection if we have multiple memos
   if (availableMemos.length > 0) {
     return (
-      <div className="space-y-4 max-w-7xl mx-auto px-4">
+      <div className="space-y-2 max-w-6xl mx-auto px-2">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold">Available Deal Memos</h1>
@@ -776,7 +776,7 @@ export default function DealMemoPage() {
   // Show upload prompt if no recent data
   if (!hasRecentData || !memoData) {
     return (
-      <div className="space-y-4 max-w-7xl mx-auto px-4">
+      <div className="space-y-2 max-w-6xl mx-auto px-2">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold">Deal Memo</h1>
@@ -786,15 +786,15 @@ export default function DealMemoPage() {
           </div>
         </div>
 
-        <div className="text-center py-8">
-          <div className="mx-auto w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mb-4">
-            <Upload className="h-10 w-10 text-blue-600" />
+        <div className="text-center py-4">
+          <div className="mx-auto w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-3">
+            <Upload className="h-8 w-8 text-blue-600" />
           </div>
-          <h3 className="text-xl font-semibold mb-3">No Deal Memos Found</h3>
-          <p className="text-muted-foreground mb-4 max-w-md mx-auto text-sm">
+          <h3 className="text-lg font-semibold mb-2">No Deal Memos Found</h3>
+          <p className="text-muted-foreground mb-3 max-w-md mx-auto text-xs">
             Create investment rooms to connect with founders and access AI-powered deal analysis and due diligence reports.
           </p>
-          <div className="space-y-3">
+          <div className="space-y-2">
             <Button
               onClick={() => window.location.href = '/dashboard/create-room'}
               className="bg-blue-600 hover:bg-blue-700"

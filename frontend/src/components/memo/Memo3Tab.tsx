@@ -477,19 +477,19 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       {/* Technology Reports */}
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">
-            <Cpu className="h-4 w-4" />
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-1 text-base">
+            <Cpu className="h-3 w-3" />
             Technology Reports
             </CardTitle>
-            <CardDescription className="text-sm">
+            <CardDescription className="text-xs">
             Comprehensive technology analysis and workforce readiness assessment
             </CardDescription>
           </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-2">
           {/* Technology Stack Overview */}
           <div>
             <h4 className="font-semibold mb-3">Technology Stack Overview</h4>
@@ -894,7 +894,7 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
             Revenue model analysis and financial metrics from pitch deck
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-2">
           <div className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border-2 border-blue-200 shadow-sm">
             <h4 className="font-bold text-blue-900 mb-4 flex items-center gap-2">
               <TrendingUp className="h-4 w-4" />
@@ -1018,7 +1018,7 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
             Pricing Strategy
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-2">
           <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
             <h4 className="font-semibold text-blue-800 mb-2">Pricing Strategy from Pitch Deck</h4>
             <div className="text-sm text-blue-700 space-y-2">
@@ -1075,7 +1075,7 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
             Dynamic pricing tiers and corporate revenue model analysis
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-2">
           <div>
             <h4 className="font-semibold mb-3">Tiered Pricing: Different packages based on features or usage levels</h4>
             <div className="grid gap-3 md:grid-cols-2">
@@ -1153,7 +1153,7 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
             Customer acquisition costs, lifetime value, and revenue model analysis
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-2">
           {/* Academic Institutions */}
           <div>
             <h4 className="font-semibold mb-2">Key metrics for revenue generation - for Academic Institutions</h4>
@@ -1236,7 +1236,7 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
             Dynamic competitor analysis with market positioning and competitive advantages
             </CardDescription>
           </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-2">
           {enhancedDiligenceData.competitors && Array.isArray(enhancedDiligenceData.competitors) && enhancedDiligenceData.competitors.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-3">
               {enhancedDiligenceData.competitors.map((competitor: any, index: number) => (
@@ -1315,7 +1315,7 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
             Financials & Fundraising
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-2">
           {/* Financial Overview */}
           <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
             <h4 className="font-semibold text-blue-800 mb-2">Financial Overview from Pitch Deck</h4>
@@ -1387,7 +1387,7 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
             Risks and Mitigation
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-2">
           <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
             <h4 className="font-semibold text-yellow-800 mb-2">Risks and Mitigation from Pitch Deck</h4>
             <div className="text-sm space-y-3">
@@ -1442,7 +1442,7 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
             Exit Strategy
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-2">
           <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
             <h4 className="font-semibold text-blue-800 mb-2">Exit Strategy from Pitch Deck</h4>
             <div className="text-sm text-blue-700 space-y-2">
@@ -1474,7 +1474,7 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
             Team Information
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-2">
           <div className="grid gap-3 md:grid-cols-2">
             <div className="p-3 bg-blue-50 rounded-lg">
               <h5 className="font-medium text-blue-800">Team Size</h5>
@@ -1520,7 +1520,7 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
             Investment Decision
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-2">
           <div className="p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border">
             <h4 className="font-semibold text-gray-800 mb-2">Investment Recommendation</h4>
             <p className="text-sm text-gray-700 mb-2">

@@ -578,17 +578,17 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       {/* Company Snapshot */}
       <Card>
-        <CardHeader className="pb-3">
+        <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Building2 className="h-4 w-4" />
+              <CardTitle className="flex items-center gap-1 text-base">
+                <Building2 className="h-3 w-3" />
                 Company Snapshot
               </CardTitle>
-              <CardDescription className="text-sm">
+              <CardDescription className="text-xs">
                 Key company information extracted from pitch deck
               </CardDescription>
             </div>
@@ -632,79 +632,79 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
           </div>
         </CardHeader>
         <CardContent>
-          {/* Company Overview Table */}
-          <div className="overflow-hidden border rounded-lg mb-6">
+          {/* Company Overview Table - Compact */}
+          <div className="overflow-hidden border rounded mb-3">
             <table className="w-full">
               <thead className="bg-slate-50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-900">Company Information</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-900">Value</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-900">Status</th>
+                  <th className="px-2 py-1 text-left text-xs font-semibold text-slate-900">Field</th>
+                  <th className="px-2 py-1 text-left text-xs font-semibold text-slate-900">Value</th>
+                  <th className="px-2 py-1 text-left text-xs font-semibold text-slate-900">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 <tr>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Company Name</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">{safeRenderAnyValue(enhancedMemo1.title)}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-2 py-1 text-xs font-medium text-gray-900">Company Name</td>
+                  <td className="px-2 py-1 text-xs text-gray-700">{safeRenderAnyValue(enhancedMemo1.title)}</td>
+                  <td className="px-2 py-1">
                     {enhancedMemo1.title ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        Available
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                        ✓
                       </span>
                     ) : (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                        Not specified
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                        -
                       </span>
                     )}
                   </td>
                 </tr>
                 <tr>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Stage</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">
+                  <td className="px-2 py-1 text-xs font-medium text-gray-900">Stage</td>
+                  <td className="px-2 py-1 text-xs text-gray-700">
                     {renderEnrichedField("company_stage", enhancedMemo1.company_stage_enriched)}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-2 py-1">
                     {enhancedMemo1.company_stage ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        Available
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                        ✓
                       </span>
                     ) : (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                        Not specified
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                        -
                       </span>
                     )}
                   </td>
                 </tr>
                 <tr>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Headquarters</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">
+                  <td className="px-2 py-1 text-xs font-medium text-gray-900">Headquarters</td>
+                  <td className="px-2 py-1 text-xs text-gray-700">
                     {renderEnrichedField("headquarters", enhancedMemo1.headquarters_enriched)}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-2 py-1">
                     {enhancedMemo1.headquarters ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        Available
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                        ✓
                       </span>
                     ) : (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                        Not specified
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                        -
                       </span>
                     )}
                   </td>
                 </tr>
                 <tr>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Founded</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">
+                  <td className="px-2 py-1 text-xs font-medium text-gray-900">Founded</td>
+                  <td className="px-2 py-1 text-xs text-gray-700">
                     {renderEnrichedField("founded_date", enhancedMemo1.founded_date_enriched)}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-2 py-1">
                     {enhancedMemo1.founded_date ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        Available
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                        ✓
                       </span>
                     ) : (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                        Not specified
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                        -
                       </span>
                     )}
                   </td>
@@ -725,69 +725,69 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
               </thead>
               <tbody className="divide-y divide-gray-200">
                 <tr>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Amount Raising</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">
+                  <td className="px-2 py-1 text-xs font-medium text-gray-900">Amount Raising</td>
+                  <td className="px-2 py-1 text-xs text-gray-700">
                     {renderEnrichedField("amount_raising", enhancedMemo1.amount_raising_enriched)}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-2 py-1">
                     {enhancedMemo1.amount_raising ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        Available
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                        ✓
                       </span>
                     ) : (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                        Not specified
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                        -
                       </span>
                     )}
                   </td>
                 </tr>
                 <tr>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Post-Money Valuation</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">
+                  <td className="px-2 py-1 text-xs font-medium text-gray-900">Post-Money Valuation</td>
+                  <td className="px-2 py-1 text-xs text-gray-700">
                     {renderEnrichedField("post_money_valuation", enhancedMemo1.post_money_valuation_enriched)}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-2 py-1">
                     {enhancedMemo1.post_money_valuation ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        Available
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                        ✓
                       </span>
                     ) : (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                        Not specified
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                        -
                       </span>
                     )}
                   </td>
                 </tr>
                 <tr>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Investment Sought</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">
+                  <td className="px-2 py-1 text-xs font-medium text-gray-900">Investment Sought</td>
+                  <td className="px-2 py-1 text-xs text-gray-700">
                     {renderEnrichedField("investment_sought", enhancedMemo1.investment_sought_enriched)}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-2 py-1">
                     {enhancedMemo1.investment_sought ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        Available
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                        ✓
                       </span>
                     ) : (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                        Not specified
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                        -
                       </span>
                     )}
                   </td>
                 </tr>
                 <tr>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Ownership Target</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">
+                  <td className="px-2 py-1 text-xs font-medium text-gray-900">Ownership Target</td>
+                  <td className="px-2 py-1 text-xs text-gray-700">
                     {renderEnrichedField("ownership_target", enhancedMemo1.ownership_target_enriched)}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-2 py-1">
                     {enhancedMemo1.ownership_target ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        Available
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                        ✓
                       </span>
                     ) : (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                        Not specified
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                        -
                       </span>
                     )}
                   </td>
@@ -808,35 +808,35 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
               </thead>
               <tbody className="divide-y divide-gray-200">
                 <tr>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Key Thesis</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">
+                  <td className="px-2 py-1 text-xs font-medium text-gray-900">Key Thesis</td>
+                  <td className="px-2 py-1 text-xs text-gray-700">
                     {renderEnrichedField("key_thesis", enhancedMemo1.key_thesis_enriched)}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-2 py-1">
                     {enhancedMemo1.key_thesis ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        Available
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                        ✓
                       </span>
                     ) : (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                        Not specified
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                        -
                       </span>
                     )}
                   </td>
                 </tr>
                 <tr>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Key Metric</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">
+                  <td className="px-2 py-1 text-xs font-medium text-gray-900">Key Metric</td>
+                  <td className="px-2 py-1 text-xs text-gray-700">
                     {renderEnrichedField("key_metric", enhancedMemo1.key_metric_enriched)}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-2 py-1">
                     {enhancedMemo1.key_metric ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        Available
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                        ✓
                       </span>
                     ) : (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                        Not specified
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                        -
                       </span>
                     )}
                   </td>
@@ -890,81 +890,81 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
               </thead>
               <tbody className="divide-y divide-gray-200">
                 <tr>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Industry Category</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">
+                  <td className="px-2 py-1 text-xs font-medium text-gray-900">Industry Category</td>
+                  <td className="px-2 py-1 text-xs text-gray-700">
                     {safeRenderAnyValue(enhancedMemo1.industry_category_enriched?.value || enhancedMemo1.industry_category)}
                     {enhancedMemo1.industry_category_enriched?.enriched && (
                       <Badge variant="secondary" className="ml-2 text-xs">AI-enriched</Badge>
                     )}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-2 py-1">
                     {enhancedMemo1.industry_category ? (
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                         Pitch Deck
                       </span>
                     ) : (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                        Not specified
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                        -
                       </span>
                     )}
                   </td>
                 </tr>
                 <tr>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Target Market</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">
+                  <td className="px-2 py-1 text-xs font-medium text-gray-900">Target Market</td>
+                  <td className="px-2 py-1 text-xs text-gray-700">
                     {safeRenderAnyValue(enhancedMemo1.target_market_enriched?.value || enhancedMemo1.target_market || enhancedMemo1.target_customers)}
                     {enhancedMemo1.target_market_enriched?.enriched && (
                       <Badge variant="secondary" className="ml-2 text-xs">AI-enriched</Badge>
                     )}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-2 py-1">
                     {(enhancedMemo1.target_market || enhancedMemo1.target_customers) ? (
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                         Pitch Deck
                       </span>
                     ) : (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                        Not specified
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                        -
                       </span>
                     )}
                   </td>
                 </tr>
                 <tr>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Market Timing</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">
+                  <td className="px-2 py-1 text-xs font-medium text-gray-900">Market Timing</td>
+                  <td className="px-2 py-1 text-xs text-gray-700">
                     {safeRenderAnyValue(enhancedMemo1.market_timing_enriched?.value || enhancedMemo1.market_timing)}
                     {enhancedMemo1.market_timing_enriched?.enriched && (
                       <Badge variant="secondary" className="ml-2 text-xs">AI-enriched</Badge>
                     )}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-2 py-1">
                     {enhancedMemo1.market_timing ? (
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                         Pitch Deck
                       </span>
                     ) : (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                        Not specified
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                        -
                       </span>
                     )}
                   </td>
                 </tr>
                 <tr>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Market Penetration</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">
+                  <td className="px-2 py-1 text-xs font-medium text-gray-900">Market Penetration</td>
+                  <td className="px-2 py-1 text-xs text-gray-700">
                     {safeRenderAnyValue(enhancedMemo1.market_penetration_enriched?.value || enhancedMemo1.market_penetration)}
                     {enhancedMemo1.market_penetration_enriched?.enriched && (
                       <Badge variant="secondary" className="ml-2 text-xs">AI-enriched</Badge>
                     )}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-2 py-1">
                     {enhancedMemo1.market_penetration ? (
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                         Pitch Deck
                       </span>
                     ) : (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                        Not specified
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                        -
                       </span>
                     )}
                   </td>
@@ -985,55 +985,55 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
               </thead>
               <tbody className="divide-y divide-gray-200">
                 <tr>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Total Addressable Market (TAM)</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">
+                  <td className="px-2 py-1 text-xs font-medium text-gray-900">Total Addressable Market (TAM)</td>
+                  <td className="px-2 py-1 text-xs text-gray-700">
                     {enhancedMemo1.market_size_enriched?.value || safeRenderValue(enhancedMemo1.market_size) || "Not specified"}
                     {enhancedMemo1.market_size_enriched?.enriched && (
                       <Badge variant="secondary" className="ml-2 text-xs">AI-enriched</Badge>
                     )}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-2 py-1">
                     {enhancedMemo1.market_size ? (
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                         Pitch Deck
                       </span>
                     ) : (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                        Not specified
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                        -
                       </span>
                     )}
                   </td>
                 </tr>
                 <tr>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Serviceable Available Market (SAM)</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">
+                  <td className="px-2 py-1 text-xs font-medium text-gray-900">Serviceable Available Market (SAM)</td>
+                  <td className="px-2 py-1 text-xs text-gray-700">
                     {safeRenderValue(enhancedMemo1.sam_market_size) || "Not specified"}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-2 py-1">
                     {enhancedMemo1.sam_market_size ? (
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                         Pitch Deck
                       </span>
                     ) : (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                        Not specified
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                        -
                       </span>
                     )}
                   </td>
                 </tr>
                 <tr>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Serviceable Obtainable Market (SOM)</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">
+                  <td className="px-2 py-1 text-xs font-medium text-gray-900">Serviceable Obtainable Market (SOM)</td>
+                  <td className="px-2 py-1 text-xs text-gray-700">
                     {safeRenderValue(enhancedMemo1.som_market_size) || "Not specified"}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-2 py-1">
                     {enhancedMemo1.som_market_size ? (
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                         Pitch Deck
                       </span>
                     ) : (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                        Not specified
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                        -
                       </span>
                     )}
                   </td>
@@ -1054,35 +1054,35 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
               </thead>
               <tbody className="divide-y divide-gray-200">
                 <tr>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Competitive Advantages</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">
+                  <td className="px-2 py-1 text-xs font-medium text-gray-900">Competitive Advantages</td>
+                  <td className="px-2 py-1 text-xs text-gray-700">
                     {enhancedMemo1.competitive_advantages || "Not specified"}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-2 py-1">
                     {enhancedMemo1.competitive_advantages ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        Available
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                        ✓
                       </span>
                     ) : (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                        Not specified
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                        -
                       </span>
                     )}
                   </td>
                 </tr>
                 <tr>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Market Timing</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">
+                  <td className="px-2 py-1 text-xs font-medium text-gray-900">Market Timing</td>
+                  <td className="px-2 py-1 text-xs text-gray-700">
                     {enhancedMemo1.market_timing || "Not specified"}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-2 py-1">
                     {enhancedMemo1.market_timing ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        Available
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                        ✓
                       </span>
                     ) : (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                        Not specified
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                        -
                       </span>
                     )}
                   </td>
@@ -2375,61 +2375,61 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
               </thead>
               <tbody className="divide-y divide-gray-200">
                 <tr>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Round Stage</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">{enhancedMemo1.round_stage || "Not specified"}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-2 py-1 text-xs font-medium text-gray-900">Round Stage</td>
+                  <td className="px-2 py-1 text-xs text-gray-700">{enhancedMemo1.round_stage || "Not specified"}</td>
+                  <td className="px-2 py-1">
                     {enhancedMemo1.round_stage ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        Available
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                        ✓
                       </span>
                     ) : (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                        Not specified
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                        -
                       </span>
                     )}
                   </td>
                 </tr>
                 <tr>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Amount Raising</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">{enhancedMemo1.amount_raising || enhancedMemo1.funding_ask || "Not specified"}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-2 py-1 text-xs font-medium text-gray-900">Amount Raising</td>
+                  <td className="px-2 py-1 text-xs text-gray-700">{enhancedMemo1.amount_raising || enhancedMemo1.funding_ask || "Not specified"}</td>
+                  <td className="px-2 py-1">
                     {(enhancedMemo1.amount_raising || enhancedMemo1.funding_ask) ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        Available
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                        ✓
                       </span>
                     ) : (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                        Not specified
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                        -
                       </span>
                     )}
                   </td>
                 </tr>
                 <tr>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Investment Sought</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">{enhancedMemo1.investment_sought || "Not specified"}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-2 py-1 text-xs font-medium text-gray-900">Investment Sought</td>
+                  <td className="px-2 py-1 text-xs text-gray-700">{enhancedMemo1.investment_sought || "Not specified"}</td>
+                  <td className="px-2 py-1">
                     {enhancedMemo1.investment_sought ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        Available
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                        ✓
                       </span>
                     ) : (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                        Not specified
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                        -
                       </span>
                     )}
                   </td>
                 </tr>
                 <tr>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Ownership Target</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">{enhancedMemo1.ownership_target || "Not specified"}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-2 py-1 text-xs font-medium text-gray-900">Ownership Target</td>
+                  <td className="px-2 py-1 text-xs text-gray-700">{enhancedMemo1.ownership_target || "Not specified"}</td>
+                  <td className="px-2 py-1">
                     {enhancedMemo1.ownership_target ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        Available
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                        ✓
                       </span>
                     ) : (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                        Not specified
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                        -
                       </span>
                     )}
                   </td>

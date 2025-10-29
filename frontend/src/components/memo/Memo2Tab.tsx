@@ -28,19 +28,19 @@ interface Memo2TabProps {
 
 export default function Memo2Tab({ diligenceData }: Memo2TabProps) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       {/* Interview Analysis & Founders Fit */}
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Users className="h-4 w-4" />
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-1 text-base">
+            <Users className="h-3 w-3" />
             Interview Analysis & Founders Fit
           </CardTitle>
-          <CardDescription className="text-sm">
+          <CardDescription className="text-xs">
             Summary of AI-led founder interview and assessment
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-2">
           {/* Interview Summary */}
           <div>
             <h4 className="font-semibold mb-3">Interview Summary</h4>
@@ -169,7 +169,7 @@ export default function Memo2Tab({ diligenceData }: Memo2TabProps) {
             Analysis of company traction and key metrics from interview
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-2">
           <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
             <h4 className="font-semibold text-yellow-800 mb-2">Traction Analysis</h4>
             <p className="text-sm text-yellow-700">
@@ -329,7 +329,7 @@ export default function Memo2Tab({ diligenceData }: Memo2TabProps) {
             Traction & Metrics Validation
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-2">
           <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
             <h4 className="font-semibold text-yellow-800 mb-2">Traction Analysis</h4>
             <p className="text-sm text-yellow-700">

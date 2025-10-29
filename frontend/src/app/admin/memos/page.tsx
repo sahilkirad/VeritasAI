@@ -128,10 +128,10 @@ export default function AdminMemosPage() {
     }
     console.log('🔄 Navigating to memo details:', memoId)
     try {
-      router.push(`/admin/memos/${memoId}`)
+      router.push(`/admin/memo-details/${memoId}`)
     } catch (error) {
       console.error('❌ Navigation error:', error)
-      window.location.href = `/admin/memos/${memoId}`
+      window.location.href = `/admin/memo-details/${memoId}`
     }
   }
 
@@ -368,7 +368,7 @@ export default function AdminMemosPage() {
                         <Eye className="h-4 w-4 mr-2" />
                         View Details
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => window.open(`/admin/memos/${memo.id}`, '_blank')}>
+                      <DropdownMenuItem onClick={() => window.open(`/admin/memo-details/${memo.id}`, '_blank')}>
                         <ExternalLink className="h-4 w-4 mr-2" />
                         Open in New Tab
                       </DropdownMenuItem>

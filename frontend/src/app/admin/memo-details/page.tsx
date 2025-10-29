@@ -1,6 +1,7 @@
 "use client"
 
-import { useParams, useRouter } from "next/navigation"
+import { useSearchParams, usePathname, useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -41,10 +42,28 @@ import { useMemoDetails } from "@/hooks/useMemoDetails"
 import { StatusBadge } from "@/components/admin/StatusBadge"
 import { ScoreBar } from "@/components/admin/ScoreBar"
 
-export default function MemoDetailPage() {
-  const params = useParams()
+export default function AdminMemoDetailsPage() {
+  const searchParams = useSearchParams()
+  const pathname = usePathname()
   const router = useRouter()
-  const memoId = params.id as string
+  
+  // Get memo ID from URL path or search params
+  const getMemoId = () => {
+    // First try to get from search params
+    const searchId = searchParams.get('id') || searchParams.get('memoId')
+    if (searchId) return searchId
+    
+    // Then try to extract from pathname
+    // Pathname will be like "/admin/memo-details/memo_1234567890_abc123"
+    const pathParts = pathname.split('/')
+    if (pathParts.length >= 4 && pathParts[1] === 'admin' && pathParts[2] === 'memo-details') {
+      return pathParts[3] // Return the memo ID part
+    }
+    
+    return null
+  }
+  
+  const memoId = getMemoId()
   
   // Use the custom hook for real-time memo details
   const { memo, loading, error } = useMemoDetails(memoId)
@@ -68,6 +87,21 @@ export default function MemoDetailPage() {
       year: 'numeric'
     })
   }
+
+  useEffect(() => {
+    console.log('🔍 Admin memo details page - pathname:', pathname)
+    console.log('🔍 Admin memo details page - searchParams:', Object.fromEntries(searchParams.entries()))
+    console.log('🔍 Admin memo details page - extracted memoId:', memoId)
+    
+    if (!memoId) {
+      console.log('❌ No memo ID found, redirecting to admin memos')
+      // Redirect to admin memos if no memo ID
+      router.push('/admin/memos')
+      return
+    }
+
+    console.log('✅ Memo ID found:', memoId)
+  }, [memoId, router, pathname, searchParams])
 
   if (loading) {
     return (

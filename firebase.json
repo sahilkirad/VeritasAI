@@ -64,12 +64,72 @@
         "destination": "/interview/index.html"
       },
       {
+        "source": "/dashboard/memo",
+        "destination": "/dashboard/memo.html"
+      },
+      {
+        "source": "/dashboard/billing",
+        "destination": "/dashboard/billing.html"
+      },
+      {
+        "source": "/dashboard/create-room",
+        "destination": "/dashboard/create-room.html"
+      },
+      {
+        "source": "/dashboard/diligence",
+        "destination": "/dashboard/diligence.html"
+      },
+      {
+        "source": "/dashboard/interview",
+        "destination": "/dashboard/interview.html"
+      },
+      {
+        "source": "/dashboard/messages",
+        "destination": "/dashboard/messages.html"
+      },
+      {
+        "source": "/dashboard/settings",
+        "destination": "/dashboard/settings.html"
+      },
+      {
+        "source": "/dashboard/support",
+        "destination": "/dashboard/support.html"
+      },
+      {
         "source": "/dashboard/**",
-        "destination": "/dashboard/index.html"
+        "destination": "/dashboard.html"
+      },
+      {
+        "source": "/founder/dashboard/datarooms",
+        "destination": "/founder/dashboard/datarooms.html"
+      },
+      {
+        "source": "/founder/dashboard/documents",
+        "destination": "/founder/dashboard/documents.html"
+      },
+      {
+        "source": "/founder/dashboard/feedback",
+        "destination": "/founder/dashboard/feedback.html"
+      },
+      {
+        "source": "/founder/dashboard/investors",
+        "destination": "/founder/dashboard/investors.html"
+      },
+      {
+        "source": "/founder/dashboard/messages",
+        "destination": "/founder/dashboard/messages.html"
+      },
+      {
+        "source": "/founder/dashboard/profile",
+        "destination": "/founder/dashboard/profile.html"
+      },
+      {
+        "source": "/founder/dashboard/settings",
+        "destination": "/founder/dashboard/settings.html"
       },
       {
         "source": "/founder/dashboard/**",
-        "destination": "/founder/dashboard/index.html"
+        "destination": "/founder/dashboard.html"
       },
             {
               "source": "/admin/memo-details/**",

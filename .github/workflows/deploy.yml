@@ -3,9 +3,9 @@ name: Deploy to Firebase
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, firebase-new-project ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, firebase-new-project ]
 
 jobs:
   deploy:

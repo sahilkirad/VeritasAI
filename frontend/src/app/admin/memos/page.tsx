@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -30,6 +30,7 @@ import { ScoreBar } from "@/components/admin/ScoreBar"
 
 export default function AdminMemosPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [memos, setMemos] = useState<MemoSummary[]>([])
   const [filteredMemos, setFilteredMemos] = useState<MemoSummary[]>([])
   const [filters, setFilters] = useState<MemoFilterOptions>({})
@@ -41,6 +42,7 @@ export default function AdminMemosPage() {
   })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [selectedMemoId, setSelectedMemoId] = useState<string | null>(null)
 
   // Set up real-time memos data
   useEffect(() => {
@@ -93,6 +95,21 @@ export default function AdminMemosPage() {
     const filtered = filterMemoSummaries(memos, filters)
     setFilteredMemos(filtered)
   }, [memos, filters])
+
+  // Handle memoId from URL parameters
+  useEffect(() => {
+    const memoId = searchParams.get('memoId')
+    if (memoId) {
+      setSelectedMemoId(memoId)
+      // Scroll to the memo details section
+      setTimeout(() => {
+        const memoDetailsElement = document.getElementById('memo-details')
+        if (memoDetailsElement) {
+          memoDetailsElement.scrollIntoView({ behavior: 'smooth' })
+        }
+      }, 100)
+    }
+  }, [searchParams])
 
   const handleFiltersChange = (newFilters: MemoFilterOptions) => {
     setFilters(newFilters)
@@ -389,6 +406,46 @@ export default function AdminMemosPage() {
           <p className="text-sm text-muted-foreground">
             Try adjusting your filters or search terms.
           </p>
+        </div>
+      )}
+
+      {/* Memo Details Section - shown when memoId is provided */}
+      {selectedMemoId && (
+        <div id="memo-details" className="mt-8">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Memo Details</CardTitle>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    setSelectedMemoId(null)
+                    // Remove memoId from URL
+                    const newUrl = new URL(window.location.href)
+                    newUrl.searchParams.delete('memoId')
+                    window.history.replaceState({}, '', newUrl.toString())
+                  }}
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to List
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8">
+                <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">Memo Details</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Memo ID: {selectedMemoId}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  This memo details view is now integrated into the main memos page.
+                  The full memo details functionality is available through the "View Details" action in the table above.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>

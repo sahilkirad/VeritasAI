@@ -21,9 +21,10 @@ const envConfig = {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Enable static export for Firebase Hosting
-  output: 'export',
+  // Enable static export for Firebase Hosting (production only)
+  ...(process.env.NODE_ENV === 'production' && { output: 'export' }),
   trailingSlash: false,
+  skipTrailingSlashRedirect: true,
   images: {
     unoptimized: true
   },
@@ -31,8 +32,8 @@ const nextConfig = {
   experimental: {
     esmExternals: false
   },
-  // Ensure proper asset handling
-  distDir: 'out',
+  // Ensure proper asset handling (production only)
+  ...(process.env.NODE_ENV === 'production' && { distDir: 'out' }),
   eslint: {
     ignoreDuringBuilds: true,
   },

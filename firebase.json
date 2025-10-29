@@ -48,16 +48,8 @@
     ],
     "rewrites": [
       {
-        "source": "/_next/static/**",
-        "destination": "/_next/static/**"
-      },
-      {
-        "source": "/admin/startups/**",
-        "destination": "/admin/startups.html"
-      },
-      {
-        "source": "/admin/investors/**",
-        "destination": "/admin/investors.html"
+        "source": "/_next/**",
+        "destination": "/_next/**"
       },
       {
         "source": "**",

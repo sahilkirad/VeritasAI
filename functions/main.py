@@ -827,7 +827,7 @@ def schedule_ai_interview(req: https_fn.Request) -> https_fn.Response:
                 'Missing required parameters: founder_email, investor_email, startup_name, company_id', 
                 status=400
             )
-
+        
         print(f"Scheduling AI interview for {startup_name}")
         print(f"Founder: {founder_email}, Investor: {investor_email}, Company: {company_id}")
 

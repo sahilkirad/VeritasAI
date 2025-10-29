@@ -1766,10 +1766,10 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
                   <ul className="space-y-1 text-sm">
                     {diligenceData.validation_result.validation_result.overall_assessment.key_strengths && Array.isArray(diligenceData.validation_result.validation_result.overall_assessment.key_strengths) ? (
                       diligenceData.validation_result.validation_result.overall_assessment.key_strengths.map((strength, index) => (
-                        <li key={index} className="flex items-center gap-2">
-                          <CheckCircle className="h-4 w-4 text-green-600" />
-                          {strength}
-                        </li>
+                      <li key={index} className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        {strength}
+                      </li>
                       ))
                     ) : (
                       <li className="text-gray-500">No key strengths identified</li>
@@ -1781,10 +1781,10 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
                   <ul className="space-y-1 text-sm">
                     {diligenceData.validation_result.validation_result.overall_assessment.key_concerns && Array.isArray(diligenceData.validation_result.validation_result.overall_assessment.key_concerns) ? (
                       diligenceData.validation_result.validation_result.overall_assessment.key_concerns.map((concern, index) => (
-                        <li key={index} className="flex items-center gap-2">
-                          <AlertTriangle className="h-4 w-4 text-red-600" />
-                          {concern}
-                        </li>
+                      <li key={index} className="flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4 text-red-600" />
+                        {concern}
+                      </li>
                       ))
                     ) : (
                       <li className="text-gray-500">No key concerns identified</li>
@@ -1804,10 +1804,10 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
                     <ul className="space-y-1 text-sm">
                       {diligenceData.validation_result.validation_result.recommendations.immediate_actions && Array.isArray(diligenceData.validation_result.validation_result.recommendations.immediate_actions) ? (
                         diligenceData.validation_result.validation_result.recommendations.immediate_actions.map((action, index) => (
-                          <li key={index} className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                            {action}
-                          </li>
+                        <li key={index} className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                          {action}
+                        </li>
                         ))
                       ) : (
                         <li className="text-gray-500">No immediate actions identified</li>
@@ -1819,10 +1819,10 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
                     <ul className="space-y-1 text-sm">
                       {diligenceData.validation_result.validation_result.recommendations.next_steps && Array.isArray(diligenceData.validation_result.validation_result.recommendations.next_steps) ? (
                         diligenceData.validation_result.validation_result.recommendations.next_steps.map((step, index) => (
-                          <li key={index} className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-green-600 rounded-full"></div>
-                            {step}
-                          </li>
+                        <li key={index} className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-green-600 rounded-full"></div>
+                          {step}
+                        </li>
                         ))
                       ) : (
                         <li className="text-gray-500">No next steps identified</li>

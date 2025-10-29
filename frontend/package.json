@@ -9,6 +9,7 @@
   "scripts": {
     "build": "next build",
     "build:static": "node build-static.js",
+    "build:interview": "node build-with-interview-dir.js",
     "dev": "next dev",
     "lint": "next lint",
     "start": "next start"

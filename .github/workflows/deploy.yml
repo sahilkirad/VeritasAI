@@ -30,7 +30,7 @@ jobs:
     - name: Build frontend
       run: |
         cd frontend
-        npm run build
+        npm run build:interview
       env:
         NEXT_PUBLIC_PROCESS_INGESTION_URL: ${{ secrets.NEXT_PUBLIC_PROCESS_INGESTION_URL }}
         NEXT_PUBLIC_ON_FILE_UPLOAD_URL: ${{ secrets.NEXT_PUBLIC_ON_FILE_UPLOAD_URL }}

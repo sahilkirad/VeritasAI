@@ -61,7 +61,7 @@
       },
       {
         "source": "/interview/**",
-        "destination": "/interview.html"
+        "destination": "/interview/index.html"
       },
       {
         "source": "/dashboard/**",
@@ -71,10 +71,18 @@
         "source": "/founder/dashboard/**",
         "destination": "/founder/dashboard/index.html"
       },
-      {
-        "source": "/admin/**",
-        "destination": "/admin/index.html"
-      },
+            {
+              "source": "/admin/memo-details/**",
+              "destination": "/admin/memo-details/index.html"
+            },
+            {
+              "source": "/admin/memos/*",
+              "destination": "/admin/memos/[id]/index.html"
+            },
+            {
+              "source": "/admin/**",
+              "destination": "/admin/index.html"
+            },
       {
         "source": "**",
         "destination": "/index.html"

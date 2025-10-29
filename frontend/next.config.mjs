@@ -16,14 +16,16 @@ const envConfig = {
   NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID: 'G-PRT33XGJNS',
   NEXT_PUBLIC_GA_PROPERTY_ID: '213025502',
   NEXT_PUBLIC_APP_NAME: 'Veritas',
-  NEXT_PUBLIC_APP_URL: 'https://veritas-472301.web.app'
+  NEXT_PUBLIC_APP_URL: process.env.NODE_ENV === 'production' ? 'https://veritas-472301.web.app' : 'http://localhost:3000'
 };
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Use static export but with dynamic routes support
-  output: 'export',
-  distDir: 'out',
+  // Use static export only in production
+  ...(process.env.NODE_ENV === 'production' && {
+    output: 'export',
+    distDir: 'out',
+  }),
   images: {
     unoptimized: true
   },
@@ -43,23 +45,25 @@ const nextConfig = {
   // Optimize for dynamic pages
   trailingSlash: false,
   skipTrailingSlashRedirect: true,
-  // Enable client-side routing for dynamic pages
-  async rewrites() {
-    return [
-      {
-        source: '/interview/:path*',
-        destination: '/interview'
-      },
-      {
-        source: '/dashboard/:path*',
-        destination: '/dashboard'
-      },
-      {
-        source: '/founder/dashboard/:path*',
-        destination: '/founder/dashboard'
-      }
-    ]
-  },
+  // Enable client-side routing for dynamic pages (only in production)
+  ...(process.env.NODE_ENV === 'production' && {
+    async rewrites() {
+      return [
+        {
+          source: '/interview/:path*',
+          destination: '/interview'
+        },
+        {
+          source: '/dashboard/:path*',
+          destination: '/dashboard'
+        },
+        {
+          source: '/founder/dashboard/:path*',
+          destination: '/founder/dashboard'
+        }
+      ]
+    },
+  }),
   env: {
     // Set environment variables for build time
     NEXT_PUBLIC_PROCESS_INGESTION_URL: envConfig.NEXT_PUBLIC_PROCESS_INGESTION_URL,

@@ -21,7 +21,9 @@ const envConfig = {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // SSR mode - no static export needed
+  // Enable static export for Firebase Hosting
+  output: 'export',
+  distDir: 'out',
   trailingSlash: false,
   skipTrailingSlashRedirect: true,
   images: {

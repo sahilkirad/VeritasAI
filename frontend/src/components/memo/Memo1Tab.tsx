@@ -578,17 +578,17 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Company Snapshot */}
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="flex items-center gap-2">
-                <Building2 className="h-5 w-5" />
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Building2 className="h-4 w-4" />
                 Company Snapshot
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-sm">
                 Key company information extracted from pitch deck
               </CardDescription>
             </div>

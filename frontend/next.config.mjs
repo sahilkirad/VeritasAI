@@ -21,32 +21,45 @@ const envConfig = {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Use static export only in production
+  // Development configuration
+  ...(process.env.NODE_ENV === 'development' && {
+    images: {
+      unoptimized: true
+    },
+    experimental: {
+      esmExternals: false
+    },
+    eslint: {
+      ignoreDuringBuilds: true,
+    },
+    typescript: {
+      ignoreBuildErrors: true,
+    },
+    trailingSlash: false,
+    skipTrailingSlashRedirect: true,
+  }),
+  
+  // Production configuration
   ...(process.env.NODE_ENV === 'production' && {
     output: 'export',
     distDir: 'out',
-  }),
-  images: {
-    unoptimized: true
-  },
-  experimental: {
-    esmExternals: false
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  // Enable dynamic routes for interview functionality
-  generateBuildId: async () => {
-    return 'build-' + Date.now()
-  },
-  // Optimize for dynamic pages
-  trailingSlash: false,
-  skipTrailingSlashRedirect: true,
-  // Enable client-side routing for dynamic pages (only in production)
-  ...(process.env.NODE_ENV === 'production' && {
+    images: {
+      unoptimized: true
+    },
+    experimental: {
+      esmExternals: false
+    },
+    eslint: {
+      ignoreDuringBuilds: true,
+    },
+    typescript: {
+      ignoreBuildErrors: true,
+    },
+    generateBuildId: async () => {
+      return 'build-' + Date.now()
+    },
+    trailingSlash: false,
+    skipTrailingSlashRedirect: true,
     async rewrites() {
       return [
         {

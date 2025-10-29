@@ -67,17 +67,24 @@ export default function MemoHeader({ memoData, diligenceData, onTriggerDiligence
   const memo1 = memoData?.memo_1 || {};
 
   return (
-    <div className="flex items-center justify-between">
+    <div className="flex items-center justify-between py-1">
       <div>
-        <h1 className="text-3xl font-bold">Deal Memo</h1>
-        <p className="text-muted-foreground mt-1">
+        <h1 className="text-xl font-bold">Deal Memo</h1>
+        <p className="text-muted-foreground text-xs">
           AI-powered analysis for {memo1.title || memoData?.filename || 'Unknown Company'}
         </p>
       </div>
-      <div className="flex items-center gap-2">
-        <Badge variant="outline" className="text-green-600 border-green-600">
-          {memoData?.memo_1 ? 'Analysis Complete' : 'Processing'}
+      <div className="flex items-center gap-1">
+        <Badge variant="outline" className="text-green-600 border-green-600 text-xs px-1 py-0">
+          {memoData?.memo_1 ? 'Complete' : 'Processing'}
         </Badge>
+        <Button
+          onClick={handleTriggerDiligence}
+          size="sm"
+          className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-2 py-1 h-6"
+        >
+          Run Diligence
+        </Button>
       </div>
     </div>
   );

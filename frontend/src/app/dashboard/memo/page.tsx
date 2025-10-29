@@ -720,11 +720,11 @@ export default function DealMemoPage() {
   // Show available memos selection if we have multiple memos
   if (availableMemos.length > 0) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-4 max-w-7xl mx-auto px-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Available Deal Memos</h1>
-            <p className="text-muted-foreground mt-1">
+            <h1 className="text-2xl font-bold">Available Deal Memos</h1>
+            <p className="text-muted-foreground text-sm">
               Select a deal memo to review and analyze
             </p>
           </div>
@@ -733,25 +733,25 @@ export default function DealMemoPage() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {availableMemos.map((memo) => (
             <Card key={memo.id} className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => selectMemo(memo)}>
-              <CardHeader>
+              <CardHeader className="pb-3">
                 <CardTitle className="text-lg">{memo.memo_1?.title || 'Company Analysis'}</CardTitle>
-                <CardDescription>
+                <CardDescription className="text-sm">
                   {memo.memo_1?.founder_name || 'Unknown Founder'}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     <strong>File:</strong> {memo.filename}
                   </p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     <strong>Company:</strong> {memo.memo_1?.title || 'Unknown Company'}
                   </p>
                   <p className="text-sm text-muted-foreground line-clamp-2">
                     {memo.memo_1?.summary || 'No summary available'}
                   </p>
                 </div>
-                <Button className="w-full mt-4" size="sm">
+                <Button className="w-full mt-3" size="sm">
                   View Memo
                 </Button>
               </CardContent>
@@ -776,25 +776,25 @@ export default function DealMemoPage() {
   // Show upload prompt if no recent data
   if (!hasRecentData || !memoData) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-4 max-w-7xl mx-auto px-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Deal Memo</h1>
-            <p className="text-muted-foreground mt-1">
+            <h1 className="text-2xl font-bold">Deal Memo</h1>
+            <p className="text-muted-foreground text-sm">
               AI-powered analysis for your investment opportunities
             </p>
           </div>
         </div>
 
-        <div className="text-center py-12">
-          <div className="mx-auto w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center mb-6">
-            <Upload className="h-12 w-12 text-blue-600" />
+        <div className="text-center py-8">
+          <div className="mx-auto w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mb-4">
+            <Upload className="h-10 w-10 text-blue-600" />
           </div>
-          <h3 className="text-2xl font-semibold mb-4">No Deal Memos Found</h3>
-          <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+          <h3 className="text-xl font-semibold mb-3">No Deal Memos Found</h3>
+          <p className="text-muted-foreground mb-4 max-w-md mx-auto text-sm">
             Create investment rooms to connect with founders and access AI-powered deal analysis and due diligence reports.
           </p>
-          <div className="space-y-4">
+          <div className="space-y-3">
             <Button
               onClick={() => window.location.href = '/dashboard/create-room'}
               className="bg-blue-600 hover:bg-blue-700"
@@ -802,11 +802,11 @@ export default function DealMemoPage() {
               <Upload className="mr-2 h-4 w-4" />
               Create Investment Room
             </Button>
-            <div className="text-sm text-muted-foreground">
+            <div className="text-xs text-muted-foreground">
               <p>Supported formats: PDF, PowerPoint, Video (MP4), Audio (MP3)</p>
             </div>
             {/* Debug button */}
-            <div className="mt-4">
+            <div className="mt-3">
               <Button
                 onClick={fetchMemoData}
                 variant="outline"
@@ -818,11 +818,11 @@ export default function DealMemoPage() {
           </div>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-3">
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <FileText className="h-4 w-4" />
                 Document Analysis
               </CardTitle>
             </CardHeader>
@@ -834,9 +834,9 @@ export default function DealMemoPage() {
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5" />
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <TrendingUp className="h-4 w-4" />
                 Due Diligence
               </CardTitle>
             </CardHeader>
@@ -848,9 +848,9 @@ export default function DealMemoPage() {
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="h-5 w-5" />
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Calendar className="h-4 w-4" />
                 AI Interview
               </CardTitle>
             </CardHeader>
@@ -866,59 +866,40 @@ export default function DealMemoPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Data Status Banner */}
+    <div className="space-y-2 max-w-6xl mx-auto px-2">
+      {/* Data Status Banner - Ultra Compact */}
       {memoData && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="bg-blue-50 border border-blue-200 rounded p-2">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-sm font-medium text-blue-800">Live Data</span>
+            <div className="flex items-center gap-1">
+              <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+              <span className="text-xs font-medium text-blue-800">Live</span>
               <span className="text-xs text-blue-600">
-                Last updated: {memoData.memo_1?.timestamp ? 
-                  new Date(memoData.memo_1.timestamp.seconds * 1000).toLocaleString() : 
-                  'Recently'
+                {memoData.memo_1?.timestamp ? 
+                  new Date(memoData.memo_1.timestamp.seconds * 1000).toLocaleTimeString() : 
+                  'Recent'
                 }
               </span>
             </div>
             <button 
               onClick={fetchMemoData}
-              className="text-xs text-blue-600 hover:text-blue-800 underline"
+              className="text-xs text-blue-600 hover:text-blue-800 px-1 py-0.5 rounded hover:bg-blue-100"
             >
-              Refresh Data
+              ↻
             </button>
           </div>
         </div>
       )}
 
-      {/* Debug Information */}
+      {/* Debug Information - Ultra Compact */}
       {process.env.NODE_ENV === 'development' && memoData && (
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+        <div className="bg-gray-50 border border-gray-200 rounded p-1">
           <details className="text-xs">
-            <summary className="cursor-pointer font-medium text-gray-700 mb-2">
-              🔍 Debug: Raw Data Structure
+            <summary className="cursor-pointer font-medium text-gray-700 text-xs">
+              🔍 Debug
             </summary>
-            <div className="space-y-2">
-              <div>
-                <strong>Memo Data ID:</strong> {memoData.id}
-              </div>
-              <div>
-                <strong>Filename:</strong> {memoData.filename}
-              </div>
-              <div>
-                <strong>Has Diligence Data:</strong> {diligenceData ? 'Yes' : 'No'}
-              </div>
-              {diligenceData && (
-                <div>
-                  <strong>Diligence Data Keys:</strong> {Object.keys(diligenceData).join(', ')}
-                </div>
-              )}
-              <div className="mt-2">
-                <strong>Raw Memo1 Data:</strong>
-                <pre className="bg-white p-2 rounded border text-xs overflow-auto max-h-32">
-                  {JSON.stringify(memoData.memo_1, null, 2)}
-                </pre>
-              </div>
+            <div className="mt-1 text-xs">
+              ID: {memoData.id.slice(0,8)}... | File: {memoData.filename} | Diligence: {diligenceData ? 'Yes' : 'No'}
             </div>
           </details>
         </div>
@@ -930,14 +911,14 @@ export default function DealMemoPage() {
         onTriggerDiligence={handleTriggerDiligence}
       />
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="memo1">Memo 1: Initial Analysis</TabsTrigger>
-          <TabsTrigger value="memo2">Memo 2: Interview Analysis</TabsTrigger>
-          <TabsTrigger value="memo3">Memo 3: Final Decision</TabsTrigger>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-1">
+        <TabsList className="grid w-full grid-cols-3 h-8">
+          <TabsTrigger value="memo1" className="text-xs">Initial</TabsTrigger>
+          <TabsTrigger value="memo2" className="text-xs">Interview</TabsTrigger>
+          <TabsTrigger value="memo3" className="text-xs">Decision</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="memo1">
+        <TabsContent value="memo1" className="mt-1">
           <Memo1Tab 
             memo1={(() => {
               const memo1Data = memoData.memo_1 || {};
@@ -958,11 +939,11 @@ export default function DealMemoPage() {
           />
         </TabsContent>
 
-        <TabsContent value="memo2">
+        <TabsContent value="memo2" className="mt-1">
           <Memo2Tab diligenceData={diligenceData} />
         </TabsContent>
 
-        <TabsContent value="memo3">
+        <TabsContent value="memo3" className="mt-1">
           <Memo3Tab diligenceData={diligenceData} memo1Data={memoData.memo_1} memoId={memoData.id} />
         </TabsContent>
       </Tabs>

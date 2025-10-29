@@ -28,19 +28,19 @@ interface Memo2TabProps {
 
 export default function Memo2Tab({ diligenceData }: Memo2TabProps) {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Interview Analysis & Founders Fit */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Users className="h-4 w-4" />
             Interview Analysis & Founders Fit
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-sm">
             Summary of AI-led founder interview and assessment
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3">
           {/* Interview Summary */}
           <div>
             <h4 className="font-semibold mb-3">Interview Summary</h4>
@@ -169,7 +169,7 @@ export default function Memo2Tab({ diligenceData }: Memo2TabProps) {
             Analysis of company traction and key metrics from interview
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3">
           <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
             <h4 className="font-semibold text-yellow-800 mb-2">Traction Analysis</h4>
             <p className="text-sm text-yellow-700">
@@ -329,7 +329,7 @@ export default function Memo2Tab({ diligenceData }: Memo2TabProps) {
             Traction & Metrics Validation
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3">
           <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
             <h4 className="font-semibold text-yellow-800 mb-2">Traction Analysis</h4>
             <p className="text-sm text-yellow-700">

@@ -8,9 +8,10 @@ import { Calendar, FileText, TrendingUp, Users, Upload } from "lucide-react";
 import { useRouter } from 'next/navigation';
 import { useToast } from "@/hooks/use-toast";
 import { db } from '@/lib/firebase-new';
-import { collection, query, orderBy, limit, getDocs, where } from 'firebase/firestore';
+import { collection, query, orderBy, limit, getDocs, where, onSnapshot, DocumentData, getDoc, doc } from 'firebase/firestore';
 import { useAuth } from '@/contexts/AuthContext';
 import { API_ENDPOINTS } from '@/lib/api';
+import { stripCodeFences, tryParseJsonFlexible } from '@/lib/llm';
 
 // Import our new components
 import MemoHeader from '@/components/memo/MemoHeader';
@@ -45,6 +46,7 @@ function convertMarketSizeToString(marketSizeData: any): string {
 
 interface MemoData {
   id: string;
+  company_id?: string;
   memo_1?: {
     title?: string;
     founder_email?: string;
@@ -182,10 +184,12 @@ interface DiligenceData {
 export default function DealMemoPage() {
   const [memoData, setMemoData] = useState<MemoData | null>(null);
   const [diligenceData, setDiligenceData] = useState<DiligenceData | null>(null);
+  const [interviewData, setInterviewData] = useState<any>(null);
   const [availableMemos, setAvailableMemos] = useState<MemoData[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("memo1");
   const [hasRecentData, setHasRecentData] = useState(false);
+  const [liveListening, setLiveListening] = useState(false);
   const { user, loading: loadingAuth } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
@@ -218,9 +222,10 @@ export default function DealMemoPage() {
       const testCollection = collection(db, 'ingestionResults');
       console.log('Collection reference created:', testCollection);
 
-      // Fetch all available memos directly
+      // Fetch all available memos - PRIORITIZE memo1_validated for enriched data
       console.log('Fetching all available memos directly...');
       
+      // First, get all ingestionResults to get the list of memos
       const allMemosQuery = query(
         collection(db, 'ingestionResults'),
         orderBy('timestamp', 'desc'),
@@ -230,12 +235,43 @@ export default function DealMemoPage() {
       
       console.log(`Found ${allMemosSnapshot.docs.length} memos in Firestore`);
       
-      if (!allMemosSnapshot.empty) {
+      if (!allMemosSnapshot.docs.length) {
+        setLoading(false);
+        return;
+      }
+
+      // Process memos - check memo1_validated for enriched data
         const memos: MemoData[] = [];
-        allMemosSnapshot.docs.forEach((doc) => {
-          const data = doc.data();
-          console.log('Processing memo doc:', doc.id, data);
-          const memo1Data = data.memo_1 || {};
+      for (const ingestionDoc of allMemosSnapshot.docs) {
+        const data = ingestionDoc.data();
+        const memoId = ingestionDoc.id;
+        console.log('Processing memo doc:', memoId, data);
+        
+        // PRIORITY: Check memo1_validated FIRST for enriched data
+        let memo1Data: any = {};
+        try {
+          const validatedDoc = await getDoc(doc(db, 'memo1_validated', memoId));
+          if (validatedDoc.exists()) {
+            const validatedData = validatedDoc.data();
+            memo1Data = validatedData.memo_1 || {};
+            console.log(`✅ Using enriched data from memo1_validated for ${memoId}`);
+          } else {
+            // Fallback to original data if no enriched version exists
+            memo1Data = data.memo_1 || {};
+            console.log(`⚠️ Using original data from ingestionResults for ${memoId}`);
+          }
+        } catch (e) {
+          // Fallback to original data on error
+          memo1Data = data.memo_1 || {};
+          console.log(`⚠️ Error fetching memo1_validated, using original data:`, e);
+        }
+          // Merge parsed raw_response (if present) to populate missing fields
+          if (memo1Data && typeof memo1Data.raw_response === 'string') {
+            const parsed = tryParseJsonFlexible(stripCodeFences(memo1Data.raw_response));
+            if (parsed && typeof parsed === 'object') {
+              memo1Data = { ...parsed, ...memo1Data };
+            }
+          }
           console.log('Raw memo1Data from Firestore:', memo1Data);
           console.log('Company stage from Firestore:', memo1Data.company_stage);
           console.log('Headquarters from Firestore:', memo1Data.headquarters);
@@ -243,7 +279,8 @@ export default function DealMemoPage() {
           console.log('Market size from Firestore:', memo1Data.market_size);
           console.log('Market size type:', typeof memo1Data.market_size);
           const memo: MemoData = {
-            id: doc.id,
+            id: memoId,
+            company_id: data.company_id || memo1Data.company_id,
             filename: data.original_filename || 'Unknown File',
             memo_1: {
               title: memo1Data.title || memo1Data.company_name || 'Company Analysis',
@@ -282,32 +319,32 @@ export default function DealMemoPage() {
               traction: memo1Data.traction || memo1Data.key_metrics,
               team: memo1Data.team || memo1Data.team_overview,
               
-              // Company Snapshot Fields - CRITICAL FIX
-              company_stage: memo1Data.company_stage,
-              headquarters: memo1Data.headquarters,
-              founded_date: memo1Data.founded_date,
-              amount_raising: memo1Data.amount_raising,
-              post_money_valuation: memo1Data.post_money_valuation,
-              investment_sought: memo1Data.investment_sought,
-              ownership_target: memo1Data.ownership_target,
-              key_thesis: memo1Data.key_thesis,
-              key_metric: memo1Data.key_metric,
+              // Company Snapshot Fields - add robust fallbacks to avoid "Not specified"
+              company_stage: memo1Data.company_stage || memo1Data.stage || memo1Data.growth_stage,
+              headquarters: memo1Data.headquarters || memo1Data.location || memo1Data.hq,
+              founded_date: memo1Data.founded_date || memo1Data.founded_year || memo1Data.founded,
+              amount_raising: memo1Data.amount_raising || memo1Data.funding_ask || memo1Data.raise_amount,
+              post_money_valuation: memo1Data.post_money_valuation || memo1Data.post_money || memo1Data.valuation,
+              investment_sought: memo1Data.investment_sought || memo1Data.funding_ask || memo1Data.amount_raising,
+              ownership_target: memo1Data.ownership_target || memo1Data.target_ownership || memo1Data.equity_offered,
+              key_thesis: memo1Data.key_thesis || memo1Data.investment_thesis || memo1Data.summary_analysis,
+              key_metric: memo1Data.key_metric || memo1Data.key_metrics || memo1Data.traction,
               
               // Financial & Deal Details
-              current_revenue: memo1Data.current_revenue,
-              revenue_growth_rate: memo1Data.revenue_growth_rate,
-              customer_acquisition_cost: memo1Data.customer_acquisition_cost,
-              lifetime_value: memo1Data.lifetime_value,
-              gross_margin: memo1Data.gross_margin,
+              current_revenue: memo1Data.current_revenue || memo1Data.revenue || memo1Data.arr,
+              revenue_growth_rate: memo1Data.revenue_growth_rate || memo1Data.growth_rate || memo1Data.revenue_growth,
+              customer_acquisition_cost: memo1Data.customer_acquisition_cost || memo1Data.cac,
+              lifetime_value: memo1Data.lifetime_value || memo1Data.ltv,
+              gross_margin: memo1Data.gross_margin || memo1Data.margin,
               operating_margin: memo1Data.operating_margin,
               net_margin: memo1Data.net_margin,
-              burn_rate: memo1Data.burn_rate,
+              burn_rate: memo1Data.burn_rate || memo1Data.monthly_burn,
               runway: memo1Data.runway,
-              growth_stage: memo1Data.growth_stage,
-              pre_money_valuation: memo1Data.pre_money_valuation,
-              lead_investor: memo1Data.lead_investor,
-              committed_funding: memo1Data.committed_funding,
-              round_stage: memo1Data.round_stage,
+              growth_stage: memo1Data.growth_stage || memo1Data.company_stage,
+              pre_money_valuation: memo1Data.pre_money_valuation || memo1Data.pre_money,
+              lead_investor: memo1Data.lead_investor || memo1Data.lead,
+              committed_funding: memo1Data.committed_funding || memo1Data.committed,
+              round_stage: memo1Data.round_stage || memo1Data.round,
               
               // Product & Technology
               product_features: memo1Data.product_features,
@@ -375,7 +412,8 @@ export default function DealMemoPage() {
             }
           };
           memos.push(memo);
-        });
+        }
+        
         console.log('Setting available memos:', memos);
         console.log('First memo memo_1 data:', memos[0]?.memo_1);
         console.log('Company stage in mapped data:', memos[0]?.memo_1?.company_stage);
@@ -397,12 +435,25 @@ export default function DealMemoPage() {
           console.log('Mapped potential_acquirers:', memos[0].memo_1.potential_acquirers);
           console.log('=== END FIRESTORE DATA DEBUG ===');
         }
-        setAvailableMemos(memos);
+        // If exactly one memo, auto-select; if multiple, show selection list
+        if (memos.length === 1) {
+          setMemoData(memos[0]);
+          setHasRecentData(true);
+          setAvailableMemos([]);
+          // Also fetch related diligence/interview data for selected memo
+          fetchDiligenceData(memos[0].id);
+          setLoading(false);
+          return;
+        } else if (memos.length > 1) {
+          setAvailableMemos(memos);
+          setHasRecentData(false);
+          setLoading(false);
+          return;
+        }
         setLoading(false);
         return;
-      }
       
-      // If no memos found at all, try to get the most recent one for single display
+      // If no memos found, try to get the most recent one for single display
       console.log('No memos found, trying single memo query...');
       const singleMemoQuery = query(
         collection(db, 'ingestionResults'),
@@ -414,14 +465,48 @@ export default function DealMemoPage() {
       if (!singleMemoSnapshot.empty) {
         const ingestionDoc = singleMemoSnapshot.docs[0];
         const ingestionData = ingestionDoc.data();
+        const memoId = ingestionDoc.id;
 
         console.log('Ingestion Data:', ingestionData);
         console.log('Memo 1 Data:', ingestionData.memo_1);
 
-        // Create memo data structure - the actual data is in memo_1 field
-        const memo1Data = ingestionData.memo_1 || {};
+        // PRIORITY: Check for enriched/validated memo in memo1_validated collection FIRST
+        let enrichedMemo1Data: any = null;
+        let memo1Data: any = {};
+        try {
+          const validatedDoc = await getDoc(doc(db, 'memo1_validated', memoId));
+          if (validatedDoc.exists()) {
+            const validatedData = validatedDoc.data();
+            enrichedMemo1Data = validatedData.memo_1;
+            memo1Data = enrichedMemo1Data || {};
+            console.log('✅ Found enriched memo in memo1_validated, using enriched data');
+            console.log('Enriched fields:', Object.keys(memo1Data));
+          } else {
+            console.log('⚠️ No enriched memo found in memo1_validated, using original data');
+            memo1Data = ingestionData.memo_1 || {};
+          }
+        } catch (e) {
+          console.log('⚠️ Error fetching memo1_validated, using original data:', e);
+          memo1Data = ingestionData.memo_1 || {};
+        }
+
+        // Always prefer enriched data from memo1_validated, fallback to original
+        
+        // Merge parsed raw_response (if present) to populate missing fields
+        if (memo1Data && typeof memo1Data.raw_response === 'string') {
+          const parsed = tryParseJsonFlexible(stripCodeFences(memo1Data.raw_response));
+          if (parsed && typeof parsed === 'object') {
+            memo1Data = { ...parsed, ...memo1Data };
+          }
+        }
+        
+        // Merge enriched fields if available (enriched data takes precedence)
+        if (enrichedMemo1Data) {
+          memo1Data = { ...memo1Data, ...enrichedMemo1Data };
+        }
         const memoData: MemoData = {
           id: ingestionDoc.id,
+          company_id: ingestionData.company_id || memo1Data.company_id,
           filename: ingestionData.original_filename || 'Unknown File',
           memo_1: {
             title: memo1Data.title || memo1Data.company_name || 'Company Analysis',
@@ -474,14 +559,15 @@ export default function DealMemoPage() {
             diligenceSnapshot = await getDocs(diligenceQuery);
           }
 
-          if (!diligenceSnapshot.empty) {
+        if (!diligenceSnapshot.empty) {
             const diligenceDoc = diligenceSnapshot.docs[0];
             const diligenceData = diligenceDoc.data();
 
             console.log('Diligence Data:', diligenceData);
 
             // Extract data from memo1_diligence field (as shown in your Firestore structure)
-            const memo1Diligence = diligenceData.memo1_diligence || {};
+          const memo1Diligence = diligenceData.memo1_diligence || {};
+          const resultsBlock = diligenceData.results || {};
 
             console.log('Memo1 Diligence Data:', memo1Diligence);
 
@@ -502,6 +588,36 @@ export default function DealMemoPage() {
               synthesis_notes: memo1Diligence.synthesis_notes,
               overall_score: memo1Diligence.overall_score
             };
+
+          // Hydrate Market & Claim Validation + Benchmarking from results block if available
+          // - claims: results.market_validation.claims, summary
+          // - benchmarking: results.market_benchmarking or results.market_benchmarking.data
+          if (resultsBlock) {
+            if (resultsBlock.market_validation) {
+              (mappedDiligenceData as any).market_validation = {
+                claims: resultsBlock.market_validation.claims || [],
+                summary: resultsBlock.market_validation.summary || ''
+              };
+            }
+            const rbm = resultsBlock.market_benchmarking;
+            if (rbm) {
+              (mappedDiligenceData as any).market_benchmarking = rbm.data || rbm;
+            }
+            // Optional: pitch consistency from results
+            if (resultsBlock.pitch_consistency) {
+              (mappedDiligenceData as any).pitch_consistency_check = resultsBlock.pitch_consistency;
+            }
+            // Optional: overall recommendation block if present
+            if (resultsBlock.overall_dd_score_recommendation) {
+              (mappedDiligenceData as any).overall_dd_score_recommendation = resultsBlock.overall_dd_score_recommendation;
+            }
+            if (resultsBlock.red_flags_concerns) {
+              (mappedDiligenceData as any).red_flags_concerns = resultsBlock.red_flags_concerns;
+            }
+            if (resultsBlock.financial_validation) {
+              (mappedDiligenceData as any).financial_validation = resultsBlock.financial_validation;
+            }
+          }
 
             setDiligenceData(mappedDiligenceData);
           } else {
@@ -538,6 +654,8 @@ export default function DealMemoPage() {
     
     // Fetch diligence data for the selected memo
     fetchDiligenceData(selectedMemo.id);
+    // Start live listeners for dynamic updates
+    startLiveListeners(selectedMemo.id);
   };
 
   // Function to fetch diligence data for a specific memo
@@ -545,9 +663,8 @@ export default function DealMemoPage() {
     try {
       // Try to find diligence data by memo_1_id first, then fallback to memoId
       let diligenceQuery = query(
-        collection(db, 'diligenceResults'),
+        collection(db, 'diligenceReports'),
         where('memo_1_id', '==', memoId),
-        orderBy('timestamp', 'desc'),
         limit(1)
       );
 
@@ -557,42 +674,197 @@ export default function DealMemoPage() {
       if (diligenceSnapshot.empty) {
         console.log('No diligence data found with memo_1_id, trying memoId...');
         diligenceQuery = query(
-          collection(db, 'diligenceResults'),
+          collection(db, 'diligenceReports'),
           where('memoId', '==', memoId),
-          orderBy('timestamp', 'desc'),
           limit(1)
         );
         diligenceSnapshot = await getDocs(diligenceQuery);
+      }
+
+      // Additional fallbacks: use company_id and alternative collections used by Diligence Hub
+      if (diligenceSnapshot.empty) {
+        const companyId = memoData?.company_id || memoData?.memo_1?.company_id || null;
+        if (companyId) {
+          console.log('Trying diligenceReports by company_id...', companyId);
+          diligenceQuery = query(
+            collection(db, 'diligenceReports'),
+            where('company_id', '==', companyId),
+            limit(1)
+          );
+          diligenceSnapshot = await getDocs(diligenceQuery);
+
+          const altCollections = ['diligenceHub', 'diligence_hub'];
+          for (const col of altCollections) {
+            if (!diligenceSnapshot.empty) break;
+            console.log(`Trying ${col} by company_id...`, companyId);
+            const altSnap = await getDocs(
+              query(collection(db, col), where('company_id', '==', companyId), limit(1))
+            );
+            if (!altSnap.empty) {
+              diligenceSnapshot = altSnap;
+              break;
+            }
+          }
+        }
+      }
+
+      // Fetch interview data
+      let interviewData = null;
+      try {
+        const interviewQuery = query(
+          collection(db, 'interviews'),
+          where('companyId', '==', memoId),
+          where('status', '==', 'completed'),
+          orderBy('createdAt', 'desc'),
+          limit(1)
+        );
+        const interviewSnapshot = await getDocs(interviewQuery);
+        
+        if (!interviewSnapshot.empty) {
+          const interviewDoc = interviewSnapshot.docs[0];
+          interviewData = interviewDoc.data();
+          console.log('Interview Data:', interviewData);
+          setInterviewData(interviewData);
+        }
+      } catch (interviewError) {
+        console.log('No interview data found:', interviewError);
+        setInterviewData(null);
       }
 
       if (!diligenceSnapshot.empty) {
         const diligenceDoc = diligenceSnapshot.docs[0];
         const diligenceData = diligenceDoc.data();
 
-        console.log('Diligence Data:', diligenceData);
+        console.log('✅ Fetched Diligence Data from diligenceReports:', diligenceData);
 
-        // Extract data from memo1_diligence field (as shown in your Firestore structure)
-        const memo1Diligence = diligenceData.memo1_diligence || {};
+        // Extract from the structure: results.agent_validations, results.validation_results
+        const resultsBlock = diligenceData.results || {};
+        const agentValidations = resultsBlock.agent_validations || {};
+        const validationResults = resultsBlock.validation_results || {};
 
-        console.log('Memo1 Diligence Data:', memo1Diligence);
+        // Map founder profile from agent_validations or validation_results
+        const founderProfile = agentValidations.founder_profile || validationResults.founder_profile || {};
+        const memo1Accuracy = agentValidations.memo1_accuracy || validationResults.memo1_accuracy || {};
+        const pitchConsistency = agentValidations.pitch_consistency || validationResults.pitch_consistency || {};
+        
+        // Extract market benchmarking
+        const marketBenchmarking = resultsBlock.market_benchmarking || agentValidations.market_benchmarking || validationResults.market_benchmarking || {};
 
-        // Map diligence data to our interface - using the exact structure from your Firestore
+        // Extract key findings properly
+        const keyFindings = resultsBlock.key_findings || {};
+        const redFlagsArray = keyFindings.red_flags || [];
+        const unsubstantiatedClaims = keyFindings.unsubstantiated_claims || [];
+        const externalDiscrepancies = keyFindings.external_discrepancies || [];
+        
+        // Map diligence data to our interface - using the correct structure from diligenceReports
         const mappedDiligenceData: DiligenceData = {
-          investment_recommendation: memo1Diligence.investment_recommendation,
-          problem_validation: memo1Diligence.problem_validation,
-          solution_product_market_fit: memo1Diligence.solution_product_market_fit,
-          team_execution_capability: memo1Diligence.team_execution_capability,
-          founder_market_fit: memo1Diligence.founder_market_fit,
-          market_opportunity_competition: memo1Diligence.market_opportunity_competition,
-          benchmarking_analysis: memo1Diligence.benchmarking_analysis,
-          traction_metrics_validation: memo1Diligence.traction_metrics_validation,
-          key_risks: memo1Diligence.key_risks,
-          mitigation_strategies: memo1Diligence.mitigation_strategies,
-          due_diligence_next_steps: memo1Diligence.due_diligence_next_steps,
-          investment_thesis: memo1Diligence.investment_thesis,
-          synthesis_notes: memo1Diligence.synthesis_notes,
-          overall_score: memo1Diligence.overall_score
+          // Metadata from document root
+          investor_email: diligenceData.investor_email,
+          company_id: diligenceData.company_id,
+          created_at: diligenceData.created_at,
+          completed_at: diligenceData.completed_at,
+          last_updated: diligenceData.last_updated,
+          progress: diligenceData.progress,
+          status: diligenceData.status || resultsBlock.status || 'completed',
+          validation_timestamp: resultsBlock.validation_results?.memo1_accuracy?.validation_timestamp || 
+                               resultsBlock.validation_results?.founder_profile?.validation_timestamp ||
+                               resultsBlock.validation_results?.pitch_consistency?.validation_timestamp || null,
+          
+          // Overall scores and summary
+          overall_score: resultsBlock.overall_score || diligenceData.overall_score || 0,
+          executive_summary: {
+            overall_dd_score: resultsBlock.overall_score || diligenceData.overall_score || 0,
+            overall_dd_status: resultsBlock.risk_assessment || 'N/A',
+            recommendation: resultsBlock.recommendations?.[0] || 'N/A',
+            key_findings: keyFindings,
+            validation_gaps: keyFindings.unsubstantiated_claims?.length || 0,
+            company_name: memoData?.memo_1?.title || 'Company Analysis'
+          },
+          
+          // Founder Credibility Assessment (from agent_validations.founder_profile)
+          founder_credibility_assessment: {
+            overall_score: founderProfile.credibility_score || founderProfile.overall_score || 0,
+            credibility_rating: founderProfile.recommendation || (founderProfile.credibility_score >= 70 ? 'High' : founderProfile.credibility_score >= 50 ? 'Medium' : 'Low'),
+            detailed_analysis: founderProfile.detailed_analysis || '',
+            missing_information: founderProfile.missing_information || [],
+            recommendation: founderProfile.recommendation || '',
+            red_flags: founderProfile.red_flags || [],
+            validation_status: founderProfile.validation_status || '',
+            verified_claims: founderProfile.verified_claims || []
+          },
+          
+          // Memo1 Accuracy (from agent_validations.memo1_accuracy)
+          memo1_accuracy_data: {
+            accuracy_score: memo1Accuracy.accuracy_score || 0,
+            detailed_analysis: memo1Accuracy.detailed_analysis || '',
+            discrepancies: memo1Accuracy.discrepancies || [],
+            exaggerations: memo1Accuracy.exaggerations || [],
+            omissions: memo1Accuracy.omissions || [],
+            risk_level: memo1Accuracy.risk_level || '',
+            verified_facts: memo1Accuracy.verified_facts || []
+          },
+          
+          // Pitch Consistency (from agent_validations.pitch_consistency)
+          pitch_consistency_check: {
+            consistency_score: pitchConsistency.consistency_score || 0,
+            match_percentage: pitchConsistency.match_percentage || pitchConsistency.consistency_score || 0,
+            data_gaps: pitchConsistency.data_gaps || [],
+            detailed_analysis: pitchConsistency.detailed_analysis || '',
+            internal_contradictions: pitchConsistency.internal_contradictions || [],
+            risk_level: pitchConsistency.risk_level || '',
+            unrealistic_claims: pitchConsistency.unrealistic_claims || []
+          },
+          
+          // Red Flags and Concerns
+          red_flags_concerns: {
+            total_flags: redFlagsArray.length,
+            critical_blockers: redFlagsArray.filter((f: any) => typeof f === 'string' ? f.toLowerCase().includes('critical') || f.toLowerCase().includes('blocker') : (f.severity === 'critical' || f.flag_type === 'critical')).length,
+            flags: redFlagsArray.map((f: any) => {
+              if (typeof f === 'string') {
+                return { flag_type: 'Risk', description: f, severity: 'Medium' };
+              }
+              return f;
+            }),
+            mitigation_level: resultsBlock.risk_assessment === 'high' ? 'High Risk' : resultsBlock.risk_assessment === 'medium' ? 'Medium Risk' : 'Low Risk'
+          },
+          
+          // Market Benchmarking
+          market_benchmarking: marketBenchmarking.data || marketBenchmarking,
+          
+          // Key Findings (structured)
+          key_findings: {
+            red_flags: redFlagsArray,
+            unsubstantiated_claims: unsubstantiatedClaims,
+            external_discrepancies: externalDiscrepancies,
+            internal_contradictions: keyFindings.internal_contradictions || []
+          },
+          
+          // Recommendations and Priority Actions
+          recommendations: resultsBlock.recommendations || [],
+          priority_actions: resultsBlock.priority_actions || [],
+          
+          // Risk Assessment
+          risk_assessment: resultsBlock.risk_assessment || 'N/A',
+          
+          // Confidence and Executive Summary
+          confidence_level: resultsBlock.confidence_level || 'N/A',
+          executive_summary_text: resultsBlock.executive_summary || resultsBlock.detailed_analysis || '',
+          
+          // Overall DD Score Recommendation (combining scores)
+          overall_dd_score_recommendation: {
+            overall_dd_score: resultsBlock.overall_score || 0,
+            confidence_level: resultsBlock.confidence_level || 'N/A',
+            investment_recommendation: resultsBlock.recommendations?.[0] || 'N/A',
+            component_scores: {
+              founder_credibility: founderProfile.credibility_score || 0,
+              memo1_accuracy: memo1Accuracy.accuracy_score || 0,
+              pitch_consistency: pitchConsistency.consistency_score || 0,
+              overall_score: resultsBlock.overall_score || 0
+            }
+          }
         };
+
+        console.log('✅ Mapped Diligence Data:', mappedDiligenceData);
 
         setDiligenceData(mappedDiligenceData);
       } else {
@@ -602,6 +874,110 @@ export default function DealMemoPage() {
     } catch (diligenceError) {
       console.error('Error fetching diligence data:', diligenceError);
       setDiligenceData(null);
+    }
+  };
+
+  // Live listeners for dynamic updates of Memo 2 data (diligence + interview)
+  useEffect(() => {
+    if (memoData?.id && !liveListening) {
+      startLiveListeners(memoData.id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [memoData?.id]);
+
+  const startLiveListeners = (memoId: string) => {
+    try {
+      setLiveListening(true);
+      
+      // Real-time listener for enriched memo data from memo1_validated
+      const validatedRef = doc(db, 'memo1_validated', memoId);
+      const unsubValidated = onSnapshot(
+        validatedRef,
+        (doc) => {
+          if (doc.exists()) {
+            const validatedData = doc.data();
+            const enrichedMemo1 = validatedData.memo_1;
+            
+            if (enrichedMemo1 && memoData) {
+              console.log('🔄 Real-time update: Enriched memo data received from memo1_validated');
+              console.log('Enriched fields received:', Object.keys(enrichedMemo1));
+              
+              // Update memoData with enriched data, preserving existing structure
+              setMemoData({
+                ...memoData,
+                memo_1: {
+                  ...memoData.memo_1,
+                  ...enrichedMemo1,
+                  // Preserve metadata fields
+                  timestamp: memoData.memo_1.timestamp || validatedData.timestamp,
+                }
+              });
+              
+              toast({
+                title: "Data Enriched",
+                description: "Memo has been enriched with real company information.",
+              });
+            }
+          }
+        },
+        (error) => {
+          console.error('Error listening to memo1_validated:', error);
+        }
+      );
+
+      // Diligence live updates
+      const diligenceQ = query(
+        collection(db, 'diligenceReports'),
+        where('memo_1_id', '==', memoId),
+        limit(1)
+      );
+      const unsubDiligence = onSnapshot(diligenceQ, (snapshot) => {
+        if (!snapshot.empty) {
+          const diligenceDataDoc: DocumentData = snapshot.docs[0].data();
+          const memo1Diligence = diligenceDataDoc.memo1_diligence || {};
+          const mapped: DiligenceData = {
+            investment_recommendation: memo1Diligence.investment_recommendation,
+            problem_validation: memo1Diligence.problem_validation,
+            solution_product_market_fit: memo1Diligence.solution_product_market_fit,
+            team_execution_capability: memo1Diligence.team_execution_capability,
+            founder_market_fit: memo1Diligence.founder_market_fit,
+            market_opportunity_competition: memo1Diligence.market_opportunity_competition,
+            benchmarking_analysis: memo1Diligence.benchmarking_analysis,
+            traction_metrics_validation: memo1Diligence.traction_metrics_validation,
+            key_risks: memo1Diligence.key_risks,
+            mitigation_strategies: memo1Diligence.mitigation_strategies,
+            due_diligence_next_steps: memo1Diligence.due_diligence_next_steps,
+            investment_thesis: memo1Diligence.investment_thesis,
+            synthesis_notes: memo1Diligence.synthesis_notes,
+            overall_score: memo1Diligence.overall_score,
+          };
+          setDiligenceData(mapped);
+        }
+      });
+
+      // Interview live updates
+      const interviewsQ = query(
+        collection(db, 'interviews'),
+        where('companyId', '==', memoId),
+        where('status', '==', 'completed'),
+        orderBy('createdAt', 'desc'),
+        limit(1)
+      );
+      const unsubInterviews = onSnapshot(interviewsQ, (snapshot) => {
+        if (!snapshot.empty) {
+          setInterviewData(snapshot.docs[0].data());
+        }
+      });
+
+      // Clean up listeners on unmount or memo change
+      return () => {
+        try { unsubValidated(); } catch {}
+        try { unsubDiligence(); } catch {}
+        try { unsubInterviews(); } catch {}
+        setLiveListening(false);
+      };
+    } catch (e) {
+      console.log('Live listeners setup failed:', e);
     }
   };
 
@@ -940,7 +1316,19 @@ export default function DealMemoPage() {
         </TabsContent>
 
         <TabsContent value="memo2" className="mt-1">
-          <Memo2Tab diligenceData={diligenceData} />
+          <Memo2Tab 
+            diligenceData={diligenceData} 
+            interviewData={interviewData} 
+            memo1={memoData.memo_1}
+            memoId={memoData.id}
+            onDiligenceDataUpdate={(data) => {
+              setDiligenceData(data);
+              toast({
+                title: "Data Updated",
+                description: "Diligence data has been refreshed successfully.",
+              });
+            }}
+          />
         </TabsContent>
 
         <TabsContent value="memo3" className="mt-1">

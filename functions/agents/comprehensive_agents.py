@@ -25,7 +25,8 @@ from dataclasses import dataclass
 import vertexai
 from vertexai.generative_models import GenerativeModel
 from google.analytics.data_v1beta import BetaAnalyticsDataClient
-from firebase_admin import firestore
+import firebase_admin
+from firebase_admin import firestore, initialize_app
 
 @dataclass
 class AgentConfig:
@@ -50,6 +51,14 @@ class ValidationAgent:
         """Initialize Google Cloud clients"""
         vertexai.init(project=self.config.project, location=self.config.location)
         self.gemini_model = GenerativeModel(self.config.model)
+        
+        # Ensure Firebase is initialized before using Firestore
+        try:
+            firebase_admin.get_app()
+        except ValueError:
+            # App not initialized yet, initialize it
+            initialize_app()
+        
         self.db = firestore.client()
         self.logger.info("✅ ValidationAgent setup complete.")
     

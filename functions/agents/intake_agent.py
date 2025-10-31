@@ -600,9 +600,21 @@ class IntakeCurationAgent:
         # Clean control characters except newline, carriage return, tab
         def sanitize_control_chars(s: str) -> str:
             return re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', '', s)
+
+        # Normalize common smart quotes and stray unicode to strict JSON
+        def normalize_quotes_and_commas(s: str) -> str:
+            # Replace smart quotes/apostrophes with standard quotes
+            s = s.replace('\u201c', '"').replace('\u201d', '"').replace('\u2018', "'").replace('\u2019', "'")
+            s = s.replace('“', '"').replace('”', '"').replace('‘', "'").replace('’', "'")
+            # Remove BOM if present
+            s = s.replace('\ufeff', '')
+            # Remove trailing commas before closing braces/brackets
+            s = re.sub(r',\s*(\}|\])', r'\1', s)
+            return s
         
         # Clean up the text first
         cleaned_text = sanitize_control_chars(text.strip())
+        cleaned_text = normalize_quotes_and_commas(cleaned_text)
         
         # Remove any leading/trailing non-JSON characters
         if cleaned_text.startswith('⁠ '):
@@ -638,10 +650,11 @@ class IntakeCurationAgent:
         self.logger.debug(f"First 500 chars: {json_str[:500]}")
         self.logger.debug(f"Last 500 chars: {json_str[-500:]}")
         
+        # First parse attempt
         try:
             return json.loads(json_str)
         except json.JSONDecodeError as e:
-            self.logger.error(f"Failed to decode JSON from model response: {e}")
+            self.logger.warning(f"Failed to decode JSON from model response: {e}")
             self.logger.error(f"JSON string (first 500 chars): {json_str[:500]}")
             # Log character position for debugging
             if hasattr(e, 'pos'):
@@ -650,6 +663,47 @@ class IntakeCurationAgent:
                     start = max(0, e.pos - 50)
                     end = min(len(json_str), e.pos + 50)
                     self.logger.error(f"Context around error: {json_str[start:end]}")
+            # Second attempt: aggressively normalize again
+            second = normalize_quotes_and_commas(json_str)
+            # Remove trailing commas before closing braces/brackets globally
+            second = re.sub(r',\s*(\})', r'\1', second)
+            second = re.sub(r',\s*(\])', r'\1', second)
+            # Ensure keys are quoted (best-effort, only for simple keys at line starts)
+            second = re.sub(r'(?m)^(\s*)([A-Za-z0-9_]+)\s*:', r'\1"\2":', second)
+            # Strip stray backticks and code fence markers
+            second = second.replace('```json', '').replace('```', '')
+            try:
+                return json.loads(second)
+            except Exception:
+                # Third attempt: replace single quotes with double quotes cautiously
+                third = second
+                # Only replace quotes around keys/values patterns to reduce damage
+                third = re.sub(r"'([A-Za-z0-9_\-\.\s]+)'\s*:", r'"\1":', third)
+                third = re.sub(r":\s*'([^']*)'", lambda m: ': "' + m.group(1).replace('"', '\\"') + '"', third)
+                try:
+                    return json.loads(third)
+                except Exception:
+                    # Fourth attempt: balance braces/brackets and close dangling quotes
+                    def balance_json_structure(s: str) -> str:
+                        # Close dangling quotes at end if odd count
+                        if s.count('"') % 2 != 0:
+                            s += '"'
+                        # Balance braces and brackets
+                        open_braces = s.count('{'); close_braces = s.count('}')
+                        open_brackets = s.count('['); close_brackets = s.count(']')
+                        if close_braces < open_braces:
+                            s += '}' * (open_braces - close_braces)
+                        if close_brackets < open_brackets:
+                            s += ']' * (open_brackets - close_brackets)
+                        # Remove trailing commas before appended closers
+                        s = re.sub(r',\s*(\}|\])', r'\1', s)
+                        return s
+                    balanced = balance_json_structure(third)
+                    try:
+                        return json.loads(balanced)
+                    except Exception:
+                        pass
+            # Fallback: return error with raw for client-side recovery
             return {"error": "Failed to parse valid JSON from model response.", "raw_response": text}
 
     def get_founder_profile(self, founder_email: str) -> Optional[Dict[str, Any]]:
@@ -739,28 +793,124 @@ class IntakeCurationAgent:
             # Enrich missing fields using Perplexity + Vertex AI (No Vector Search)
             try:
                 from services.perplexity_service import PerplexitySearchService
-                perplexity_service = PerplexitySearchService(project=self.project, location=self.location)
                 
-                if perplexity_service.enabled:
+                # Initialize Perplexity service with error handling
+                try:
+                    perplexity_service = PerplexitySearchService(project=self.project, location=self.location)
+                except Exception as init_error:
+                    self.logger.error(f"Failed to initialize Perplexity service: {init_error}", exc_info=True)
+                    result["data_enriched"] = False
+                    result["enrichment_error"] = f"Service initialization failed: {str(init_error)}"
+                    perplexity_service = None
+                
+                if perplexity_service and perplexity_service.enabled:
                     self.logger.info(f"Enriching missing data for {memo1.get('title', 'Unknown Company')} using Perplexity AI + Vertex AI...")
                     
                     # Run enrichment asynchronously with Vertex AI processing
                     import asyncio
-                    enriched_memo1 = await perplexity_service.enrich_missing_fields(memo1)
+                    try:
+                        # Ensure we're running in an async context
+                        try:
+                            loop = asyncio.get_event_loop()
+                        except RuntimeError:
+                            loop = asyncio.new_event_loop()
+                            asyncio.set_event_loop(loop)
+                        
+                        # Run async enrichment
+                        if loop.is_running():
+                            # If loop is already running, use run_coroutine_threadsafe
+                            enriched_memo1 = asyncio.run_coroutine_threadsafe(
+                                perplexity_service.enrich_missing_fields(memo1), 
+                                loop
+                            ).result(timeout=300)  # 5 minute timeout
+                        else:
+                            # Run the async enrichment
+                            enriched_memo1 = loop.run_until_complete(
+                                perplexity_service.enrich_missing_fields(memo1)
+                            )
+                        
+                        # Validate enriched data
+                        if not enriched_memo1 or not isinstance(enriched_memo1, dict):
+                            self.logger.warning("Enriched data is invalid, using original memo1")
+                            enriched_memo1 = memo1.copy()
+                    except asyncio.TimeoutError:
+                        self.logger.error("Enrichment timed out after 5 minutes")
+                        enriched_memo1 = memo1.copy()
+                        result["enrichment_error"] = "Enrichment timed out"
+                    except Exception as async_error:
+                        self.logger.error(f"Async enrichment error: {async_error}", exc_info=True)
+                        enriched_memo1 = memo1.copy()
+                        result["enrichment_error"] = str(async_error)
                     
-                    # Update the memo with enriched data
-                    result["memo_1"] = enriched_memo1
+                    # Merge-only-on-empty: keep originals, fill blanks from enriched
+                    merged = memo1.copy()
+                    enriched_count = 0
+                    
+                    # Enhanced merging logic with better field detection
+                    for k, v in enriched_memo1.items():
+                        # Skip metadata fields for now
+                        if k in ["enrichment_metadata", "enrichment_success", "enrichment_count"]:
+                            continue
+                        
+                        # Skip confidence and source fields (store separately)
+                        if k.endswith("_confidence") or k.endswith("_source") or k.endswith("_enriched"):
+                            continue
+                        
+                        # Check if field is empty in original data
+                        original_value = merged.get(k)
+                        is_empty = (
+                            original_value is None or
+                            original_value == "" or
+                            original_value == [] or
+                            (isinstance(original_value, str) and 
+                             original_value.strip().lower() in ["not specified", "not disclosed", "n/a", "na", "none", 
+                                                                  "pending", "not available", "tbd", "to be determined",
+                                                                  "unknown", "—", "-"])
+                        )
+                        
+                        # Only replace if original is empty and enriched value is valid
+                        if is_empty and v and v != "":
+                            if isinstance(v, str) and v.strip().lower() not in ["not specified", "n/a", "unknown", ""]:
+                                merged[k] = v
+                                enriched_count += 1
+                                self.logger.debug(f"Enriched field '{k}': {v}")
+                            elif not isinstance(v, str):
+                                merged[k] = v
+                                enriched_count += 1
+                                self.logger.debug(f"Enriched field '{k}': {v}")
+                    
+                    # Store confidence and source metadata
+                    enrichment_metadata = enriched_memo1.get("enrichment_metadata", {})
+                    for k, v in enriched_memo1.items():
+                        if k.endswith("_confidence") or k.endswith("_source"):
+                            merged[k] = v
+                    
+                    # Preserve enrichment metadata
+                    if enrichment_metadata:
+                        merged["enrichment_metadata"] = enrichment_metadata
+                    
+                    result["memo_1"] = merged
                     result["data_enriched"] = True
+                    result["enriched_fields_count"] = enriched_count
                     
                     # Log enrichment statistics
                     enrichment_metadata = enriched_memo1.get("enrichment_metadata", {})
                     enriched_fields = enrichment_metadata.get("fields_enriched", [])
                     confidence_scores = enrichment_metadata.get("confidence_scores", {})
                     
-                    self.logger.info(f"Successfully enriched {len(enriched_fields)} fields: {enriched_fields}")
+                    # Use enriched_count from merging if available, otherwise use metadata
+                    final_enriched_count = enriched_count if enriched_count > 0 else len(enriched_fields)
+                    
+                    self.logger.info(f"Successfully enriched {final_enriched_count} fields: {enriched_fields if enriched_fields else 'See enriched_fields_count'}")
                     if confidence_scores:
-                        avg_confidence = sum(confidence_scores.values()) / len(confidence_scores)
+                        avg_confidence = sum(confidence_scores.values()) / len(confidence_scores) if confidence_scores else 0.0
                         self.logger.info(f"Average confidence score: {avg_confidence:.2f}")
+                    
+                    # Validate merged data before saving
+                    if not merged or not isinstance(merged, dict):
+                        self.logger.warning("Merged data is invalid, using original memo1")
+                        merged = memo1.copy()
+                        result["memo_1"] = merged
                     
                 else:
                     self.logger.info("Perplexity enrichment skipped - API key not configured")
@@ -768,9 +918,12 @@ class IntakeCurationAgent:
                     result["enrichment_error"] = "PERPLEXITY_API_KEY not configured"
                 
             except Exception as e:
-                self.logger.warning(f"Enrichment failed: {e}")
+                self.logger.warning(f"Enrichment failed: {e}", exc_info=True)
                 result["data_enriched"] = False
                 result["enrichment_error"] = str(e)
+                # Continue with original memo1 data if enrichment fails
+                if "memo_1" not in result:
+                    result["memo_1"] = memo1
             
             # Add metadata for downstream processing (No Vector Search needed)
             result["founder_email"] = founder_email

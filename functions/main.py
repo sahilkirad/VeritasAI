@@ -80,8 +80,15 @@ def get_firebase_app():
 # Log environment configuration (without exposing sensitive values)
 def log_environment_config():
     """Log environment configuration for debugging"""
+    perplexity_key = os.environ.get('PERPLEXITY_API_KEY', '')
+    key_preview = f"{perplexity_key[:8]}...{perplexity_key[-4:]}" if len(perplexity_key) > 12 else (f"{perplexity_key[:4]}..." if perplexity_key else "None")
+    key_valid = bool(perplexity_key) and perplexity_key.startswith("pplx-")
+    
     print(f"Environment configuration:")
-    print(f"- PERPLEXITY_API_KEY configured: {bool(os.environ.get('PERPLEXITY_API_KEY'))}")
+    print(f"- PERPLEXITY_API_KEY configured: {bool(perplexity_key)}")
+    print(f"- PERPLEXITY_API_KEY format valid: {key_valid}")
+    if perplexity_key:
+        print(f"- PERPLEXITY_API_KEY preview: {key_preview}")
     print(f"- GOOGLE_CLOUD_PROJECT: {os.environ.get('GOOGLE_CLOUD_PROJECT', 'Not set')}")
     print(f"- VERTEX_AI_LOCATION: {os.environ.get('VERTEX_AI_LOCATION', 'asia-south1')}")
 
@@ -447,7 +454,8 @@ def on_file_upload(req: https_fn.Request) -> https_fn.Response:
 @pubsub_fn.on_message_published(
     topic="document-ingestion-topic",
     memory=options.MemoryOption.MB_512,
-    timeout_sec=540
+    timeout_sec=540,
+    secrets=["PERPLEXITY_API_KEY"]
 )
 def process_ingestion_task(event: pubsub_fn.CloudEvent) -> None:
     """Triggers on a Pub/Sub message and calls the IntakeCurationAgent."""
@@ -559,9 +567,9 @@ def process_ingestion_task(event: pubsub_fn.CloudEvent) -> None:
             ))
         else:
             print("No founder email provided, using standard intake agent")
-        ingestion_result = agent.run(
-            file_data=file_data, filename=file_path, file_type=file_type
-        )
+            ingestion_result = agent.run(
+                file_data=file_data, filename=file_path, file_type=file_type
+            )
         
         if ingestion_result.get("status") == "SUCCESS":
             print(f"Successfully ingested {file_path}. Memo 1 generated. Validating data before saving...")
@@ -621,7 +629,8 @@ def process_ingestion_task(event: pubsub_fn.CloudEvent) -> None:
 @pubsub_fn.on_message_published(
     topic="diligence-topic",
     memory=options.MemoryOption.MB_512,  # Reduced memory to match firebase.json
-    timeout_sec=540  # Maximum allowed for event-triggered functions
+    timeout_sec=540,  # Maximum allowed for event-triggered functions
+    secrets=["PERPLEXITY_API_KEY"]
 )
 def process_diligence_task(event: pubsub_fn.CloudEvent) -> None:
     """Triggers on a Pub/Sub message and calls the DiligenceAgent."""
@@ -1194,13 +1203,13 @@ def query_diligence(req: https_fn.Request):
 @https_fn.on_request(
     memory=options.MemoryOption.MB_512,
     timeout_sec=300,
-    invoker="public"
+    secrets=["PERPLEXITY_API_KEY"]
 )
 def validate_memo_data(req: https_fn.Request):
     """
     Endpoint: POST /validate_memo_data
-    Body: { memo_data }
-    Returns: Validation results with Google references
+    Body: { memo_data, memo_id, memo_type }
+    Returns: Validation results with enrichment data
     """
     try:
         # Handle CORS preflight
@@ -1214,24 +1223,96 @@ def validate_memo_data(req: https_fn.Request):
             return https_fn.Response('No JSON data provided', status=400)
 
         memo_data = data.get("memo_data")
+        memo_id = data.get("memo_id")
+        memo_type = data.get("memo_type", "memo_1")
+        
         if not memo_data:
             return https_fn.Response('Missing required parameter: memo_data', status=400)
+        
+        if not memo_id:
+            return https_fn.Response('Missing required parameter: memo_id', status=400)
 
-        # Lazy-initialize the validation service
+        print(f"Validating and enriching memo data for company: {memo_data.get('title', 'Unknown')} (ID: {memo_id})")
+        
+        # Initialize Firebase before any Firestore operations
+        get_firebase_app()
+        
+        # Try to find the correct memo_id if the provided one doesn't match document ID
+        # The memo_id might be a company_id instead of document ID
+        resolved_memo_id = memo_id
+        try:
+            db = firestore.client()
+            # Check if memo_id is actually a company_id
+            if memo_data.get('company_id'):
+                # Try to find document by company_id in ingestionResults
+                query = db.collection("ingestionResults").where("company_id", "==", memo_data.get('company_id')).limit(1)
+                docs = list(query.stream())
+                if docs:
+                    resolved_memo_id = docs[0].id
+                    print(f"Resolved memo_id from company_id: {memo_id} -> {resolved_memo_id}")
+                # Also try direct lookup with the provided memo_id
+                elif memo_id:
+                    doc_ref = db.collection("ingestionResults").document(memo_id)
+                    if doc_ref.get().exists:
+                        resolved_memo_id = memo_id
+                        print(f"Using provided memo_id as document ID: {memo_id}")
+                    else:
+                        # Try searching recent documents
+                        recent_query = db.collection("ingestionResults").order_by("timestamp", direction=firestore.Query.DESCENDING).limit(20)
+                        for doc in recent_query.stream():
+                            doc_data = doc.to_dict()
+                            if (doc_data.get("company_id") == memo_id or 
+                                doc_data.get("memo_1", {}).get("company_id") == memo_id or
+                                doc.id == memo_id):
+                                resolved_memo_id = doc.id
+                                print(f"Found matching document: {memo_id} -> {resolved_memo_id}")
+                                break
+        except Exception as e:
+            print(f"Error resolving memo_id: {e}, using original memo_id: {memo_id}")
+            resolved_memo_id = memo_id
+        
+        # Step 1: Run enrichment agent to fill missing fields
+        enrichment_result = None
+        if memo_type == "memo_1":
+            try:
+                from agents.memo_enrichment_agent import MemoEnrichmentAgent
+                enrichment_agent = MemoEnrichmentAgent(project="veritas-472301", location="asia-south1")
+                enrichment_agent.set_up()
+                
+                # Run enrichment asynchronously with resolved memo_id
+                import asyncio
+                enrichment_result = asyncio.run(enrichment_agent.enrich_memo(resolved_memo_id, memo_type))
+                print(f"Enrichment completed: {enrichment_result.get('fields_enriched_count', 0)} fields enriched")
+            except Exception as e:
+                print(f"Enrichment failed (non-blocking): {e}")
+                enrichment_result = {"error": str(e)}
+        
+        # Step 2: Run validation service
         from services.google_validation_service import GoogleValidationService
         validation_service = GoogleValidationService()
         validation_service.set_up()
         
-        print(f"Validating memo data for company: {memo_data.get('title', 'Unknown')}")
+        # Use enriched data if available, otherwise use original
+        validation_data = memo_data
+        if memo_id:
+            try:
+                db = firestore.client()
+                validated_doc = db.collection("memo1_validated").document(memo_id).get()
+                if validated_doc.exists:
+                    validated_data = validated_doc.to_dict().get("memo_1", memo_data)
+                    print(f"Using enriched data from memo1_validated for validation")
+            except Exception as e:
+                print(f"Error fetching enriched data: {e}")
         
         # Run validation
-        result = validation_service.validate_memo_data(memo_data)
+        result = validation_service.validate_memo_data(validation_data)
+        
+        # Add enrichment info to result
+        if enrichment_result:
+            result["enrichment"] = enrichment_result
         
         # Store validation result in Firestore
-        memo_id = data.get("memo_id")
-        memo_type = data.get("memo_type", "memo_1")
-        
-        if memo_id:
+        if resolved_memo_id:
             try:
                 db = firestore.client()
                 
@@ -1243,12 +1324,14 @@ def validate_memo_data(req: https_fn.Request):
                     })
                     print(f"Validation result stored in diligenceResults for memo: {memo_id}")
                 else:
-                    # Store in ingestionResults collection under memo_1
-                    memo_doc_ref = db.collection("ingestionResults").document(memo_id)
-                    memo_doc_ref.update({
-                        "memo_1.validation_result": result
-                    })
-                    print(f"Validation result stored in ingestionResults for memo: {memo_id}")
+                    # Update memo1_validated with validation results
+                    validated_doc_ref = db.collection("memo1_validated").document(resolved_memo_id)
+                    # Use set with merge=True instead of update (update doesn't support merge parameter)
+                    validated_doc_ref.set({
+                        "validation_result": result,
+                        "validation_timestamp": datetime.now().isoformat()
+                    }, merge=True)
+                    print(f"Validation result stored in memo1_validated for memo: {memo_id}")
                     
             except Exception as e:
                 print(f"Error storing validation result: {e}")
@@ -1263,6 +1346,8 @@ def validate_memo_data(req: https_fn.Request):
         
     except Exception as e:
         print(f"Error in validate_memo_data: {e}")
+        import traceback
+        traceback.print_exc()
         headers = {
             **get_cors_headers(req),
             'Content-Type': 'application/json'
@@ -1285,6 +1370,9 @@ def validate_market_size(req: https_fn.Request):
         if req.method == "OPTIONS":
             headers = get_cors_headers(req)
             return https_fn.Response("", status=200, headers=headers)
+
+        # Initialize Firebase before any Firestore operations
+        get_firebase_app()
 
         # Extract and validate parameters
         data = req.get_json()
@@ -1448,6 +1536,9 @@ def validate_competitors(req: https_fn.Request):
         if req.method == "OPTIONS":
             headers = get_cors_headers(req)
             return https_fn.Response("", status=200, headers=headers)
+
+        # Initialize Firebase before any Firestore operations
+        get_firebase_app()
 
         # Extract and validate parameters
         data = req.get_json()

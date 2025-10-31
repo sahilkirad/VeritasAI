@@ -4,17 +4,19 @@ import logging
 import json
 import re
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 # Google Cloud Imports
 import vertexai
 from vertexai.generative_models import GenerativeModel
 from google.analytics.data_v1beta import BetaAnalyticsDataClient
 from google.analytics.data_v1beta.types import RunReportRequest
-from firebase_admin import firestore
+import firebase_admin
+from firebase_admin import firestore, initialize_app
 
 # Import PerplexitySearchService for market benchmarking
 from services.perplexity_service import PerplexitySearchService
+from agents.customer_reference_agent import CustomerReferenceAgent
 
 class DiligenceAgent:
     """
@@ -24,48 +26,121 @@ class DiligenceAgent:
     """
 
     MEMO_2_PROMPT_TEMPLATE = """
-    You are a Senior Venture Capital Analyst with 15+ years of experience in early-stage investments. Your task is to synthesize available information about a startup into a single, comprehensive diligence report (Memo 2).
+    You are a Senior Venture Capital Analyst with 15+ years of experience in early-stage investments. Your task is to synthesize available information about a startup into a comprehensive Due Diligence & Validation Report (Memo 2).
 
     You have been given:
     1.  **Curated Data (Memo 1):** The startup's claims, extracted from their pitch deck or transcript, including comprehensive Founders Checklist data.
     2.  **Google Analytics Data:** If available, verified user metrics from their Google Analytics property. If not available, skip GA-related analysis.
     3.  **Public Founder Data:** Detailed information scraped from the founder's public LinkedIn profile.
+    4.  **Interview Data:** AI-led founder interview responses and analysis.
+    5.  **Customer References:** Generated customer reference call summaries.
 
     **ANALYSIS INSTRUCTIONS:**
     - Base ALL analysis STRICTLY on the provided data sources
     - Do NOT make up or hallucinate any information
     - If information is not available in the provided data, state "Information not available in provided data sources"
-    - Use the LinkedIn data to analyze founder background and experience
     - Cross-reference all claims with the available data sources
     - Focus on validating the comprehensive Founders Checklist data from Memo 1
-    - If Google Analytics data is not available or shows errors, focus analysis on Memo 1 data and LinkedIn data only
+    - Compare pitch deck claims with interview responses for consistency
+    - Use LinkedIn data to analyze founder background and experience
+    - Generate realistic customer reference scenarios based on provided data
 
-    **FOUNDERS CHECKLIST VALIDATION:**
-    The Memo 1 data now includes comprehensive analysis of:
-    - Industry & Market Size (Talent Acquisition, EdTech, Simulation Learning, AI in HR, etc.)
-    - Technology Stack (AI engine, simulation workflows, SaaS stack, security & infra)
-    - Revenue Streams & Pricing Models
-    - Unit Economics (CAC, LTV, recurring vs one-time)
-    - Competitor Analysis (Mercor, Degreed, Skillfully)
-    - Founders Profiles (Aditya Sambamoorthy, Abhishek Mehta)
-    - Provisional Financials & Valuation
-    - Risks & Mitigation
-    - Pipeline & Growth Projections
-    - Fundraise ask & round structure
+    **COMPREHENSIVE DILIGENCE FRAMEWORK:**
 
-    Your Instructions:
-    - Cross-reference the 'traction' claims from Memo 1 with the live Google Analytics data to validate user metrics and growth claims.
-    - Analyze the founder's background from Memo 1 against their detailed LinkedIn profile to assess founder-market fit and credibility.
-    - Validate market size claims against industry benchmarks and public datasets.
-    - Cross-check competitor information and funding data.
-    - Assess technology stack claims and technical feasibility.
-    - Evaluate revenue model and pricing strategy against industry standards.
-    - Pay special attention to the founder's experience and domain expertise alignment with the startup's solution.
-    - Evaluate the alignment between the startup's solution and the founder's domain expertise.
-    - Use the Market Benchmarking Data to analyze competitive positioning, industry averages, and market opportunity.
-    - Compare the startup's metrics against industry benchmarks and competitor data.
-    - Assess market opportunity and competitive advantages based on the benchmarking data.
-    - Based on ALL available information, provide a score (from 1 to 10) and a detailed analysis for each of the following diligence points:
+    **SECTION 1: EXECUTIVE SUMMARY**
+    Generate a quick assessment with:
+    - Overall DD Score (1-10)
+    - Recommendation (PROCEED/CONDITIONAL/HOLD)
+    - Key findings summary
+    - Founder credibility score
+    - Claim consistency percentage
+    - Red flags count and severity
+    - Validation gaps identified
+
+    **SECTION 2: FOUNDER CREDIBILITY ASSESSMENT**
+    Create a detailed scorecard with 7 dimensions:
+    1. Communication Quality (1-10)
+    2. Domain Expertise (1-10) 
+    3. Market Understanding (1-10)
+    4. Financial Acumen (1-10)
+    5. Realistic Risk Assessment (1-10)
+    6. Leadership & Execution (1-10)
+    7. Investor Alignment (1-10)
+    
+    For each dimension, provide:
+    - Score with evidence from interview
+    - Specific quotes or examples
+    - Knowledge gaps identified
+    - Overall credibility rating (Very High/Good/Fair/Low)
+
+    **SECTION 3: PITCH CONSISTENCY CHECK**
+    Create a claim-by-claim validation matrix comparing:
+    - Pitch deck values vs interview responses
+    - Variance analysis for each claim
+    - Status (CONSISTENT/SLIGHT VARIANCE/AGGRESSIVE/MINOR DISCREPANCY)
+    - Overall consistency score and match percentage
+
+    **SECTION 4: RED FLAGS & CONCERNS**
+    Identify and categorize risks:
+    - Revenue discrepancies
+    - Aggressive growth targets
+    - GTM scalability concerns
+    - Patent status ambiguity
+    - Missing key hires (CFO, etc.)
+    - Financial model concerns
+    
+    For each flag:
+    - Severity level (RED/YELLOW)
+    - Root cause analysis
+    - Founder response/explanation
+    - Mitigation assessment
+    - Investment impact
+
+    **SECTION 5: MARKET VALIDATION CHECKS**
+    Validate market claims against public data:
+    - TAM/SAM/SOM verification
+    - Industry statistics accuracy
+    - Competitive landscape validation
+    - Market timing assessment
+    - Growth projections realism
+
+    **SECTION 6: CUSTOMER VALIDATION**
+    Generate customer reference call summaries:
+    - Customer company details
+    - Reference contact information
+    - Q&A format with realistic responses
+    - NPS scores and renewal likelihood
+    - Testimonial authority and credibility
+    - Key benefits and minor issues
+
+    **SECTION 7: FINANCIAL VALIDATION**
+    Detailed unit economics analysis:
+    - CAC breakdown and verification
+    - LTV calculation and assumptions
+    - Burn rate analysis and runway
+    - Gross margin assessment
+    - Revenue model validation
+    - Financial risk assessment
+
+    **SECTION 8: OVERALL DD SCORE & RECOMMENDATION**
+    Weighted scoring system:
+    - Component scores with weights
+    - Overall DD score calculation
+    - Confidence level assessment
+    - Investment recommendation
+    - Mandatory conditions for investment
+    - Next steps and timeline
+
+    **SECTION 9: INTERVIEW TRANSCRIPT ANALYSIS**
+    Process interview data:
+    - Key insights extraction
+    - Sentiment analysis
+    - Credibility signals
+    - Red flag indicators
+    - Evasiveness assessment
+    - Overall interview quality score
+
+    Based on ALL available information, provide comprehensive analysis for each section:
 
     **DILIGENCE FRAMEWORK:**
     1. **Founder-Market Fit (Score 1-10):**
@@ -114,86 +189,150 @@ class DiligenceAgent:
 
     Respond ONLY with a valid JSON object. Do not include any other text or markdown formatting.
 
-    **JSON SCHEMA (KEEP ALL RESPONSES UNDER 200 CHARACTERS):**
+    **JSON SCHEMA (COMPREHENSIVE MEMO 2 STRUCTURE):**
     {{
-        "google_analytics_summary": {{
-            "data_source": "Not Available",
-            "property_id": "Not Available",
-            "performance_analysis": "GA data not available for analysis"
+        "executive_summary": {{
+            "overall_dd_score": <number 1-10>,
+            "recommendation": "<PROCEED/CONDITIONAL/HOLD>",
+            "founder_credibility_score": <number 1-10>,
+            "claim_consistency_percentage": <number 0-100>,
+            "red_flags_count": <number>,
+            "validation_gaps": <number>,
+            "key_findings": "<summary under 300 chars>"
         }},
-        "industry_market_validation": {{
-            "market_size_validation": "<brief validation under 200 chars>",
-            "competitive_landscape": "<brief assessment under 200 chars>"
+        "founder_credibility_assessment": {{
+            "overall_score": <number 1-10>,
+            "credibility_rating": "<Very High/Good/Fair/Low>",
+            "dimensions": {{
+                "communication_quality": {{"score": <number>, "evidence": "<evidence under 200 chars>"}},
+                "domain_expertise": {{"score": <number>, "evidence": "<evidence under 200 chars>"}},
+                "market_understanding": {{"score": <number>, "evidence": "<evidence under 200 chars>"}},
+                "financial_acumen": {{"score": <number>, "evidence": "<evidence under 200 chars>"}},
+                "realistic_risk_assessment": {{"score": <number>, "evidence": "<evidence under 200 chars>"}},
+                "leadership_execution": {{"score": <number>, "evidence": "<evidence under 200 chars>"}},
+                "investor_alignment": {{"score": <number>, "evidence": "<evidence under 200 chars>"}}
+            }}
         }},
-        "technology_validation": {{
-            "technical_feasibility": "<brief assessment under 200 chars>",
-            "innovation_level": "<brief assessment under 200 chars>"
+        "pitch_consistency_check": {{
+            "overall_consistency_score": <number 1-10>,
+            "match_percentage": <number 0-100>,
+            "claims_validation": [
+                {{
+                    "claim": "<claim description>",
+                    "pitch_value": "<pitch deck value>",
+                    "interview_response": "<interview response>",
+                    "variance": "<variance description>",
+                    "status": "<CONSISTENT/SLIGHT VARIANCE/AGGRESSIVE/MINOR DISCREPANCY>"
+                }}
+            ]
+        }},
+        "red_flags_concerns": {{
+            "total_flags": <number>,
+            "critical_blockers": <number>,
+            "mitigation_level": "<GOOD/FAIR/POOR>",
+            "flags": [
+                {{
+                    "flag_type": "<flag description>",
+                    "severity": "<RED/YELLOW>",
+                    "description": "<flag description under 200 chars>",
+                    "founder_response": "<founder explanation under 200 chars>",
+                    "mitigation": "<mitigation assessment under 200 chars>",
+                    "investment_impact": "<impact level>"
+                }}
+            ]
+        }},
+        "market_validation_checks": {{
+            "tam_verification": "<validation under 200 chars>",
+            "industry_statistics_accuracy": "<accuracy assessment under 200 chars>",
+            "competitive_landscape": "<landscape assessment under 200 chars>",
+            "market_timing": "<timing assessment under 200 chars>",
+            "growth_projections_realism": "<realism assessment under 200 chars>"
+        }},
+        "customer_validation": {{
+            "average_nps": <number 1-10>,
+            "churn_risk": "<percentage>",
+            "expansion_likelihood": "<HIGH/MEDIUM/LOW>",
+            "testimonial_quality": "<HIGH/MEDIUM/LOW>",
+            "reference_calls": [
+                {{
+                    "customer_name": "<customer name>",
+                    "industry": "<industry>",
+                    "reference_contact": {{
+                        "name": "<contact name>",
+                        "title": "<contact title>",
+                        "department": "<department>"
+                    }},
+                    "nps_score": <number 1-10>,
+                    "renewal_likelihood": "<percentage>",
+                    "key_benefits": ["<benefit 1>", "<benefit 2>"],
+                    "minor_issues": ["<issue 1>", "<issue 2>"],
+                    "overall_assessment": "<assessment under 200 chars>"
+                }}
+            ]
         }},
         "financial_validation": {{
-            "revenue_model": "<brief assessment under 200 chars>",
-            "unit_economics": "<brief assessment under 200 chars>"
-        }},
-        "founder_analysis": {{
-            "score": <number 1-10>,
-            "background": "<brief founder background under 200 chars>",
-            "market_fit": "<brief market fit assessment under 200 chars>"
-        }},
-        "problem_validation": {{
-            "score": <number 1-10>,
-            "severity": "<brief problem severity under 200 chars>",
-            "market_need": "<brief market need assessment under 200 chars>"
-        }},
-        "solution_analysis": {{
-            "score": <number 1-10>,
-            "uniqueness": "<brief uniqueness assessment under 200 chars>",
-            "feasibility": "<brief feasibility assessment under 200 chars>"
-        }},
-        "traction_analysis": {{
-            "score": <number 1-10>,
-            "validation": "<brief traction validation under 200 chars>",
-            "growth_potential": "<brief growth assessment under 200 chars>"
-        }},
-        "team_analysis": {{
-            "score": <number 1-10>,
-            "composition": "<brief team composition under 200 chars>",
-            "capability": "<brief capability assessment under 200 chars>"
-        }},
-        "market_analysis": {{
-            "score": <number 1-10>,
-            "opportunity": "<brief market opportunity under 200 chars>",
-            "competition": "<brief competition analysis under 200 chars>"
-        }},
-        "investment_thesis": "<comprehensive thesis under 200 chars>",
-        "confidence_score": <number 1-10>,
-        "key_risks": ["<risk 1 under 50 chars>", "<risk 2 under 50 chars>"],
-        "investment_recommendation": "<STRONG BUY, BUY, HOLD, or PASS>",
-        "market_benchmarking": {{
-            "industry_averages": {{
-                "metrics": [
-                    {{"label": "<dynamic metric label>", "value": "<value with context>"}},
-                    {{"label": "<dynamic metric label>", "value": "<value with context>"}},
-                    {{"label": "<dynamic metric label>", "value": "<value with context>"}}
-                ]
+            "unit_economics": {{
+                "cac_current": "<current CAC>",
+                "cac_eoy": "<EOY CAC>",
+                "ltv_range": "<LTV range>",
+                "cac_ltv_ratio": "<ratio>",
+                "payback_period": "<period>",
+                "gross_margin": "<margin percentage>"
             }},
-            "competitive_landscape": [
-                {{
-                    "company_name": "<company name>",
-                    "is_target": true/false,
-                    "metric1_value": "<value>",
-                    "metric2_value": "<value>",
-                    "fees": "<value>",
-                    "ai_powered": "<Yes/No/Partial>",
-                    "notes": "<brief competitive notes under 100 chars>"
-                }}
+            "burn_rate_analysis": {{
+                "monthly_burn": "<burn amount>",
+                "runway_months": <number>,
+                "runway_assessment": "<TIGHT/MANAGEABLE/HEALTHY>",
+                "revenue_growth_required": "<growth requirement>"
+            }},
+            "financial_risk_level": "<LOW/MEDIUM/HIGH>"
+        }},
+        "overall_dd_score_recommendation": {{
+            "component_scores": {{
+                "founder_credibility": <number 1-10>,
+                "claim_consistency": <number 1-10>,
+                "red_flags_risks": <number 1-10>,
+                "financial_validation": <number 1-10>,
+                "customer_validation": <number 1-10>,
+                "market_validation": <number 1-10>
+            }},
+            "overall_dd_score": <number 1-10>,
+            "confidence_level": <number 0-100>,
+            "investment_recommendation": "<PROCEED/CONDITIONAL/HOLD>",
+            "mandatory_conditions": [
+                "<condition 1>",
+                "<condition 2>",
+                "<condition 3>"
             ],
-            "metric_labels": {{
-                "metric1": "<dynamic label for first metric>",
-                "metric2": "<dynamic label for second metric>"
+            "next_steps": [
+                "<step 1>",
+                "<step 2>",
+                "<step 3>"
+            ]
+        }},
+        "interview_transcript_analysis": {{
+            "overall_quality_score": <number 1-10>,
+            "sentiment_analysis": {{
+                "overall_tone": "<Confident/Realistic/Concerned>",
+                "red_flag_indicators": <number>,
+                "credibility_signals": <number>,
+                "evasiveness_level": "<Low/Medium/High>"
             }},
-            "market_opportunity": {{
-                "description": "<full paragraph describing market opportunity, growth projections, and competitive advantages>"
-            }}
-        }}
+            "confidence_metrics": {{
+                "conviction_level": <percentage>,
+                "addressed_tough_questions": <percentage>,
+                "provided_specific_data": <percentage>
+            }},
+            "key_insights": [
+                "<insight 1>",
+                "<insight 2>",
+                "<insight 3>"
+            ]
+        }},
+        "investment_thesis": "<comprehensive thesis under 500 chars>",
+        "confidence_score": <number 1-10>,
+        "key_risks": ["<risk 1>", "<risk 2>", "<risk 3>"],
+        "investment_recommendation": "<STRONG BUY, BUY, HOLD, or PASS>"
     }}
 
     **JSON DATA INPUTS:**
@@ -205,6 +344,12 @@ class DiligenceAgent:
     Public Founder Data: {public_data}
     ---
     Market Benchmarking Data: {market_benchmarking_data}
+    ---
+    Interview Data: {interview_data}
+    ---
+    Customer References: {customer_references}
+    ---
+    LinkedIn Verification: {linkedin_verification}
     ---
     """
 
@@ -231,6 +376,13 @@ class DiligenceAgent:
             # Use Gemini 1.5 Pro for maximum accuracy in diligence analysis
             self.gemini_model = GenerativeModel("gemini-2.5-flash")
             self.logger.info("GenerativeModel ('gemini-2.5-flash') initialized for diligence analysis.")
+            
+            # Ensure Firebase is initialized before using Firestore
+            try:
+                firebase_admin.get_app()
+            except ValueError:
+                # App not initialized yet, initialize it
+                initialize_app()
             
             # Initialize Firestore client
             self.db = firestore.client()
@@ -346,9 +498,9 @@ class DiligenceAgent:
         }
 
     def run(self, startup_id: str, ga_property_id: str, linkedin_url: str) -> Dict[str, Any]:
-        """Main entry point. Orchestrates the creation of Memo 1 Diligence."""
+        """Main entry point. Orchestrates the creation of comprehensive Memo 2 Due Diligence."""
         start_time = datetime.now()
-        self.logger.info(f"Starting diligence process for startup_id: {startup_id}")
+        self.logger.info(f"Starting comprehensive diligence process for startup_id: {startup_id}")
         
         try:
             # 1. Fetch the curated Memo 1 data from Firestore
@@ -369,11 +521,23 @@ class DiligenceAgent:
             # 5. Fetch market benchmarking data using Perplexity API
             market_benchmarking_data = self._fetch_market_benchmarking(memo_1_data)
             
-            # 6. Synthesize all data into Memo 1 Diligence using Gemini
-            memo_2_json = self._generate_memo_2(memo_1_data, ga_data, public_data, market_benchmarking_data)
+            # 6. Fetch interview data from Firestore
+            interview_data = self._fetch_interview_data(startup_id)
+            
+            # 7. Generate customer references using CustomerReferenceAgent
+            customer_references = self._generate_customer_references(memo_1_data)
+            
+            # 8. Generate LinkedIn verification data using Perplexity
+            linkedin_verification = self._generate_linkedin_verification(memo_1_data)
+            
+            # 9. Synthesize all data into comprehensive Memo 2 using Gemini
+            memo_2_json = self._generate_memo_2(
+                memo_1_data, ga_data, public_data, market_benchmarking_data,
+                interview_data, customer_references, linkedin_verification
+            )
 
             processing_time = (datetime.now() - start_time).total_seconds()
-            self.logger.info(f"Successfully generated Memo 1 Diligence for '{startup_id}' in {processing_time:.2f} seconds.")
+            self.logger.info(f"Successfully generated comprehensive Memo 2 for '{startup_id}' in {processing_time:.2f} seconds.")
 
             return {
                 "status": "SUCCESS",
@@ -679,16 +843,21 @@ Extract the data and return ONLY the JSON object."""
             self.logger.error(f"Error ensuring target company first: {e}")
             return market_data
 
-    def _generate_memo_2(self, memo_1_data: dict, ga_data: dict, public_data: dict, market_benchmarking_data: dict) -> Dict[str, Any]:
-        """Uses Gemini to synthesize all data sources into the final Memo 1 Diligence."""
-        self.logger.info("Synthesizing all data sources to generate Memo 1 Diligence...")
+    def _generate_memo_2(self, memo_1_data: dict, ga_data: dict, public_data: dict, 
+                         market_benchmarking_data: dict, interview_data: dict = None, 
+                         customer_references: list = None, linkedin_verification: dict = None) -> Dict[str, Any]:
+        """Uses Gemini to synthesize all data sources into the comprehensive Memo 2 Due Diligence."""
+        self.logger.info("Synthesizing all data sources to generate comprehensive Memo 2...")
         
-        # Enhanced prompt with analysis instructions
+        # Enhanced prompt with all data sources
         prompt = self.MEMO_2_PROMPT_TEMPLATE.format(
             memo_1_data=json.dumps(memo_1_data, indent=2),
             ga_data=json.dumps(ga_data, indent=2),
             public_data=json.dumps(public_data, indent=2),
-            market_benchmarking_data=json.dumps(market_benchmarking_data, indent=2)
+            market_benchmarking_data=json.dumps(market_benchmarking_data, indent=2),
+            interview_data=json.dumps(interview_data or {}, indent=2),
+            customer_references=json.dumps(customer_references or [], indent=2),
+            linkedin_verification=json.dumps(linkedin_verification or {}, indent=2)
         )
         
         # Use generate_content with standard configuration
@@ -698,10 +867,10 @@ Extract the data and return ONLY the JSON object."""
                 "temperature": 0.1,  # Lower temperature for more factual responses
                 "top_p": 0.8,
                 "top_k": 40,
-                "max_output_tokens": 8192,  # Reduced to prevent truncation with simpler schema
+                "max_output_tokens": 12000,  # Increased for comprehensive analysis
             }
         )
-        self.logger.info("Memo 1 Diligence generation complete.")
+        self.logger.info("Comprehensive Memo 2 generation complete.")
         return self._parse_json_from_text(response.text)
 
     def _parse_json_from_text(self, text: str) -> Dict[str, Any]:
@@ -755,3 +924,77 @@ Extract the data and return ONLY the JSON object."""
             "raw_response": text[:1000],  # Truncate for storage
             "status": "PARSE_ERROR"
         }
+    
+    def _fetch_interview_data(self, startup_id: str) -> Dict[str, Any]:
+        """Fetch interview data from Firestore interviews collection."""
+        try:
+            # Query interviews collection for this startup
+            interviews_ref = self.db.collection('interviews')
+            query = interviews_ref.where('companyId', '==', startup_id).where('status', '==', 'completed')
+            docs = query.get()
+            
+            if docs:
+                # Get the most recent interview
+                latest_interview = max(docs, key=lambda x: x.to_dict().get('createdAt', ''))
+                interview_data = latest_interview.to_dict()
+                
+                return {
+                    "interview_id": latest_interview.id,
+                    "founder_email": interview_data.get('founderEmail', ''),
+                    "startup_name": interview_data.get('startupName', ''),
+                    "questions": interview_data.get('questions', []),
+                    "summary": interview_data.get('summary', {}),
+                    "transcript": interview_data.get('transcript', []),
+                    "key_insights": interview_data.get('summary', {}).get('keyInsights', []),
+                    "red_flags": interview_data.get('summary', {}).get('redFlags', []),
+                    "validation_points": interview_data.get('summary', {}).get('validationPoints', []),
+                    "recommendations": interview_data.get('summary', {}).get('recommendations', ''),
+                    "confidence_score": interview_data.get('summary', {}).get('confidenceScore', 0)
+                }
+            else:
+                self.logger.warning(f"No completed interviews found for startup {startup_id}")
+                return {}
+                
+        except Exception as e:
+            self.logger.error(f"Error fetching interview data: {str(e)}")
+            return {}
+    
+    def _generate_customer_references(self, memo_1_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Generate customer reference calls using CustomerReferenceAgent."""
+        try:
+            # Initialize CustomerReferenceAgent
+            customer_agent = CustomerReferenceAgent(project=self.project, location=self.location)
+            
+            # Generate references (this is async, so we need to handle it properly)
+            import asyncio
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                references = loop.run_until_complete(customer_agent.generate_customer_references(memo_1_data))
+                return references
+            finally:
+                loop.close()
+                
+        except Exception as e:
+            self.logger.error(f"Error generating customer references: {str(e)}")
+            return []
+    
+    def _generate_linkedin_verification(self, memo_1_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Generate LinkedIn verification data using Perplexity service."""
+        try:
+            # Initialize PerplexitySearchService
+            perplexity_service = PerplexitySearchService(project=self.project, location=self.location)
+            
+            # Generate LinkedIn verification (this is async, so we need to handle it properly)
+            import asyncio
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                verification = loop.run_until_complete(perplexity_service.enrich_linkedin_verification(memo_1_data))
+                return verification
+            finally:
+                loop.close()
+                
+        except Exception as e:
+            self.logger.error(f"Error generating LinkedIn verification: {str(e)}")
+            return {}

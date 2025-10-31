@@ -251,6 +251,71 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
   const [isValidating, setIsValidating] = useState(false);
   const { toast } = useToast();
 
+  // Calculate confidence level from diligence report data
+  const calculateConfidenceLevel = (): number => {
+    if (!diligenceData) return 0;
+
+    // Try to get confidence level directly first
+    const directConfidence = (diligenceData as any)?.overall_dd_score_recommendation?.confidence_level;
+    if (typeof directConfidence === 'number') {
+      return directConfidence;
+    }
+    
+    const confidenceLevelStr = diligenceData?.confidence_level as any;
+    if (typeof confidenceLevelStr === 'number') {
+      return confidenceLevelStr;
+    }
+    if (typeof confidenceLevelStr === 'string') {
+      // Parse string confidence levels like "low", "medium", "high"
+      const lower = confidenceLevelStr.toLowerCase();
+      if (lower === 'high') return 85;
+      if (lower === 'medium') return 60;
+      if (lower === 'low') return 35;
+    }
+
+    // Calculate confidence based on component scores and data completeness
+    const componentScores = (diligenceData as any)?.overall_dd_score_recommendation?.component_scores || {};
+    const overallScore = (diligenceData as any)?.overall_dd_score_recommendation?.overall_dd_score ?? diligenceData?.overall_score ?? 0;
+    
+    // Get individual component scores
+    const founderCredibility = componentScores.founder_credibility || (diligenceData as any)?.founder_credibility_assessment?.overall_score || 0;
+    const memo1Accuracy = componentScores.memo1_accuracy || (diligenceData as any)?.memo1_accuracy_data?.accuracy_score || 0;
+    const pitchConsistency = componentScores.pitch_consistency || (diligenceData as any)?.pitch_consistency_check?.consistency_score || 0;
+    
+    // Count available components (non-zero scores indicate data is present)
+    const availableComponents = [
+      founderCredibility > 0,
+      memo1Accuracy > 0,
+      pitchConsistency > 0,
+      overallScore > 0
+    ].filter(Boolean).length;
+
+    // Base confidence on overall score and data completeness
+    let confidence = overallScore * 0.6; // 60% weight on overall score
+    
+    // Add bonus for component completeness (40% weight)
+    const completenessBonus = (availableComponents / 4) * 40;
+    confidence += completenessBonus;
+    
+    // Adjust based on risk level
+    const riskAssessment = (diligenceData as any)?.risk_assessment;
+    if (riskAssessment) {
+      const riskLevel = typeof riskAssessment === 'string' ? riskAssessment.toLowerCase() : '';
+      if (riskLevel === 'high') confidence *= 0.85; // Reduce confidence for high risk
+      if (riskLevel === 'medium') confidence *= 0.92;
+      // Low risk = no reduction
+    }
+    
+    // Adjust based on number of red flags
+    const redFlagsCount = (diligenceData as any)?.red_flags_concerns?.total_flags || 
+                         ((diligenceData as any)?.key_findings?.red_flags?.length || 0);
+    if (redFlagsCount > 5) confidence *= 0.8;
+    else if (redFlagsCount > 3) confidence *= 0.9;
+    
+    // Clamp between 0 and 100
+    return Math.max(0, Math.min(100, Math.round(confidence)));
+  };
+
   // Parse pricing data from diligenceData
   const parsePricingData = (data: string) => {
     if (!data) return {};
@@ -478,256 +543,71 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
 
   return (
     <div className="space-y-2">
-      {/* Technology Reports */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-1 text-base">
-            <Cpu className="h-3 w-3" />
-            Technology Reports
-            </CardTitle>
-            <CardDescription className="text-xs">
-            Comprehensive technology analysis and workforce readiness assessment
-            </CardDescription>
-          </CardHeader>
-        <CardContent className="space-y-2">
-          {/* Technology Stack Overview */}
-          <div>
-            <h4 className="font-semibold mb-3">Technology Stack Overview</h4>
-            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-              <h5 className="font-medium text-blue-800 mb-2">Technology Stack from Pitch Deck</h5>
-              <div className="flex items-center gap-2">
-                <p className="text-sm text-blue-700">
-                  {diligenceData?.technology_stack_enriched?.value || diligenceData?.technology_stack || "Not specified in pitch deck"}
-                </p>
-                {diligenceData?.technology_stack_enriched?.enriched && (
-                  <Badge variant="secondary" className="text-xs">AI-enriched</Badge>
-                )}
-              </div>
-              {diligenceData?.technology_stack_enriched?.source_url && (
-                <a 
-                  href={diligenceData.technology_stack_enriched.source_url} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-xs text-blue-600 hover:underline flex items-center gap-1 mt-1"
-                >
-                  <ExternalLink className="h-3 w-3" />
-                  View Source
-                </a>
-              )}
-              {diligenceData?.technology_stack && (
-                <div className="mt-2 text-xs text-blue-600">
-                  <p>This technology stack information was extracted directly from the company's pitch deck.</p>
-                </div>
-              )}
-            </div>
-            
-            <div className="grid gap-3 md:grid-cols-2 mt-4">
-              <div className="p-3 bg-green-50 rounded-lg">
-                <h5 className="font-medium text-green-800 flex items-center gap-2">
-                  <Zap className="h-4 w-4" />
-                  Technology Advantages
-                </h5>
-                <p className="text-xs text-green-600 mt-1">
-                  {diligenceData?.technology_advantages || "Not specified in pitch deck"}
-                </p>
-              </div>
-              <div className="p-3 bg-purple-50 rounded-lg">
-                <h5 className="font-medium text-purple-800 flex items-center gap-2">
-                  <Cpu className="h-4 w-4" />
-                  Innovation Level
-                </h5>
-                <p className="text-xs text-purple-600 mt-1">
-                  {diligenceData?.innovation_level || "Not specified in pitch deck"}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Technology Advantages with Sources */}
-          <div>
-            <h4 className="font-semibold mb-2">Technology Advantages</h4>
-            <div className="space-y-2">
-              <div className="p-3 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg border">
-                <h5 className="font-medium text-gray-800">AI-Powered Simulation + Cloud-Native SaaS</h5>
-                <p className="text-xs text-gray-600 mt-1">
-                  The only scalable, effective tech stack proven to solve workforce readiness at scale with 50% faster training times and 25-30% improved performance metrics.
-                </p>
-                <div className="mt-2 space-y-1">
-                  <a href="https://www.quodeck.com/ai-simulations-workforce-readiness" target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline flex items-center">
-                    [1] QuoDeck on AI simulations boosting workforce readiness (July 2025)
-                    <ExternalLink className="ml-1 h-2 w-2" />
-                  </a>
-                  <a href="https://www.trainingmag.com/ai-driven-simulations-transforming-workforce-readiness" target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline flex items-center">
-                    [2] Training Magazine: AI-driven simulations transforming workforce readiness (June 2025)
-                    <ExternalLink className="ml-1 h-2 w-2" />
-                  </a>
-                </div>
-              </div>
-              <div className="p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border">
-                <h5 className="font-medium text-gray-800">Continuous MLOps & Model Governance</h5>
-                <p className="text-xs text-gray-600 mt-1">
-                  Real-time model retraining, bias auditing, and responsiveness to evolving skill demands, making the platform "future-proof".
-                </p>
-                <div className="mt-2 space-y-1">
-                  <a href="https://www.smartdev.ai/ai-tech-stacks-2025" target="_blank" rel="noopener noreferrer" className="text-xs text-purple-500 hover:underline flex items-center">
-                    [3] SmartDev AI Tech Stacks 2025
-                    <ExternalLink className="ml-1 h-2 w-2" />
-                  </a>
-                  <a href="https://www.aiim.org/2025-information-management-tech-stack" target="_blank" rel="noopener noreferrer" className="text-xs text-purple-500 hover:underline flex items-center">
-                    [4] AIIM The 2025 Information Management Tech Stack
-                    <ExternalLink className="ml-1 h-2 w-2" />
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Workforce Readiness Crisis */}
-          <div className="p-4 bg-red-50 rounded-lg border border-red-200">
-            <h4 className="font-semibold text-red-800 mb-2">The Workforce Readiness Crisis</h4>
-            <div className="text-xs text-red-700 space-y-2">
-              <p>• Over half of recent graduates feel unprepared for the workplace, with 52% doubting their education will secure a job within 12 months</p>
-              <p>• By 2030, 39% of core workforce skills will change or become obsolete</p>
-              <p>• Worldwide corporate training spend tops $400B annually, yet average ramp-up times linger around 3–6 months</p>
-            </div>
-            <div className="mt-2 space-y-1">
-              <a href="https://www.wheebox.com/india-skills-report-2025" target="_blank" rel="noopener noreferrer" className="text-xs text-red-500 hover:underline flex items-center">
-                [5] Wheebox India Skills Report 2025
-                <ExternalLink className="ml-1 h-2 w-2" />
-              </a>
-              <a href="https://www.weforum.org/future-of-jobs-report-2025" target="_blank" rel="noopener noreferrer" className="text-xs text-red-500 hover:underline flex items-center">
-                [6] World Economic Forum, Future of Jobs Report 2025
-                <ExternalLink className="ml-1 h-2 w-2" />
-              </a>
-              <a href="https://www.linkedin.com/workplace-learning-report-2025" target="_blank" rel="noopener noreferrer" className="text-xs text-red-500 hover:underline flex items-center">
-                [7] LinkedIn Workplace Learning Report 2025
-                <ExternalLink className="ml-1 h-2 w-2" />
-              </a>
-            </div>
-          </div>
-
-          {/* Technology References */}
-          <div className="p-4 bg-gray-50 rounded-lg border">
-            <h4 className="font-semibold text-gray-800 mb-3">Technology References (Direct, clickable links):</h4>
-            <div className="grid gap-2 text-xs">
-              <div className="space-y-1">
-                <a href="https://www.quodeck.com/ai-simulations-workforce-readiness" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center">
-                  [1] QuoDeck on AI simulations boosting workforce readiness (July 2025)
-                  <ExternalLink className="ml-1 h-2 w-2" />
-                </a>
-                <a href="https://www.trainingmag.com/ai-driven-simulations-transforming-workforce-readiness" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center">
-                  [2] Training Magazine: AI-driven simulations transforming workforce readiness (June 2025)
-                  <ExternalLink className="ml-1 h-2 w-2" />
-                </a>
-                <a href="https://www.wheebox.com/india-skills-report-2025" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center">
-                  [3] Wheebox India Skills Report 2025
-                  <ExternalLink className="ml-1 h-2 w-2" />
-                </a>
-                <a href="https://www.weforum.org/future-of-jobs-report-2025" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center">
-                  [4] World Economic Forum Future of Jobs Report 2025
-                  <ExternalLink className="ml-1 h-2 w-2" />
-                </a>
-                <a href="https://www.linkedin.com/workplace-learning-report-2025" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center">
-                  [5] LinkedIn Workplace Learning Report 2025
-                  <ExternalLink className="ml-1 h-2 w-2" />
-                </a>
-                <a href="https://www.oecd.org/employment-outlook-2025" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center">
-                  [6] OECD Employment Outlook 2025
-                  <ExternalLink className="ml-1 h-2 w-2" />
-                </a>
-                <a href="https://hbr.org/simulation-learning-case-study" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center">
-                  [7] Harvard Business Review The Case for Simulation Learning (May 2023)
-                  <ExternalLink className="ml-1 h-2 w-2" />
-                </a>
-                <a href="https://www.grandviewresearch.com/industry-analysis/artificial-intelligence-in-hr-market" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center">
-                  [8] Grand View Research AI in HR Market 2023
-                  <ExternalLink className="ml-1 h-2 w-2" />
-                </a>
-                <a href="https://www.marketgrowthreports.com/simulation-learning-market-2024" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center">
-                  [9] MarketGrowthReports Simulation Learning Market 2024
-                  <ExternalLink className="ml-1 h-2 w-2" />
-                </a>
-                <a href="https://www.infosys.com/ai-readiness-workforce-2025" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center">
-                  [10] Infosys – Building a Responsible AI-Ready Workforce (2025)
-                  <ExternalLink className="ml-1 h-2 w-2" />
-                </a>
-                <a href="https://www.coursebox.ai/case-studies-corporate-training" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center">
-                  [11] Coursebox AI Case Studies Corporate Training (June 2025)
-                  <ExternalLink className="ml-1 h-2 w-2" />
-                </a>
-                <a href="https://www.mckinsey.com/ai-workplace-report-january-2025" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center">
-                  [12] McKinsey AI in the workplace report January 2025
-                  <ExternalLink className="ml-1 h-2 w-2" />
-                </a>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      
 
       {/* Executive Summary */}
-      <Card className="bg-gradient-to-r from-slate-50 to-blue-50 border-2 border-blue-200 shadow-lg">
+      <Card className="border shadow-sm">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-blue-900">
-            <FileText className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-3 w-3" />
             Executive Summary
           </CardTitle>
-          <CardDescription className="text-blue-700">
+          <CardDescription className="text-xs">
             Comprehensive investment analysis and due diligence report
           </CardDescription>
         </CardHeader>
         <CardContent>
           {/* Investment Overview */}
-          <div className="mb-8">
-            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <Target className="h-4 w-4 text-blue-600" />
+          <div className="mb-4">
+            <h3 className="text-base font-semibold text-gray-900 mb-2 flex items-center gap-2">
+              <Target className="h-3 w-3" />
               Investment Overview
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="p-4 bg-white rounded-lg border border-blue-200 shadow-sm">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="p-3 bg-white rounded border">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-gray-600">Company Stage</span>
                   <Badge variant="outline" className="text-xs">
                     {enhancedDiligenceData?.company_stage || 'Not specified'}
                   </Badge>
                 </div>
-                <div className="text-lg font-bold text-blue-700">
+                <div className="text-sm font-semibold text-gray-900">
                   {enhancedDiligenceData?.company_stage || 'Early Stage'}
                 </div>
               </div>
               
-              <div className="p-4 bg-white rounded-lg border border-green-200 shadow-sm">
+              <div className="p-3 bg-white rounded border">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-gray-600">Amount Raising</span>
                   <Badge variant="outline" className="text-xs">
                     {enhancedDiligenceData?.amount_raising ? 'Specified' : 'Pending'}
                   </Badge>
                 </div>
-                <div className="text-lg font-bold text-green-700">
+                <div className="text-sm font-semibold text-gray-900">
                   {enhancedDiligenceData?.amount_raising || 'Not disclosed'}
                 </div>
               </div>
               
-              <div className="p-4 bg-white rounded-lg border border-purple-200 shadow-sm">
+              <div className="p-3 bg-white rounded border">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-gray-600">Valuation</span>
                   <Badge variant="outline" className="text-xs">
                     {enhancedDiligenceData?.post_money_valuation ? 'Specified' : 'Pending'}
                   </Badge>
                 </div>
-                <div className="text-lg font-bold text-purple-700">
+                <div className="text-sm font-semibold text-gray-900">
                   {enhancedDiligenceData?.post_money_valuation || 'Not disclosed'}
                 </div>
               </div>
               
-              <div className="p-4 bg-white rounded-lg border border-orange-200 shadow-sm">
+              <div className="p-3 bg-white rounded border">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-gray-600">Lead Investor</span>
                   <Badge variant="outline" className="text-xs">
                     {enhancedDiligenceData?.lead_investor ? 'Specified' : 'Pending'}
                   </Badge>
                 </div>
-                <div className="text-lg font-bold text-orange-700">
+                <div className="text-sm font-semibold text-gray-900">
                   {enhancedDiligenceData?.lead_investor || 'Not disclosed'}
                 </div>
               </div>
@@ -735,59 +615,59 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
           </div>
 
           {/* Financial Performance */}
-          <div className="mb-8">
-            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-green-600" />
+          <div className="mb-4">
+            <h3 className="text-base font-semibold text-gray-900 mb-2 flex items-center gap-2">
+              <TrendingUp className="h-3 w-3" />
               Financial Performance
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="p-4 bg-white rounded-lg border border-green-200 shadow-sm">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="p-3 bg-white rounded border">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-gray-600">Current Revenue</span>
                   <Badge variant={enhancedDiligenceData?.current_revenue ? "default" : "secondary"} className="text-xs">
                     {enhancedDiligenceData?.current_revenue ? 'Available' : 'Pending'}
                   </Badge>
                 </div>
-                <div className="text-lg font-bold text-green-700">
+                <div className="text-sm font-semibold text-gray-900">
                   {enhancedDiligenceData?.current_revenue || 'Not disclosed'}
                 </div>
                 <div className="text-xs text-gray-500 mt-1">Annual recurring revenue</div>
               </div>
               
-              <div className="p-4 bg-white rounded-lg border border-blue-200 shadow-sm">
+              <div className="p-3 bg-white rounded border">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-gray-600">Gross Margin</span>
                   <Badge variant={enhancedDiligenceData?.gross_margin ? "default" : "secondary"} className="text-xs">
                     {enhancedDiligenceData?.gross_margin ? 'Available' : 'Pending'}
                   </Badge>
                 </div>
-                <div className="text-lg font-bold text-blue-700">
+                <div className="text-sm font-semibold text-gray-900">
                   {enhancedDiligenceData?.gross_margin || 'Not disclosed'}
                 </div>
                 <div className="text-xs text-gray-500 mt-1">Profitability indicator</div>
               </div>
               
-              <div className="p-4 bg-white rounded-lg border border-red-200 shadow-sm">
+              <div className="p-3 bg-white rounded border">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-gray-600">Burn Rate</span>
                   <Badge variant={enhancedDiligenceData?.burn_rate ? "default" : "secondary"} className="text-xs">
                     {enhancedDiligenceData?.burn_rate ? 'Available' : 'Pending'}
                   </Badge>
                 </div>
-                <div className="text-lg font-bold text-red-700">
+                <div className="text-sm font-semibold text-gray-900">
                   {enhancedDiligenceData?.burn_rate || 'Not disclosed'}
                 </div>
                 <div className="text-xs text-gray-500 mt-1">Monthly cash burn</div>
               </div>
               
-              <div className="p-4 bg-white rounded-lg border border-purple-200 shadow-sm">
+              <div className="p-3 bg-white rounded border">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-gray-600">Runway</span>
                   <Badge variant={enhancedDiligenceData?.runway ? "default" : "secondary"} className="text-xs">
                     {enhancedDiligenceData?.runway ? 'Available' : 'Pending'}
                   </Badge>
                 </div>
-                <div className="text-lg font-bold text-purple-700">
+                <div className="text-sm font-semibold text-gray-900">
                   {enhancedDiligenceData?.runway || 'Not disclosed'}
                 </div>
                 <div className="text-xs text-gray-500 mt-1">Months of funding</div>
@@ -856,7 +736,7 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
             </div>
           </div>
 
-          {/* Investment Recommendation Summary */}
+          {/* Investment Recommendation Summary (dynamic) */}
           <div className="p-6 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg border-2 border-indigo-200">
             <h3 className="text-lg font-bold text-indigo-900 mb-4 flex items-center gap-2">
               <ThumbsUp className="h-4 w-4" />
@@ -864,19 +744,19 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="text-center p-4 bg-white rounded-lg border border-indigo-200">
-                <div className="text-2xl font-bold text-indigo-600 mb-2">RECOMMEND</div>
-                <div className="text-sm text-gray-600">Proceed with investment</div>
-                <div className="text-xs text-gray-500 mt-1">Based on comprehensive analysis</div>
+                <div className="text-2xl font-bold text-indigo-600 mb-2">{(diligenceData as any)?.overall_dd_score_recommendation?.investment_recommendation || diligenceData?.investment_recommendation || '—'}</div>
+                <div className="text-sm text-gray-600">Recommendation</div>
+                <div className="text-xs text-gray-500 mt-1">From diligence report</div>
               </div>
               <div className="text-center p-4 bg-white rounded-lg border border-green-200">
-                <div className="text-2xl font-bold text-green-600 mb-2">STRONG</div>
-                <div className="text-sm text-gray-600">Investment potential</div>
-                <div className="text-xs text-gray-500 mt-1">High growth opportunity</div>
+                <div className="text-2xl font-bold text-green-600 mb-2">{((diligenceData as any)?.overall_dd_score_recommendation?.overall_dd_score ?? diligenceData?.overall_score ?? '—')}</div>
+                <div className="text-sm text-gray-600">Overall DD Score (/100)</div>
+                <div className="text-xs text-gray-500 mt-1">Composite score</div>
               </div>
               <div className="text-center p-4 bg-white rounded-lg border border-purple-200">
-                <div className="text-2xl font-bold text-purple-600 mb-2">MONITOR</div>
-                <div className="text-sm text-gray-600">Key milestones</div>
-                <div className="text-xs text-gray-500 mt-1">Track progress closely</div>
+                <div className="text-2xl font-bold text-purple-600 mb-2">{diligenceData ? `${calculateConfidenceLevel()}%` : '—'}</div>
+                <div className="text-sm text-gray-600">Confidence Level</div>
+                <div className="text-xs text-gray-500 mt-1">Analyst confidence</div>
               </div>
             </div>
           </div>
@@ -884,20 +764,20 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
       </Card>
 
       {/* Current Revenue Streams from our Service Offering */}
-      <Card>
+      <Card className="border shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5" />
+            <DollarSign className="h-3 w-3" />
             Current Revenue Streams from our Service Offering
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-xs">
             Revenue model analysis and financial metrics from pitch deck
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
-          <div className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border-2 border-blue-200 shadow-sm">
-            <h4 className="font-bold text-blue-900 mb-4 flex items-center gap-2">
-              <TrendingUp className="h-4 w-4" />
+          <div className="p-3 bg-gray-50 rounded border">
+            <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+              <TrendingUp className="h-3 w-3" />
               Revenue Model Analysis
             </h4>
             <div className="overflow-hidden border rounded-lg shadow-sm">
@@ -952,9 +832,9 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
           </div>
 
           {/* Unit Economics */}
-          <div className="p-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border-2 border-green-200 shadow-sm">
-            <h4 className="font-bold text-green-900 mb-4 flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" />
+          <div className="p-3 bg-gray-50 rounded border">
+            <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+              <BarChart3 className="h-3 w-3" />
               Unit Economics Analysis
             </h4>
             <div className="overflow-hidden border rounded-lg shadow-sm">
@@ -1011,10 +891,10 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
       </Card>
 
       {/* Pricing Strategy */}
-      <Card>
+      <Card className="border shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5" />
+            <BarChart3 className="h-3 w-3" />
             Pricing Strategy
           </CardTitle>
         </CardHeader>
@@ -1064,83 +944,7 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
         </CardContent>
       </Card>
 
-      {/* Corporate Pricing */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Building className="h-5 w-5" />
-            Pricing Strategy - for Corporates
-          </CardTitle>
-          <CardDescription>
-            Dynamic pricing tiers and corporate revenue model analysis
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <div>
-            <h4 className="font-semibold mb-3">Tiered Pricing: Different packages based on features or usage levels</h4>
-            <div className="grid gap-3 md:grid-cols-2">
-              <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                <h5 className="font-medium text-blue-800">Starter (Startups & Small Teams)</h5>
-                <p className="text-xs text-blue-600 mt-1">
-                  {enhancedDiligenceData.starter_price || "Pricing not specified"}
-                </p>
-                <p className="text-xs text-blue-600">
-                  {enhancedDiligenceData.starter_features || "Deploy up to 15 interview simulations; AI-based candidate reports; Self-serve portal for role configuration"}
-                </p>
-              </div>
-              <div className="p-3 bg-green-50 rounded-lg border border-green-200">
-                <h5 className="font-medium text-green-800">Growth (Growing Companies, SMBs)</h5>
-                <p className="text-xs text-green-600 mt-1">
-                  {enhancedDiligenceData.growth_price || "Pricing not specified"}
-                </p>
-                <p className="text-xs text-green-600">
-                  {enhancedDiligenceData.growth_features || "Deploy up to 30 interview simulations and 10 job simulations; AI-based candidate reports; Bulk import and ATS integrations; White-labeled experience; Basic hiring analytics dashboard"}
-                </p>
-              </div>
-              <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
-                <h5 className="font-medium text-purple-800">Enterprise (Large Enterprises & Hiring Teams)</h5>
-                <p className="text-xs text-purple-600 mt-1">
-                  {enhancedDiligenceData.enterprise_price || "Pricing not specified"}
-                </p>
-                <p className="text-xs text-purple-600">
-                  {enhancedDiligenceData.enterprise_features || "Deploy up to 60 interview simulations and 20 job simulations; Role-specific evaluation rubrics; AI-based shortlisting with hiring recommendations; Account manager + support"}
-                </p>
-              </div>
-              <div className="p-3 bg-orange-50 rounded-lg border border-orange-200">
-                <h5 className="font-medium text-orange-800">Strategic+ (L&D & Transformation Initiatives)</h5>
-                <p className="text-xs text-orange-600 mt-1">
-                  {enhancedDiligenceData.strategic_price || "Customised pricing"}
-                </p>
-                <p className="text-xs text-orange-600">
-                  {enhancedDiligenceData.strategic_features || "Unlimited candidate assessments; Dedicated hiring pipelines (HTD, fresher, internal upskilling); Custom simulations co-created with client; Employer branding integration; Analytics APIs & hiring ROI dashboard; Dedicated implementation & advisory team"}
-                </p>
-              </div>
-            </div>
-              </div>
-
-          {/* Corporate Rationale */}
-              <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-            <h4 className="font-semibold text-yellow-800 mb-2">Rationale behind pricing (market research, competitor analysis)</h4>
-            <div className="text-sm text-yellow-700 space-y-2">
-              {enhancedDiligenceData.pricing_rationale || enhancedDiligenceData.competitive_analysis ? (
-                <div>
-                  {enhancedDiligenceData.pricing_rationale && (
-                    <p>• {enhancedDiligenceData.pricing_rationale}</p>
-                  )}
-                  {enhancedDiligenceData.competitive_analysis && (
-                    <p>• {enhancedDiligenceData.competitive_analysis}</p>
-                  )}
-                </div>
-              ) : (
-                <div>
-                  <p>• Market research and competitive analysis data not specified in pitch deck</p>
-                  <p>• Pricing rationale requires further analysis based on industry benchmarks</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      
 
       {/* Unit Economics */}
       <Card>
@@ -1159,9 +963,9 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
             <h4 className="font-semibold mb-2">Key metrics for revenue generation - for Academic Institutions</h4>
             <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
               <div className="text-sm space-y-1">
-                <div><strong>Customer Acquisition Cost (CAC):</strong> How much it costs to acquire a customer. - {enhancedDiligenceData.academic_cac || "INR 1,125 per student"}</div>
-                <div><strong>Lifetime Value (LTV):</strong> Revenue generated from a customer during their relationship. - {enhancedDiligenceData.academic_ltv || "INR 21,000 per student"}</div>
-                <div><strong>LTV: CAC Ratio:</strong> Indicator of profitability. - {enhancedDiligenceData.academic_ratio || "18.6"}</div>
+                <div><strong>Customer Acquisition Cost (CAC):</strong> {enhancedDiligenceData.academic_cac || enhancedDiligenceData.cac || enhancedDiligenceData.customer_acquisition_cost || "—"}</div>
+                <div><strong>Lifetime Value (LTV):</strong> {enhancedDiligenceData.academic_ltv || enhancedDiligenceData.ltv || enhancedDiligenceData.lifetime_value || "—"}</div>
+                <div><strong>LTV:CAC Ratio:</strong> {enhancedDiligenceData.academic_ratio || enhancedDiligenceData.ltv_cac_ratio || "—"}</div>
               </div>
             </div>
           </div>
@@ -1171,9 +975,9 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
             <h4 className="font-semibold mb-2">Key metrics for revenue generation - for Corporates (potential)</h4>
             <div className="p-3 bg-green-50 rounded-lg border border-green-200">
               <div className="text-sm space-y-1">
-                <div><strong>Customer Acquisition Cost (CAC):</strong> How much it costs to acquire a customer. - {enhancedDiligenceData.corporate_cac || "INR 6,000"}</div>
-                <div><strong>Lifetime Value (LTV):</strong> Revenue generated from a customer during their relationship. - {enhancedDiligenceData.corporate_ltv || "INR 3,60,000 (i.e. INR 30,000 every quarter for a 3 year period)"}</div>
-                <div><strong>LTV: CAC Ratio:</strong> Indicator of profitability. - {enhancedDiligenceData.corporate_ratio || "60"}</div>
+                <div><strong>Customer Acquisition Cost (CAC):</strong> {enhancedDiligenceData.corporate_cac || enhancedDiligenceData.cac || enhancedDiligenceData.customer_acquisition_cost || "—"}</div>
+                <div><strong>Lifetime Value (LTV):</strong> {enhancedDiligenceData.corporate_ltv || enhancedDiligenceData.ltv || enhancedDiligenceData.lifetime_value || "—"}</div>
+                <div><strong>LTV:CAC Ratio:</strong> {enhancedDiligenceData.corporate_ratio || enhancedDiligenceData.ltv_cac_ratio || "—"}</div>
               </div>
             </div>
           </div>
@@ -1226,18 +1030,46 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
         </Card>
 
       {/* Competitor Analysis Framework */}
-        <Card>
+        <Card className="border shadow-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5" />
+            <BarChart3 className="h-3 w-3" />
             Competitor Analysis Framework
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-xs">
             Dynamic competitor analysis with market positioning and competitive advantages
             </CardDescription>
           </CardHeader>
         <CardContent className="space-y-2">
-          {enhancedDiligenceData.competitors && Array.isArray(enhancedDiligenceData.competitors) && enhancedDiligenceData.competitors.length > 0 ? (
+          {/* Prefer benchmarking competitive landscape from diligence report/results */}
+          {(diligenceData as any)?.market_benchmarking?.competitive_landscape?.length ? (
+            <div className="overflow-hidden border rounded">
+              <table className="w-full text-xs">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-2 py-1 text-left font-semibold">Company</th>
+                    <th className="px-2 py-1 text-left font-semibold">{(diligenceData as any)?.market_benchmarking?.metric_labels?.metric1 || 'Metric 1'}</th>
+                    <th className="px-2 py-1 text-left font-semibold">{(diligenceData as any)?.market_benchmarking?.metric_labels?.metric2 || 'Metric 2'}</th>
+                    <th className="px-2 py-1 text-left font-semibold">Fees</th>
+                    <th className="px-2 py-1 text-left font-semibold">AI Powered</th>
+                    <th className="px-2 py-1 text-left font-semibold">Notes</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 bg-white">
+                  {(diligenceData as any).market_benchmarking.competitive_landscape.map((row: any, i: number) => (
+                    <tr key={i} className={row.is_target ? 'bg-blue-50' : ''}>
+                      <td className="px-2 py-1 font-medium">{row.company_name || '-'}</td>
+                      <td className="px-2 py-1">{row.metric1_value || '-'}</td>
+                      <td className="px-2 py-1">{row.metric2_value || '-'}</td>
+                      <td className="px-2 py-1">{row.fees || '-'}</td>
+                      <td className="px-2 py-1">{row.ai_powered || '-'}</td>
+                      <td className="px-2 py-1 text-gray-600">{row.notes || '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : enhancedDiligenceData.competitors && Array.isArray(enhancedDiligenceData.competitors) && enhancedDiligenceData.competitors.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-3">
               {enhancedDiligenceData.competitors.map((competitor: any, index: number) => (
                 <div key={index} className={`p-4 rounded-lg border ${
@@ -1379,7 +1211,7 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
         </CardContent>
       </Card>
 
-      {/* Risks and Mitigation */}
+          {/* Risks and Mitigation */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -1392,11 +1224,11 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
             <h4 className="font-semibold text-yellow-800 mb-2">Risks and Mitigation from Pitch Deck</h4>
             <div className="text-sm space-y-3">
               {/* Key Risks */}
-              {diligenceData?.key_risks && Array.isArray(diligenceData.key_risks) && diligenceData.key_risks.length > 0 && (
+                  {(enhancedDiligenceData as any)?.key_risks && Array.isArray((enhancedDiligenceData as any).key_risks) && (enhancedDiligenceData as any).key_risks.length > 0 && (
               <div>
                 <p className="font-medium text-yellow-800 mb-2">Identified Risks</p>
                   <ul className="space-y-2">
-                    {diligenceData.key_risks.map((risk, index) => (
+                        {(enhancedDiligenceData as any).key_risks.map((risk: any, index: number) => (
                       <li key={index} className="flex items-start gap-2">
                         <AlertTriangle className="h-3 w-3 text-yellow-600 mt-1 flex-shrink-0" />
                         <span className="text-yellow-700">{risk}</span>
@@ -1407,26 +1239,26 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
               )}
               
               {/* Risk Mitigation */}
-              {diligenceData?.risk_mitigation && (
+                  {(enhancedDiligenceData as any)?.risk_mitigation && (
                 <div>
                   <p className="font-medium text-yellow-800 mb-2">Risk Mitigation Strategy</p>
-                  <p className="text-yellow-700">{diligenceData.risk_mitigation}</p>
+                      <p className="text-yellow-700">{(enhancedDiligenceData as any).risk_mitigation}</p>
                 </div>
               )}
               
               {/* Regulatory Risks */}
-              {diligenceData?.regulatory_risks && (
+                  {(enhancedDiligenceData as any)?.regulatory_risks && (
                 <div>
                   <p className="font-medium text-yellow-800 mb-2">Regulatory Risks</p>
-                  <p className="text-yellow-700">{diligenceData.regulatory_risks}</p>
+                      <p className="text-yellow-700">{(enhancedDiligenceData as any).regulatory_risks}</p>
                 </div>
               )}
               
               {/* Regulatory Considerations */}
-              {diligenceData?.regulatory_considerations && (
+                  {(enhancedDiligenceData as any)?.regulatory_considerations && (
                 <div>
                   <p className="font-medium text-yellow-800 mb-2">Regulatory Considerations</p>
-                  <p className="text-yellow-700">{diligenceData.regulatory_considerations}</p>
+                      <p className="text-yellow-700">{(enhancedDiligenceData as any).regulatory_considerations}</p>
                 </div>
               )}
             </div>
@@ -1476,9 +1308,9 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
         </CardHeader>
         <CardContent className="space-y-2">
           <div className="grid gap-3 md:grid-cols-2">
-            <div className="p-3 bg-blue-50 rounded-lg">
+              <div className="p-3 bg-blue-50 rounded-lg">
               <h5 className="font-medium text-blue-800">Team Size</h5>
-              <p className="text-sm text-blue-600">{enhancedDiligenceData?.team_size || "Not specified"}</p>
+                <p className="text-sm text-blue-600">{enhancedDiligenceData?.team_size || (enhancedDiligenceData as any)?.team || "Not specified"}</p>
               </div>
             <div className="p-3 bg-green-50 rounded-lg">
               <h5 className="font-medium text-green-800">Execution Track Record</h5>
@@ -1531,11 +1363,11 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
               <div className="flex-1 bg-gray-200 rounded-full h-2">
                 <div 
                   className="bg-green-600 h-2 rounded-full" 
-                  style={{ width: `${(diligenceData?.overall_score || 7) * 10}%` }}
+                  style={{ width: `${diligenceData?.overall_score || 70}%` }}
                 ></div>
               </div>
               <span className="text-sm font-medium text-gray-800">
-                {diligenceData?.overall_score || 7}/10
+                {diligenceData?.overall_score || 70}/100
               </span>
             </div>
             <p className="text-xs text-gray-600">

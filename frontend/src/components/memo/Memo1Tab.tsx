@@ -3,11 +3,13 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Building2, Users, TrendingUp, Target, AlertTriangle, CheckCircle, BarChart3, Globe, DollarSign, FileText, ExternalLink, Calendar, Loader2, Cpu } from "lucide-react";
-import { useState } from "react";
+import { Building2, Users, TrendingUp, Target, AlertTriangle, CheckCircle, BarChart3, Globe, DollarSign, FileText, ExternalLink, Calendar, Loader2, Cpu, RefreshCw } from "lucide-react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { apiClient } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { db } from '@/lib/firebase-new';
+import { doc, getDoc, collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 // import CompetitorMatrix from "./CompetitorMatrix";
 
 interface EnrichedField {
@@ -187,6 +189,21 @@ interface Memo1Data {
   intellectual_property?: string;
   exit_strategy?: string;
   
+  // Missing fields that need to be enriched (adding only ones not already defined above)
+  company_id?: string;
+  fundraising_timeline?: string;
+  exit_timeline?: string;
+  cac?: string;
+  ltv?: string;
+  runway_months?: string;
+  sam?: string;
+  som?: string;
+  key_features?: string;
+  market_positioning?: string;
+  partnership_timelines?: string;
+  user_engagement_stats?: string;
+  growth_metrics?: string;
+  
   // Enriched fields (AI-powered data from Perplexity)
   company_stage_enriched?: EnrichedField;
   headquarters_enriched?: EnrichedField;
@@ -243,6 +260,31 @@ interface Memo1Data {
   
   // Competitor matrix data
   competitor_matrix?: any;
+  
+  // Financial validation data
+  financial_validation?: {
+    unit_economics?: {
+      cac_current?: string;
+      cac_eoy?: string;
+      ltv_min?: string;
+      ltv_max?: string;
+      ltv_range?: string;
+      cac_ltv_ratio?: string;
+      gross_margin?: string;
+      gross_margin_pct?: string;
+      labels?: any;
+    };
+    burn_rate_analysis?: {
+      monthly_burn?: string;
+      burn_rate_monthly?: string;
+      runway_months?: string;
+      runway_assessment?: string;
+      labels?: any;
+    };
+  };
+  
+  // Claim validations
+  claim_validations?: any;
 }
 
 interface Memo1TabProps {
@@ -254,6 +296,8 @@ interface Memo1TabProps {
 export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1TabProps) {
   const [isScheduling, setIsScheduling] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
+  const [isFetchingEnriched, setIsFetchingEnriched] = useState(false);
+  const [enrichedData, setEnrichedData] = useState<Memo1Data | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -382,7 +426,70 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
     return null;
   };
 
-  const enhancedMemo1 = { ...memo1, ...parsedFinancialData };
+  // Enhanced memo1 with fallbacks, enriched data, and fetched enriched data
+  // Priority: enrichedData (from memo1_validated) > memo1 (original) > defaults
+  const enhancedMemo1: Memo1Data = {
+    ...memo1,
+    ...parsedFinancialData,
+    // Override with enriched data if available (prioritize enriched data from memo1_validated)
+    ...(enrichedData && {
+      // Core fields that might be enriched
+      founded_date: enrichedData.founded_date || memo1.founded_date,
+      headquarters: enrichedData.headquarters || memo1.headquarters,
+      company_stage: enrichedData.company_stage || memo1.company_stage,
+      pre_money_valuation: enrichedData.pre_money_valuation || memo1.pre_money_valuation,
+      post_money_valuation: enrichedData.post_money_valuation || memo1.post_money_valuation,
+      ownership_target: enrichedData.ownership_target || memo1.ownership_target,
+      fundraising_timeline: enrichedData.fundraising_timeline || memo1.fundraising_timeline,
+      exit_timeline: enrichedData.exit_timeline || memo1.exit_timeline,
+      
+      // Financial metrics (handle both field names)
+      customer_acquisition_cost: enrichedData.customer_acquisition_cost || enrichedData.cac || memo1.customer_acquisition_cost || memo1.cac,
+      cac: enrichedData.cac || enrichedData.customer_acquisition_cost || memo1.cac || memo1.customer_acquisition_cost,
+      lifetime_value: enrichedData.lifetime_value || enrichedData.ltv || memo1.lifetime_value || memo1.ltv,
+      ltv: enrichedData.ltv || enrichedData.lifetime_value || memo1.ltv || memo1.lifetime_value,
+      gross_margin: enrichedData.gross_margin || memo1.gross_margin,
+      burn_rate: enrichedData.burn_rate || memo1.burn_rate,
+      runway_months: enrichedData.runway_months || memo1.runway_months,
+      
+      // Market analysis
+      sam: enrichedData.sam || memo1.sam,
+      som: enrichedData.som || memo1.som,
+      sam_market_size: enrichedData.sam_market_size || memo1.sam_market_size,
+      som_market_size: enrichedData.som_market_size || memo1.som_market_size,
+      
+      // Product & positioning
+      key_features: enrichedData.key_features || memo1.key_features,
+      market_positioning: enrichedData.market_positioning || memo1.market_positioning,
+      partnership_timelines: enrichedData.partnership_timelines || memo1.partnership_timelines,
+      
+      // Metrics & growth
+      user_engagement_stats: enrichedData.user_engagement_stats || memo1.user_engagement_stats,
+      growth_metrics: enrichedData.growth_metrics || memo1.growth_metrics,
+      
+      // Founder info
+      founder_linkedin_url: enrichedData.founder_linkedin_url || memo1.founder_linkedin_url,
+      
+      // Amount raising (important field)
+      amount_raising: enrichedData.amount_raising || memo1.amount_raising,
+      investment_sought: enrichedData.investment_sought || memo1.investment_sought,
+      
+      // Merge all other enriched fields that don't have special handling
+      ...Object.fromEntries(
+        Object.entries(enrichedData).filter(([key]) => {
+          const specialFields = [
+            'founded_date', 'headquarters', 'company_stage', 'pre_money_valuation', 
+            'post_money_valuation', 'ownership_target', 'fundraising_timeline', 'exit_timeline',
+            'customer_acquisition_cost', 'cac', 'lifetime_value', 'ltv', 'gross_margin', 
+            'burn_rate', 'runway_months', 'sam', 'som', 'sam_market_size', 'som_market_size',
+            'key_features', 'market_positioning', 'partnership_timelines', 'user_engagement_stats',
+            'growth_metrics', 'founder_linkedin_url', 'amount_raising', 'investment_sought'
+          ];
+          return !specialFields.includes(key);
+        })
+      )
+    }),
+  };
   
   // Debug logging for market size data (remove in production)
   if (process.env.NODE_ENV === 'development') {
@@ -550,23 +657,202 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
     }
   };
 
+  // Fetch enriched data from memo1_validated collection
+  const fetchEnrichedData = async () => {
+    if (!memoId && !memo1?.company_id) {
+      console.log('No memoId or company_id available for fetching enriched data');
+      return;
+    }
+
+    setIsFetchingEnriched(true);
+    try {
+      const companyId = memo1?.company_id || memoId;
+      console.log('🔄 ===== FETCHING ENRICHED DATA FROM memo1_validated =====');
+      console.log('📌 Search parameters:', { companyId, memoId });
+      console.log('📍 Collection: memo1_validated');
+      
+      // Try fetching by company_id first (if available)
+      let enrichedDoc = null;
+      
+      if (companyId) {
+        try {
+          // Query by company_id
+          const enrichedQuery = query(
+            collection(db, 'memo1_validated'),
+            where('company_id', '==', companyId),
+            orderBy('timestamp', 'desc'),
+            limit(1)
+          );
+          const snapshot = await getDocs(enrichedQuery);
+          
+          if (!snapshot.empty) {
+            enrichedDoc = snapshot.docs[0];
+            console.log('✅ Found enriched data by company_id:', enrichedDoc.id);
+          }
+        } catch (queryError: any) {
+          console.warn('Query by company_id failed, trying by document ID:', queryError?.message);
+        }
+      }
+      
+      // Fallback: Try fetching by memoId as document ID
+      if (!enrichedDoc && memoId) {
+        try {
+          const docRef = doc(db, 'memo1_validated', memoId);
+          const docSnap = await getDoc(docRef);
+          
+          if (docSnap.exists()) {
+            enrichedDoc = { id: docSnap.id, data: () => docSnap.data() };
+            console.log('✅ Found enriched data by document ID:', enrichedDoc.id);
+          }
+        } catch (docError: any) {
+          console.warn('Fetch by document ID failed:', docError?.message);
+        }
+      }
+      
+      // Fallback: Get latest enriched data
+      if (!enrichedDoc) {
+        try {
+          const latestQuery = query(
+            collection(db, 'memo1_validated'),
+            orderBy('timestamp', 'desc'),
+            limit(10)
+          );
+          const latestSnapshot = await getDocs(latestQuery);
+          
+          // Find matching document
+          for (const doc of latestSnapshot.docs) {
+            const data = doc.data();
+            if (data.company_id === companyId || data.original_memo_id === memoId) {
+              enrichedDoc = doc;
+              console.log('✅ Found enriched data in latest documents:', doc.id);
+              break;
+            }
+          }
+        } catch (latestError: any) {
+          console.error('Fetch latest failed:', latestError?.message);
+        }
+      }
+
+      if (enrichedDoc) {
+        const enrichedDataFromDb = enrichedDoc.data();
+        const memo1Data = enrichedDataFromDb.memo_1 || enrichedDataFromDb;
+        
+        // Log detailed comparison
+        console.log('✅ Enriched data found in memo1_validated:', {
+          documentId: enrichedDoc.id,
+          has_memo_1: !!enrichedDataFromDb.memo_1,
+          fields_count: Object.keys(memo1Data).length,
+          sample_fields: Object.keys(memo1Data).slice(0, 10),
+          timestamp: enrichedDataFromDb.timestamp || 'N/A'
+        });
+        
+        // Compare enriched vs original to show what changed
+        const enrichedFields: string[] = [];
+        const keyFields = ['founded_date', 'headquarters', 'company_stage', 'post_money_valuation', 
+                          'amount_raising', 'investment_sought', 'ownership_target', 'customer_acquisition_cost',
+                          'cac', 'lifetime_value', 'ltv', 'gross_margin', 'burn_rate', 'runway_months'];
+        
+        keyFields.forEach(field => {
+          const originalValue = memo1[field as keyof Memo1Data];
+          const enrichedValue = memo1Data[field as keyof Memo1Data];
+          if (enrichedValue && enrichedValue !== originalValue && 
+              enrichedValue !== 'Not specified' && enrichedValue !== '') {
+            enrichedFields.push(field);
+            console.log(`  📊 ${field}: "${originalValue || 'Not specified'}" → "${enrichedValue}"`);
+          }
+        });
+        
+        console.log(`🎯 Total enriched fields: ${enrichedFields.length}/${keyFields.length}`, enrichedFields);
+        
+        setEnrichedData(memo1Data as Memo1Data);
+        
+        toast({
+          title: "Enriched Data Loaded",
+          description: `Successfully loaded ${enrichedFields.length} enriched fields from memo1_validated.`,
+        });
+      } else {
+        console.log('⚠️ No enriched data found in memo1_validated collection');
+        console.log('  Searching for:', { companyId, memoId });
+        setEnrichedData(null);
+        
+        toast({
+          title: "No Enriched Data",
+          description: "No enriched data found in memo1_validated. Run AI Validation first.",
+          variant: "default"
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching enriched data:', error);
+      toast({
+        title: "Fetch Error",
+        description: `Failed to fetch enriched data: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: "destructive"
+      });
+      setEnrichedData(null);
+    } finally {
+      setIsFetchingEnriched(false);
+    }
+  };
+
+  // Auto-fetch enriched data on mount if company_id is available
+  useEffect(() => {
+    if (memo1?.company_id || memoId) {
+      fetchEnrichedData();
+    }
+  }, [memo1?.company_id, memoId]);
+
   const handleRunValidation = async () => {
     setIsValidating(true);
+    
+    // Log before state
+    console.log('🚀 Starting AI Validation...');
+    console.log('📋 Before Validation - Key fields:', {
+      founded_date: memo1?.founded_date || 'Not specified',
+      headquarters: memo1?.headquarters || 'Not specified',
+      company_stage: memo1?.company_stage || 'Not specified',
+      post_money_valuation: memo1?.post_money_valuation || 'Not specified',
+      amount_raising: memo1?.amount_raising || 'Not specified',
+      company_id: memo1?.company_id || memoId
+    });
+    
     try {
       const response = await apiClient.validateMemoData(enhancedMemo1, memoId, "memo_1");
       
       if (response.success) {
+        console.log('✅ Validation API call successful');
         toast({
           title: "Validation Complete",
-          description: "AI validation analysis has been completed successfully."
+          description: "AI validation and enrichment completed. Fetching enriched data..."
         });
-        // Trigger refresh of memo data
-        window.location.reload();
+        
+        // Wait for data to be saved to memo1_validated (increased wait time)
+        console.log('⏳ Waiting for data to be saved to memo1_validated...');
+        await new Promise(resolve => setTimeout(resolve, 4000));
+        
+        // Fetch enriched data from memo1_validated
+        console.log('📥 Fetching enriched data from memo1_validated collection...');
+        await fetchEnrichedData();
+        
+        // Log after state
+        setTimeout(() => {
+          console.log('📋 After Validation - Key fields:', {
+            founded_date: enrichedData?.founded_date || memo1?.founded_date || 'Not specified',
+            headquarters: enrichedData?.headquarters || memo1?.headquarters || 'Not specified',
+            company_stage: enrichedData?.company_stage || memo1?.company_stage || 'Not specified',
+            post_money_valuation: enrichedData?.post_money_valuation || memo1?.post_money_valuation || 'Not specified',
+            amount_raising: enrichedData?.amount_raising || memo1?.amount_raising || 'Not specified',
+          });
+        }, 500);
+        
+        toast({
+          title: "Data Enriched",
+          description: "Enriched data has been loaded from memo1_validated. Check console for details.",
+        });
       } else {
         throw new Error(response.error || "Validation failed");
       }
     } catch (error) {
-      console.error("Error running validation:", error);
+      console.error("❌ Error running validation:", error);
       toast({
         title: "Validation Failed",
         description: error instanceof Error ? error.message : "Failed to run validation",
@@ -593,6 +879,16 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
               </CardDescription>
             </div>
             <div className="flex gap-2">
+              <Button
+                onClick={fetchEnrichedData}
+                disabled={isFetchingEnriched}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className={`h-3 w-3 ${isFetchingEnriched ? 'animate-spin' : ''}`} />
+                {isFetchingEnriched ? 'Fetching...' : 'Fetch Enriched'}
+              </Button>
               <Button
                 onClick={handleRunValidation}
                 disabled={isValidating}
@@ -2860,6 +3156,62 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
                   <p><strong>Funding Requirements:</strong> {enhancedMemo1.validation_result.validation_result.financial_validation.funding_requirements}</p>
                   <p><strong>Valuation Reasonableness:</strong> {enhancedMemo1.validation_result.validation_result.financial_validation.valuation_reasonableness}</p>
                   <p><strong>Financial Viability:</strong> {enhancedMemo1.validation_result.validation_result.financial_validation.financial_viability}/10</p>
+                </div>
+              </div>
+            )}
+
+            {/* Enriched Financial Validation (Perplexity) */}
+            {enhancedMemo1.financial_validation && (
+              <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
+                <h4 className="font-semibold text-amber-800 mb-3">Financial Validation</h4>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div><strong>CAC (Current):</strong> {enhancedMemo1.financial_validation.cac_current || 'Not specified'}</div>
+                  <div><strong>CAC (EOY):</strong> {enhancedMemo1.financial_validation.cac_eoy || 'Not specified'}</div>
+                  <div><strong>LTV (Min):</strong> {enhancedMemo1.financial_validation.ltv_min || 'Not specified'}</div>
+                  <div><strong>LTV (Max):</strong> {enhancedMemo1.financial_validation.ltv_max || 'Not specified'}</div>
+                  <div><strong>CAC/LTV Ratio:</strong> {enhancedMemo1.financial_validation.cac_ltv_ratio || 'Not specified'}</div>
+                  <div><strong>Burn Rate (Monthly):</strong> {enhancedMemo1.financial_validation.burn_rate_monthly || 'Not specified'}</div>
+                  <div><strong>Runway (Months):</strong> {enhancedMemo1.financial_validation.runway_months || 'Not specified'}</div>
+                  <div><strong>Gross Margin:</strong> {enhancedMemo1.financial_validation.gross_margin_pct || 'Not specified'}</div>
+                </div>
+                {enhancedMemo1.financial_validation.labels && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <span className="px-2 py-0.5 text-xs rounded bg-green-100 text-green-800">CAC: {enhancedMemo1.financial_validation.labels.cac_reasonableness || '—'}</span>
+                    <span className="px-2 py-0.5 text-xs rounded bg-blue-100 text-blue-800">LTV: {enhancedMemo1.financial_validation.labels.ltv_quality || '—'}</span>
+                    <span className="px-2 py-0.5 text-xs rounded bg-yellow-100 text-yellow-800">Burn: {enhancedMemo1.financial_validation.labels.burn_tightness || '—'}</span>
+                    <span className="px-2 py-0.5 text-xs rounded bg-purple-100 text-purple-800">Margin: {enhancedMemo1.financial_validation.labels.gross_margin_health || '—'}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Market & Claim Validation */}
+            {Array.isArray(enhancedMemo1.claim_validations) && enhancedMemo1.claim_validations.length > 0 && (
+              <div className="p-4 bg-slate-50 rounded-lg border">
+                <h4 className="font-semibold text-slate-800 mb-3">Market & Claim Validation</h4>
+                <div className="overflow-auto border rounded">
+                  <table className="w-full text-sm">
+                    <thead className="bg-slate-100">
+                      <tr>
+                        <th className="text-left p-2">Claim</th>
+                        <th className="text-left p-2">Source</th>
+                        <th className="text-left p-2">Finding</th>
+                        <th className="text-left p-2">Match</th>
+                        <th className="text-left p-2">Confidence</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {enhancedMemo1.claim_validations.map((row: any, i: number) => (
+                        <tr key={i} className="border-t">
+                          <td className="p-2 align-top">{row.claim || '—'}</td>
+                          <td className="p-2 align-top">{row.source || '—'}</td>
+                          <td className="p-2 align-top">{row.finding || 'pending'}</td>
+                          <td className="p-2 align-top">{row.match ? '✓' : '✗'}</td>
+                          <td className="p-2 align-top">{typeof row.confidence === 'number' ? row.confidence.toFixed(2) : '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             )}

@@ -16,6 +16,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { collection, query, where, getDocs, doc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase-new";
+import { stripCodeFences, tryParseJsonFlexible } from "@/lib/llm";
 
 const RedFlagItem = ({
   type,
@@ -206,12 +207,14 @@ export default function DiligencePage() {
       }
       
       const raw = await response.text();
-      let result: any;
-      try {
-        result = JSON.parse(raw);
-      } catch (e) {
+      let result: any = tryParseJsonFlexible(raw);
+      if (!result) {
+        const unfenced = stripCodeFences(raw);
+        result = tryParseJsonFlexible(unfenced);
+      }
+      if (!result) {
         console.error('Invalid JSON from run_diligence (first 1000 chars):', raw.slice(0, 1000));
-        throw e;
+        throw new Error('Received non-JSON diligence response');
       }
       
       if (result.error) {

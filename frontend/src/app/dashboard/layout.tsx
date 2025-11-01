@@ -36,56 +36,51 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarProvider>
-      <Sidebar>
-        <SidebarHeader className="border-b border-sidebar-border/50 bg-gradient-to-br from-sidebar to-sidebar/95">
-          <div className="flex items-center gap-3 px-2 py-2">
-            <div className="flex items-center justify-center size-10 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 ring-1 ring-primary/20">
-              <Logo className="size-6" />
+      <Sidebar className="bg-gray-100 border-r border-gray-200">
+        <SidebarHeader className="border-b border-gray-200 pb-4">
+          <div className="flex items-center gap-3 px-2">
+            <div className="flex items-center justify-center size-12 rounded-lg bg-purple-200/80 ring-2 ring-purple-300/50 shadow-sm">
+              <Logo className="size-7" />
             </div>
-            <div>
-              <h1 className="font-headline text-lg font-bold text-sidebar-foreground leading-tight">Veritas</h1>
-              <p className="text-xs text-sidebar-foreground/60 font-medium">AI Investment Platform</p>
+            <div className="flex flex-col">
+              <h1 className="font-headline text-xl font-bold text-gray-900 leading-tight">Veritas</h1>
+              <p className="text-xs text-gray-600 font-medium">AI Investment Platform</p>
             </div>
           </div>
         </SidebarHeader>
-        <SidebarContent className="gap-1">
+        <SidebarContent className="bg-gray-100">
           <DashboardNav />
         </SidebarContent>
-        <SidebarFooter className="border-t border-sidebar-border/50 p-2">
+        <SidebarFooter className="border-t border-gray-200 bg-gray-100 p-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <div className="flex w-full cursor-pointer items-center gap-3 rounded-lg p-2.5 text-left text-sm text-sidebar-foreground outline-none ring-sidebar-ring transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:shadow-sm focus-visible:ring-2 active:scale-[0.98]">
-                <Avatar className="h-9 w-9 ring-2 ring-sidebar-border hover:ring-primary/50 transition-all">
+              <div className="flex w-full cursor-pointer items-center gap-3 rounded-md p-2.5 text-left text-sm text-gray-900 outline-none transition-colors hover:bg-gray-200 focus-visible:ring-2 focus-visible:ring-purple-500/20">
+                <Avatar className="h-9 w-9 bg-gray-300">
                   <AvatarImage src="/placeholder.svg" alt={userProfile?.displayName || "User"} />
-                  <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 font-semibold">
-                    {userProfile?.displayName?.charAt(0) || user?.email?.charAt(0) || "U"}
+                  <AvatarFallback className="bg-gray-400 text-gray-900 font-semibold">
+                    {(userProfile?.displayName || user?.email || "U").charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 overflow-hidden min-w-0">
-                  <p className="truncate font-semibold text-sm">{userProfile?.displayName || "User"}</p>
-                  <p className="truncate text-xs text-sidebar-foreground/60">
-                    {userProfile?.role ? userProfile.role.charAt(0).toUpperCase() + userProfile.role.slice(1) : 'User'} • {user?.email?.split('@')[0] || 'User'}
+                  <p className="truncate font-bold text-sm text-gray-900">{userProfile?.displayName || "User"}</p>
+                  <p className="truncate text-xs text-gray-600">
+                    {userProfile?.role ? userProfile.role.charAt(0).toUpperCase() + userProfile.role.slice(1) : 'Investor'} • {user?.email || 'user@example.com'}
                   </p>
                 </div>
-                <MoreVertical className="ml-auto size-4 text-sidebar-foreground/50" />
+                <MoreVertical className="ml-auto size-5 text-gray-600" />
               </div>
             </DropdownMenuTrigger>
             <DropdownMenuContent side="top" align="start" className="w-56">
-              <DropdownMenuLabel className="font-semibold">My Account</DropdownMenuLabel>
+              <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="cursor-pointer">
-                <span>Profile</span>
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/billing">Billing</Link>
               </DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer">
-                <CreditCard className="mr-2 h-4 w-4" />
-                <span>Billing</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer">
-                <Settings className="mr-2 h-4 w-4" />
-                <span>Settings</span>
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/settings">Settings</Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive focus:text-destructive">
+              <DropdownMenuItem onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Log out</span>
               </DropdownMenuItem>

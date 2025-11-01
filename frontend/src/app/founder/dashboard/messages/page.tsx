@@ -1,7 +1,8 @@
 // Founder messages page
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { ChatList } from '../../../../components/chat/ChatList';
 import { ChatWindow } from '../../../../components/chat/ChatWindow';
 import { useChat } from '../../../../hooks/useChat';
@@ -10,9 +11,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../..
 import { Badge } from '../../../../components/ui/badge';
 import { Plus, MessageSquare, Users, TrendingUp, Clock, Target, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { useToast } from '@/hooks/use-toast';
 
 export default function FounderMessagesPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [showCreateRoom, setShowCreateRoom] = useState(false);
+  const [autoCreating, setAutoCreating] = useState(false);
+  const { toast } = useToast();
   
   // Mock user data - in real app, get from auth context
   const userId = 'founder1';
@@ -32,12 +38,111 @@ export default function FounderMessagesPage() {
     error
   } = useChat(userId, userRole);
 
+  // Auto-create room when coming from Investor Match page
+  useEffect(() => {
+    const autoCreate = searchParams.get('autoCreate');
+    const investorName = searchParams.get('investorName');
+    const investorFirm = searchParams.get('investorFirm');
+    const investorId = searchParams.get('investorId');
+
+    if (autoCreate === 'true' && investorName && investorFirm && investorId && !autoCreating) {
+      const autoCreateRoom = async () => {
+        setAutoCreating(true);
+        
+        // Show professional loading toast
+        const loadingToast = toast({
+          title: "✨ Creating Investor Room",
+          description: `Setting up your chat with ${investorFirm}. This will just take a moment...`,
+          duration: 5000,
+        });
+
+        try {
+          // Create the room with investor details
+          const newRoom = await createRoom(
+            investorId,
+            `investor_${investorId}_${Date.now()}`,
+            investorName,
+            investorFirm
+          );
+
+          // Clean up URL params
+          router.replace('/founder/dashboard/messages');
+
+          // Wait for room to be ready, then open it
+          setTimeout(async () => {
+            try {
+              openRoom(newRoom.id);
+
+              // Send a greeting message from the founder
+              setTimeout(async () => {
+                const greetingMessage = `Hello ${investorName}! 👋\n\nThank you for your interest in our startup. I'm excited to discuss the investment opportunity and answer any questions you may have.\n\nLooking forward to our conversation!`;
+                
+                try {
+                  await sendMessage(greetingMessage);
+                  
+                  // Show success toast
+                  loadingToast.dismiss();
+                  toast({
+                    title: "🎉 Investor Room Created Successfully!",
+                    description: `Your chat with ${investorFirm} is now active. You can start the conversation!`,
+                    duration: 6000,
+                  });
+                } catch (err) {
+                  console.error('Failed to send greeting message:', err);
+                  loadingToast.dismiss();
+                  toast({
+                    title: "✅ Room Created",
+                    description: `Chat with ${investorFirm} is ready. You can now send messages.`,
+                    duration: 5000,
+                  });
+                }
+              }, 1500);
+            } catch (err) {
+              console.error('Failed to open room:', err);
+              loadingToast.dismiss();
+              toast({
+                title: "✅ Room Created",
+                description: `Your chat with ${investorFirm} is ready. Select it from the sidebar to start chatting.`,
+                duration: 5000,
+              });
+            }
+            
+            setAutoCreating(false);
+          }, 800);
+        } catch (err) {
+          console.error('Failed to auto-create room:', err);
+          loadingToast.dismiss();
+          setAutoCreating(false);
+          toast({
+            title: "❌ Error Creating Room",
+            description: `Failed to create chat room with ${investorFirm}. Please try again.`,
+            variant: "destructive",
+            duration: 5000,
+          });
+        }
+      };
+
+      autoCreateRoom();
+    }
+  }, [searchParams, autoCreating, createRoom, openRoom, sendMessage, router, toast]);
+
   const handleCreateRoom = async () => {
     try {
       await createRoom('inv1', 'memo123', 'Sarah Chen', 'Accel Partners');
       setShowCreateRoom(false);
+      toast({
+        title: "✅ Room Created",
+        description: "Your chat room with the investor has been created successfully.",
+        duration: 5000,
+      });
     } catch (err) {
       console.error('Failed to create room:', err);
+      toast({
+        title: "❌ Error",
+        description: "Failed to create chat room. Please try again.",
+        variant: "destructive",
+        duration: 5000,
+      });
     }
   };
 
@@ -161,7 +266,19 @@ export default function FounderMessagesPage() {
 
           {/* Chat Window */}
           <div className="flex-1 flex flex-col">
-            {activeRoom ? (
+            {autoCreating ? (
+              <div className="flex-1 flex items-center justify-center bg-muted/20">
+                <div className="text-center max-w-md">
+                  <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-primary mx-auto mb-6"></div>
+                  <h3 className="text-xl font-semibold mb-3 text-gray-900">
+                    Creating Investor Room...
+                  </h3>
+                  <p className="text-gray-600 text-base">
+                    Setting up your chat. This will just take a moment.
+                  </p>
+                </div>
+              </div>
+            ) : activeRoom ? (
               <ChatWindow
                 room={activeRoom}
                 messages={messages}

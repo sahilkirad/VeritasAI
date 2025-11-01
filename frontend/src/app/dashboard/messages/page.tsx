@@ -102,7 +102,7 @@ export default function InvestorMessagesPage() {
       const autoCreateRoom = async () => {
         setAutoCreating(true);
         try {
-          // Create the room
+          // Create the room (investor creating room with founder)
           const newRoom = await createRoom(
             paramFounderEmail.toLowerCase().replace(/[^a-z0-9]/g, ''),
             `memo_${Date.now()}`,

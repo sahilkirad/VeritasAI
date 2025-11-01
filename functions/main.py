@@ -2026,3 +2026,222 @@ def submit_interview_answer(req: https_fn.Request) -> https_fn.Response:
         traceback.print_exc()
         headers = get_cors_headers(req)
         return https_fn.Response(json.dumps({"error": str(e)}), status=500, headers=headers)
+
+
+@https_fn.on_request(region="asia-south1", memory=options.MemoryOption.MB_512)
+def upload_investors(req: https_fn.Request) -> https_fn.Response:
+    """
+    One-time endpoint to upload investors from JSON to Firestore.
+    POST /upload_investors
+    """
+    get_firebase_app()
+    
+    try:
+        if req.method == 'OPTIONS':
+            headers = get_cors_headers(req)
+            return https_fn.Response('', status=204, headers=headers)
+        
+        if req.method != 'POST':
+            headers = get_cors_headers(req)
+            return https_fn.Response(json.dumps({"error": "Method not allowed"}), status=405, headers={**get_cors_headers(req), 'Content-Type': 'application/json'})
+        
+        import os
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        json_file_path = os.path.join(current_dir, 'agents', 'investors_list.json')
+        
+        if not os.path.exists(json_file_path):
+            return https_fn.Response(json.dumps({"error": "Investors JSON file not found"}), status=404, headers={**get_cors_headers(req), 'Content-Type': 'application/json'})
+        
+        with open(json_file_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        investors = data.get('investors', [])
+        db = firestore.client()
+        collection_ref = db.collection('investors')
+        
+        uploaded_count = 0
+        updated_count = 0
+        
+        for investor in investors:
+            investor_id = investor.get('id')
+            if not investor_id:
+                continue
+            
+            doc_ref = collection_ref.document(investor_id)
+            investor_data = {**investor, 'uploaded_at': firestore.SERVER_TIMESTAMP, 'last_updated': firestore.SERVER_TIMESTAMP}
+            
+            if doc_ref.get().exists:
+                doc_ref.update(investor_data)
+                updated_count += 1
+            else:
+                doc_ref.set(investor_data)
+                uploaded_count += 1
+        
+        result = {"success": True, "total_investors": len(investors), "uploaded": uploaded_count, "updated": updated_count}
+        return https_fn.Response(json.dumps(result), status=200, headers={**get_cors_headers(req), 'Content-Type': 'application/json'})
+        
+    except Exception as e:
+        print(f"Error uploading investors: {e}")
+        import traceback
+        traceback.print_exc()
+        return https_fn.Response(json.dumps({"error": str(e)}), status=500, headers={**get_cors_headers(req), 'Content-Type': 'application/json'})
+
+
+@https_fn.on_request(region="asia-south1", memory=options.MemoryOption.MB_512)
+def investor_match(req: https_fn.Request) -> https_fn.Response:
+    """
+    API endpoint for investor matching.
+    Matches founders from ingestionResults with investors from Firestore 'investors' collection.
+    READ-ONLY operations - does not modify memo data.
+    
+    Accepts:
+    - memo_id: Document ID in ingestionResults (optional)
+    - founder_email: Founder email to look up (optional)
+    - min_score: Minimum match score threshold (optional, default 0.3)
+    
+    Returns:
+    - Ranked list of investor matches with scores and reasoning
+    """
+    
+    # Initialize Firebase app when function runs
+    get_firebase_app()
+    
+    try:
+        # Handle CORS
+        if req.method == 'OPTIONS':
+            headers = get_cors_headers(req)
+            headers['Access-Control-Max-Age'] = '3600'
+            return https_fn.Response('', status=204, headers=headers)
+
+        if req.method != 'POST' and req.method != 'GET':
+            headers = get_cors_headers(req)
+            return https_fn.Response(
+                json.dumps({"error": "Method not allowed"}),
+                status=405,
+                headers={**headers, 'Content-Type': 'application/json'}
+            )
+
+        # Extract parameters
+        if req.method == 'POST':
+            data = req.get_json() or {}
+        else:
+            # GET request - parse query parameters
+            import urllib.parse
+            params = urllib.parse.parse_qs(req.query_string)
+            data = {k: v[0] if isinstance(v, list) and len(v) > 0 else v for k, v in params.items()}
+
+        memo_id = data.get('memo_id')
+        founder_email = data.get('founder_email')
+        min_score = float(data.get('min_score', 0.3))
+        force_recompute = data.get('force_recompute', False)  # Allow forcing recomputation
+
+        print(f"Investor matching request: memo_id={memo_id}, founder_email={founder_email}, min_score={min_score}, force_recompute={force_recompute}")
+
+        # Check if results already exist in Firestore (unless forcing recompute)
+        result = None
+        if not force_recompute and (memo_id or founder_email):
+            try:
+                db = firestore.client()
+                doc_id = memo_id or founder_email
+                match_doc_ref = db.collection("investor_matches").document(doc_id)
+                existing_doc = match_doc_ref.get()
+                
+                if existing_doc.exists:
+                    existing_data = existing_doc.to_dict()
+                    stored_min_score = existing_data.get("min_score_used", 0.3)
+                    
+                    # If stored results used same or lower min_score, return cached results
+                    if stored_min_score <= min_score:
+                        print(f"✅ Found cached matching results in Firestore for doc_id={doc_id}")
+                        result = {
+                            "status": "SUCCESS",
+                            "founder_data": existing_data.get("founder_data", {}),
+                            "matches": existing_data.get("matches", []),
+                            "total_investors_analyzed": existing_data.get("total_investors_analyzed", 0),
+                            "processing_time_seconds": existing_data.get("processing_time_seconds", 0),
+                            "timestamp": existing_data.get("timestamp", datetime.now().isoformat()),
+                            "cached": True,
+                            "firestore_doc_id": doc_id
+                        }
+            except Exception as fetch_error:
+                print(f"⚠️ Error fetching cached results: {fetch_error}")
+                # Continue to compute new results
+
+        # If no cached results found, compute new matches
+        if result is None:
+            print("Computing new matching results...")
+            # Initialize Investor Matching Agent
+            from agents.investor_matching_agent import InvestorMatchingAgent
+            
+            agent = InvestorMatchingAgent(project="veritas-472301", location="asia-south1")
+            agent.set_up()
+
+            # Find matches
+            result = agent.find_matches(memo_id=memo_id, founder_email=founder_email, min_score=min_score)
+
+        # Store matching results in Firestore if successful
+        if result.get("status") == "SUCCESS" and (memo_id or founder_email):
+            try:
+                db = firestore.client()
+                
+                # Use memo_id as document ID if available, otherwise use founder_email
+                doc_id = memo_id or founder_email
+                
+                # Create document in investor_matches collection
+                match_doc_ref = db.collection("investor_matches").document(doc_id)
+                
+                # Prepare data to store
+                match_data = {
+                    "memo_id": memo_id,
+                    "founder_email": founder_email,
+                    "founder_data": result.get("founder_data", {}),
+                    "matches": result.get("matches", []),
+                    "total_investors_analyzed": result.get("total_investors_analyzed", 0),
+                    "min_score_used": min_score,
+                    "created_at": firestore.SERVER_TIMESTAMP,
+                    "last_updated": firestore.SERVER_TIMESTAMP,
+                    "timestamp": datetime.now().isoformat(),
+                    "processing_time_seconds": result.get("processing_time_seconds", 0)
+                }
+                
+                # Use set with merge=True to update if exists, or create if new
+                match_doc_ref.set(match_data, merge=True)
+                print(f"✅ Stored matching results in Firestore for doc_id={doc_id}")
+                
+                # Add storage info to result
+                result["stored_in_firestore"] = True
+                result["firestore_doc_id"] = doc_id
+                
+            except Exception as storage_error:
+                print(f"⚠️ Warning: Failed to store matching results in Firestore: {storage_error}")
+                import traceback
+                traceback.print_exc()
+                # Don't fail the request if storage fails
+                result["stored_in_firestore"] = False
+                result["storage_error"] = str(storage_error)
+        else:
+            result["stored_in_firestore"] = False
+
+        # Ensure result is JSON serializable
+        try:
+            result_json = json.dumps(result, default=str)
+        except (TypeError, ValueError) as json_error:
+            print(f"Error serializing result to JSON: {json_error}")
+            result = {
+                "status": "ERROR",
+                "error": f"Failed to serialize response: {str(json_error)}",
+                "matches": [],
+                "timestamp": datetime.now().isoformat()
+            }
+            result_json = json.dumps(result)
+
+        headers = get_cors_headers(req)
+        headers['Content-Type'] = 'application/json'
+        return https_fn.Response(result_json, status=200, headers=headers)
+        
+    except Exception as e:
+        print(f"Error in investor_match: {e}")
+        import traceback
+        traceback.print_exc()
+        headers = get_cors_headers(req)
+        return https_fn.Response(json.dumps({"error": str(e), "status": "ERROR"}), status=500, headers=headers)

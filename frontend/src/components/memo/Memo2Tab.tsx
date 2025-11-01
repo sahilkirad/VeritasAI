@@ -1183,7 +1183,7 @@ export default function Memo2Tab({ diligenceData, interviewData, memo1, memoId, 
                   <div>
                     <span className="font-semibold text-gray-700">Total Questions:</span>
                     <span className="ml-2">
-                      {interviewData.transcript.filter((e: any) => e.speaker === 'ai' || e.speaker === 'interviewer').length}
+                      {interviewData.questions?.length || 0}
                     </span>
                   </div>
                 </div>
@@ -1246,6 +1246,15 @@ export default function Memo2Tab({ diligenceData, interviewData, memo1, memoId, 
                             </span>
                           )}
                         </div>
+                        {/* Display question text if available */}
+                        {entry.questionNumber !== undefined && 
+                         interviewData.questions?.[entry.questionNumber]?.question && (
+                          <div className="mb-2 pb-2 border-b border-gray-200">
+                            <p className="font-semibold text-indigo-700 text-sm leading-relaxed">
+                              Question {interviewData.questions[entry.questionNumber].questionNumber}: {interviewData.questions[entry.questionNumber].question}
+                            </p>
+                          </div>
+                        )}
                         <div className={`text-sm leading-relaxed ${
                           isFounder ? 'text-gray-800' : 'text-gray-700'
                         }`}>

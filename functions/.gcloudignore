@@ -1,0 +1,54 @@
+# Python virtual environment (should never be deployed)
+venv/
+env/
+ENV/
+.venv/
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Python test files (not needed in production)
+test_*.py
+*_test.py
+validate_implementation.py
+
+# Scripts directory (development scripts, not runtime)
+scripts/
+
+# Service account keys (security risk)
+*.json
+veritas-*.json
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Documentation files
+*.md
+*.mg
+
+# Next.js directory (not needed in functions)
+nextjs/
+
+# Requirements file for investor agent (if separate, keep main requirements.txt)
+requirements-investor-agent.txt
+
+# Utils directory if it's empty or just has __init__.py
+# (Keep this commented - you might have actual utils needed)
+# utils/
+

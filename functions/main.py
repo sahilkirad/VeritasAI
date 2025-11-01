@@ -843,8 +843,8 @@ def schedule_ai_interview(req: https_fn.Request) -> https_fn.Response:
         # Generate unique interview ID
         interview_id = f"interview_{int(time.time() * 1000)}_{company_id}"
         
-        # Create interview URL
-        interview_url = f"https://veritas-472301.web.app/interview/{interview_id}"
+        # Create interview URL (using query parameter for Next.js static export compatibility)
+        interview_url = f"https://veritas-472301.web.app/interview?id={interview_id}"
         
         # Store interview record in Firestore
         db = firestore.client()

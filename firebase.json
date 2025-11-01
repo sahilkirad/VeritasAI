@@ -60,10 +60,6 @@
         "destination": "/_next/static/**"
       },
       {
-        "source": "/interview",
-        "destination": "/interview/index.html"
-      },
-      {
         "source": "/interview/**",
         "destination": "/interview/index.html"
       },

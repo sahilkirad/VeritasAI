@@ -32,7 +32,7 @@
 
 ## 🎯 Overview
 
-The **AI Startup Evaluator Platform** is a comprehensive 17-agent investment analysis system that leverages advanced AI agents to process startup pitch decks, conduct automated meetings, perform deep diligence, and generate professional investment recommendations. Built with Google's Agent Development Kit (ADK) and deployed on Google Cloud Run with event-driven orchestration.
+**Veritas** is a comprehensive 17-agent AI investment analysis platform that leverages advanced AI agents to process startup pitch decks, conduct automated meetings, perform deep diligence, and generate professional investment recommendations. Built with Google Cloud services (Vertex AI, Gemini), Perplexity AI for real-time data enrichment, and deployed on Firebase Functions with event-driven orchestration.
 
 ### 🎪 What It Does
 
@@ -58,15 +58,19 @@ The **AI Startup Evaluator Platform** is a comprehensive 17-agent investment ana
 - **Multi-Layer Pipeline**: 5 layers of specialized AI agents
 - **Event-Driven Orchestration**: Google Pub/Sub event bus for real-time coordination
 - **Human-in-the-Loop**: Investor review and override capabilities
-- **Google ADK Integration**: Leverages Google's latest AI development framework
+- **Vertex AI Integration**: Leverages Google Gemini models for structured data extraction
+- **Perplexity AI Enrichment**: Real-time web search and data validation
 - **Real-time Processing**: Instant analysis and memo generation
 - **Context-Aware Analysis**: Understands startup ecosystem nuances
+- **Vector Search**: RAG-based diligence analysis with embeddings
 
 ### 📊 Comprehensive Analysis
-- **Financial Validation**: Verifies revenue, growth, and funding claims
-- **Market Analysis**: TAM/SAM/SOM validation with industry benchmarks
-- **Competitive Intelligence**: Identifies and analyzes competitors
-- **Founder Assessment**: Evaluates team experience and market fit
+- **Financial Validation**: Verifies revenue, growth, and funding claims using Perplexity AI and public sources
+- **Market Analysis**: TAM/SAM/SOM validation with industry benchmarks from real-time data
+- **Competitive Intelligence**: Identifies and analyzes competitors via Crunchbase, Tracxn, and web sources
+- **Founder Assessment**: Evaluates team experience and market fit with LinkedIn and background checks
+- **Memo Enrichment**: Automatically fills missing fields using Perplexity API and Vertex AI
+- **Validation Framework**: 10-category validation system with confidence scoring
 - **AI Meeting Bot**: Automated investor-founder meetings with Q&A
 - **Risk Scoring**: Advanced risk assessment with multiple factors
 - **Deal Structuring**: Automated term sheet generation
@@ -80,15 +84,84 @@ The **AI Startup Evaluator Platform** is a comprehensive 17-agent investment ana
 - **Engagement Automation**: Automated follow-up communications
 
 ### ☁️ Cloud-Native & Scalable
-- **Google Cloud Run**: Containerized, auto-scaling deployment
-- **MCP Server**: Advanced orchestration with FastAPI and WebSocket
+- **Firebase Functions**: Serverless, auto-scaling backend deployment (asia-south1 region)
+- **Next.js Frontend**: Modern React-based web application with TypeScript
+- **Firestore**: Real-time database for state management and document storage
+- **BigQuery**: Analytics and reporting for investment data
+- **Vector Search**: Embeddings storage for RAG-based diligence queries
 - **Event-Driven Architecture**: Pub/Sub for reliable event handling
-- **Context Store**: Firestore for real-time state, BigQuery for analytics
 - **Auto-scaling**: Handles varying workloads automatically
 - **Cost-effective**: Pay only for actual usage
 - **Global Availability**: Deploy anywhere in Google Cloud regions
 
-## 🏗️ Architecture
+## 🏗️ Platform Architecture
+
+### 🎯 System Overview
+
+Veritas is built on a **serverless, event-driven architecture** using Firebase Functions for backend processing and Next.js for the frontend interface. The platform processes startup pitch decks through a multi-stage pipeline of specialized AI agents, each responsible for specific analysis tasks.
+
+### 📐 Core Components
+
+1. **Frontend (Next.js)**: React-based user interface for founders and investors
+2. **Backend (Firebase Functions)**: Serverless functions handling agent orchestration
+3. **AI Services**: Perplexity API for real-time data enrichment, Vertex AI (Gemini) for structured analysis
+4. **Data Layer**: Firestore for real-time state, BigQuery for analytics, Vector Search for RAG queries
+5. **Event System**: Google Pub/Sub for asynchronous agent coordination
+
+### 🔄 Complete Platform Flow
+
+```mermaid
+sequenceDiagram
+    participant User as 👤 User (Founder/Investor)
+    participant FE as 🎨 Next.js Frontend
+    participant CF as ⚡ Cloud Function
+    participant FS as 🔥 Firestore
+    participant IA as 🤖 Intake Agent
+    participant MA as 🤖 Memo Enrichment Agent
+    participant VA as 🤖 Validation Agent
+    participant PP as 🔍 Perplexity API
+    participant GA as 🧠 Vertex AI (Gemini)
+
+    User->>FE: Upload Pitch Deck PDF
+    FE->>CF: HTTP POST /on_file_upload
+    CF->>FS: Create upload record
+    CF->>FS: Publish Pub/Sub event
+    CF-->>FE: Return processing status
+    
+    Note over CF,FS: Asynchronous Processing Begins
+    
+    CF->>IA: Trigger Intake Agent
+    IA->>GA: Extract structured data from PDF
+    GA-->>IA: Return memo_1 JSON
+    IA->>FS: Save to ingestionResults collection
+    FS->>FE: Real-time update (WebSocket/Firestore listener)
+    
+    User->>FE: Request Validation/Enrichment
+    FE->>CF: HTTP POST /validate_memo_data
+    CF->>FS: Fetch memo_1 from ingestionResults
+    CF->>MA: Trigger Memo Enrichment Agent
+    
+    MA->>MA: Identify missing fields
+    loop For each missing field
+        MA->>PP: Query Perplexity API
+        PP-->>MA: Return enriched data + sources
+    end
+    
+    MA->>GA: Structure enriched data (Vertex AI)
+    GA-->>MA: Return structured JSON
+    MA->>VA: Trigger Validation Agent
+    
+    VA->>PP: Validate 10 categories (Company, Founder, Market, etc.)
+    PP-->>VA: Return validation results + confidence scores
+    
+    VA->>FS: Save enriched data to memo1_validated
+    VA->>FS: Save validation results
+    FS->>FE: Real-time update
+    
+    FE->>User: Display enriched memo + validation report
+```
+
+### 🏗️ Architecture Diagram
 
 ```mermaid
 flowchart TD
@@ -213,6 +286,78 @@ flowchart TD
 - **Google ADK**: AI agent framework
 - **Event-Driven Architecture**: Pub/Sub event bus
 - **Real-time Monitoring**: WebSocket and dashboard integration
+
+## 🤖 How Agents Work - Deep Dive
+
+### 🧠 Agent Architecture Pattern
+
+Each agent in Veritas follows a **standardized architecture pattern** that enables modular, scalable, and testable components:
+
+```
+┌─────────────────────────────────────────┐
+│         Agent Base Pattern              │
+├─────────────────────────────────────────┤
+│ 1. Initialization (set_up)             │
+│    - Initialize Firestore client        │
+│    - Initialize AI service clients       │
+│    - Set logging configuration          │
+├─────────────────────────────────────────┤
+│ 2. Data Fetching                        │
+│    - Fetch input data from Firestore    │
+│    - Validate data completeness         │
+│    - Handle missing data gracefully     │
+├─────────────────────────────────────────┤
+│ 3. Processing                           │
+│    - Execute agent-specific logic       │
+│    - Call external APIs (Perplexity, AI)│
+│    - Transform and enrich data          │
+├─────────────────────────────────────────┤
+│ 4. Validation                           │
+│    - Validate output quality            │
+│    - Calculate confidence scores        │
+│    - Check for errors                   │
+├─────────────────────────────────────────┤
+│ 5. Storage                               │
+│    - Save results to Firestore          │
+│    - Update status tracking             │
+│    - Emit events for next agents        │
+└─────────────────────────────────────────┘
+```
+
+### 🔄 Agent Communication Flow
+
+Agents communicate through **Firestore collections** and **Pub/Sub events**:
+
+```mermaid
+graph LR
+    A[Agent 1] -->|Write Results| FS[Firestore]
+    FS -->|Pub/Sub Event| PS[Pub/Sub Topic]
+    PS -->|Trigger| CF[Cloud Function]
+    CF -->|Initialize| A2[Agent 2]
+    A2 -->|Read Data| FS
+    A2 -->|Process| A2
+    A2 -->|Write Results| FS
+```
+
+### 📊 Agent Execution Lifecycle
+
+```mermaid
+stateDiagram-v2
+    [*] --> Initialized: set_up() called
+    Initialized --> Fetching: run() method invoked
+    Fetching --> Processing: Data retrieved
+    Processing --> Enriching: Call external APIs
+    Enriching --> Validating: Transform data
+    Validating --> Storing: Validation passed
+    Storing --> Completed: Saved to Firestore
+    Completed --> [*]
+    
+    Processing --> Error: API failure
+    Enriching --> Error: Invalid data
+    Validating --> Error: Validation failed
+    Error --> Fallback: Use fallback logic
+    Fallback --> Storing: Partial results
+```
 
 ## 🤖 AI Agents
 
@@ -451,42 +596,82 @@ sequenceDiagram
 ### 📋 Prerequisites
 
 - **Google Cloud Account** with billing enabled
+- **Project ID**: `veritas-472301` (or your own GCP project)
 - **Python 3.9+** installed locally
+- **Node.js 20+** and npm 10+ for frontend development
 - **Google Cloud SDK** (`gcloud`) installed
-- **Project ID** in Google Cloud Console
+- **Firebase CLI** installed (`npm install -g firebase-tools`)
+- **Perplexity API Key** (for data enrichment and validation)
 
 ### ⚡ Local Development
 
 1. **Clone the repository**
 ```bash
 git clone <repository-url>
-   cd ai-startup-evaluator
+cd VeritasAI
    ```
 
-2. **Install dependencies**
+2. **Install backend dependencies**
    ```bash
+cd functions
    pip install -r requirements.txt
    ```
 
-3. **Set up Google Cloud authentication**
+3. **Install frontend dependencies**
+```bash
+cd ../frontend
+npm install
+```
+
+4. **Set up environment variables**
+```bash
+# Backend - Create .env file in functions/
+GOOGLE_CLOUD_PROJECT=veritas-472301
+VERTEX_AI_LOCATION=asia-south1
+PERPLEXITY_API_KEY=your_perplexity_api_key_here
+
+# Frontend - Create .env.local in frontend/
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=veritas-472301
+```
+
+5. **Set up Google Cloud authentication**
 ```bash
    gcloud auth login
-   gcloud config set project YOUR_PROJECT_ID
+gcloud config set project veritas-472301
+firebase login
    ```
 
-4. **Run locally**
+6. **Run locally**
 ```bash
-python main.py
+# Backend (Cloud Functions Emulator)
+cd functions
+python run_localhost.py
+
+# Frontend (Next.js)
+cd frontend
+npm run dev
    ```
 
 ### 🧪 Test the Platform
 
 ```bash
-# Health check
-curl -X GET http://localhost:8080/health
+# Test Perplexity API key
+cd functions
+python test_perplexity_key.sh
+# or
+bash verify-perplexity-secret.sh
 
-# Test evaluation
-curl -X POST http://localhost:8080/evaluate \
+# Test memo enrichment locally
+python run_localhost.py
+
+# Test validation framework
+python test_validation_framework_local.py
+
+# Frontend health check
+curl -X GET http://localhost:3000
+
+# Test evaluation endpoint (requires Firebase Functions emulator)
+curl -X POST http://localhost:5001/veritas-472301/asia-south1/evaluate \
   -H "Content-Type: application/json" \
   -d '{
     "action": "evaluate",
@@ -499,68 +684,89 @@ curl -X POST http://localhost:8080/evaluate \
 
 ## ☁️ Cloud Deployment
 
-### 🚀 Deploy to Google Cloud Run
+### 🚀 Deploy to Firebase Functions
 
-1. **Update project configuration**
+1. **Set up Perplexity API key**
    ```bash
-   # Edit deploy_mcp_server.py
-   PROJECT_ID = "your-actual-project-id"
+   # Store in Google Secret Manager
+   bash setup-perplexity.sh
+   # or
+   bash verify-perplexity-secret.sh
    ```
 
-2. **Deploy MCP Server**
+2. **Enable required APIs**
    ```bash
-   python deploy_mcp_server.py
+   gcloud services enable \
+     cloudfunctions.googleapis.com \
+     aiplatform.googleapis.com \
+     firestore.googleapis.com \
+     pubsub.googleapis.com \
+     cloudbuild.googleapis.com
    ```
 
-3. **Deploy Main Application**
+3. **Deploy Cloud Functions**
    ```bash
-   # Deploy to Cloud Functions (legacy support)
-   chmod +x config/deploy.sh
-   ./config/deploy.sh
+   cd functions
+   firebase deploy --only functions
+   # or use deployment scripts
+   bash ../deploy.sh
    ```
 
-4. **Verify deployment**
+4. **Deploy Frontend**
    ```bash
-   # MCP Server health check
-   curl -X GET https://YOUR_MCP_SERVER_URL/
+   cd frontend
+   npm run build:static
+   firebase deploy --only hosting
+   # or for App Hosting
+   firebase deploy --only apphosting
+   ```
+
+5. **Verify deployment**
+   ```bash
+   # Check function deployment
+   firebase functions:list
    
-   # Test full pipeline
-   curl -X POST https://YOUR_MCP_SERVER_URL/workflows \
+   # Test enrichment endpoint
+   curl -X POST https://asia-south1-veritas-472301.cloudfunctions.net/enrich_memo \
      -H "Content-Type: application/json" \
      -d '{
-       "name": "Startup Evaluation",
-       "steps": [...],
-       "human_review_points": ["ai_meeting", "deal_structuring"]
+       "memo_id": "your_memo_id",
+       "company_name": "Test Company"
      }'
    ```
 
 ### 🔧 Deployment Configuration
 
-**MCP Server (Cloud Run)**:
+**Cloud Functions (Backend)**:
 - **Runtime**: Python 3.9
-- **Memory**: 4GB
-- **CPU**: 2 vCPU
-- **Timeout**: 900 seconds
-- **Max Instances**: 100
-- **Min Instances**: 1
-- **Authentication**: IAM-based
-
-**Main Application (Cloud Functions)**:
-- **Runtime**: Python 3.9
-- **Memory**: 2GB
-- **Timeout**: 540 seconds
+- **Memory**: 2GB (configurable up to 8GB)
+- **Timeout**: 540 seconds (9 minutes)
+- **Region**: asia-south1
 - **Max Instances**: 100
 - **Trigger**: HTTP
-- **Authentication**: Unauthenticated (for demo)
+- **Authentication**: IAM-based or unauthenticated (configurable)
+
+**Frontend (Next.js)**:
+- **Framework**: Next.js 14+
+- **Build**: Static export or App Hosting
+- **Node Version**: 20+
+- **Deployment**: Firebase Hosting or App Hosting
 
 **Required APIs**:
-- Cloud Run API
-- Cloud Functions API
-- Vertex AI API
-- Vision API
-- BigQuery API
-- Firestore API
-- Pub/Sub API
+- Firebase Functions API
+- Vertex AI API (for Gemini models)
+- Firestore API (database)
+- Pub/Sub API (event handling)
+- BigQuery API (analytics)
+- Secret Manager API (for API keys)
+- Cloud Build API (for deployments)
+
+**Required Services**:
+- **Perplexity API**: Real-time web search and validation
+- **Vertex AI**: Gemini 2.5 Flash for structured extraction
+- **Firestore**: Document storage and real-time state
+- **BigQuery**: Analytics and reporting
+- **Vector Search**: Embeddings storage (optional)
 
 ## 📚 API Documentation
 
@@ -721,20 +927,58 @@ POST /ai_meeting
 
 ### 🌍 Environment Variables
 
+**Backend (Firebase Functions)**:
 ```bash
 # Google Cloud Configuration
-GOOGLE_CLOUD_PROJECT=your-project-id
-GOOGLE_CLOUD_LOCATION=us-central1
+GOOGLE_CLOUD_PROJECT=veritas-472301
+VERTEX_AI_LOCATION=asia-south1
 
 # AI Model Configuration
-GEMINI_MODEL=gemini-1.5-pro
+GEMINI_MODEL=gemini-2.5-flash
 CONFIDENCE_THRESHOLD=0.7
+
+# Perplexity API (Required for enrichment and validation)
+PERPLEXITY_API_KEY=pplx-your-api-key-here
 
 # Processing Configuration
 MAX_FILE_SIZE_MB=50
 SUPPORTED_FORMATS=pdf,pptx
 PROCESSING_TIMEOUT=300
 ```
+
+**Frontend (Next.js)**:
+```bash
+# Firebase Configuration
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=veritas-472301
+NEXT_PUBLIC_FIREBASE_API_KEY=your-api-key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=veritas-472301.firebaseapp.com
+```
+
+### 🔑 Setting Up Perplexity API
+
+The platform uses Perplexity AI for real-time data enrichment and validation. Follow these steps:
+
+1. **Get Perplexity API Key**
+   - Sign up at [Perplexity AI](https://www.perplexity.ai/)
+   - Generate an API key from your account dashboard
+
+2. **Store API Key Securely**
+   ```bash
+   # Using Google Secret Manager (Recommended)
+   echo -n "pplx-your-api-key" | gcloud secrets create perplexity-api-key \
+     --data-file=- \
+     --project=veritas-472301
+   
+   # Or use the setup script
+   bash setup-perplexity.sh
+   ```
+
+3. **Verify Setup**
+   ```bash
+   bash verify-perplexity-secret.sh
+   ```
+
+See [PERPLEXITY_VERTEX_AI_SETUP.md](PERPLEXITY_VERTEX_AI_SETUP.md) for detailed setup instructions.
 
 ### ⚙️ Agent Configuration
 
@@ -775,127 +1019,593 @@ memo_agent = MemoAgent(
 ## 📁 Project Structure
 
 ```
-ai-startup-evaluator/
-├── 📄 main.py                           # Cloud Function entry point
-├── 🚀 mcp_server.py                     # MCP Server (Agent Control Plane)
-├── 🚀 deploy_mcp_server.py              # MCP Server deployment script
-├── 📋 requirements.txt                  # Python dependencies
-├── 📦 __init__.py                       # Root package initialization
+VeritasAI/
+├── 📄 README.md                         # This file
+├── 📋 package.json                      # Root package configuration
 │
-├── 🤖 agents/                          # 17-Agent Pipeline Package
-│   ├── __init__.py                      # Agents package init
-│   ├── orchestrator_agent.py           # Master orchestrator (17 agents)
-│   ├── adk_tools_wrapper.py            # Google ADK integration wrapper
+├── 🔥 functions/                        # Firebase Cloud Functions (Backend)
+│   ├── 📄 main.py                       # Cloud Functions entry point
+│   ├── 📋 requirements.txt              # Python dependencies
+│   ├── 🚀 run_localhost.py              # Local testing script
 │   │
-│   ├── 📊 Layer 1: Ingestion & Capture
-│   ├── intake_curation_agent.py        # Intake & curation agent
-│   ├── compliance_agent.py             # Compliance & risk screening
+│   ├── 🤖 agents/                       # AI Agent Pipeline
+│   │   ├── orchestrator_agent.py       # Master orchestrator
+│   │   ├── intake_curation_agent.py    # Document intake & curation
+│   │   ├── memo_enrichment_agent.py    # Perplexity-based memo enrichment
+│   │   ├── validation_agent.py          # Claim validation
+│   │   ├── memo_agent.py               # Investment memo generation
+│   │   └── [11 more agents...]         # Complete 17-agent system
 │   │
-│   ├── 🤝 Layer 2: Engagement & Interaction
-│   ├── meeting_agent.py                # Meeting coordination
-│   ├── ai_meeting_agent.py             # AI-powered meeting bot
-│   ├── sentiment_communication_agent.py # Sentiment & communication analysis
-│   ├── synthesis_agent.py              # Memo 2 synthesis
+│   ├── 🔧 services/                     # Service Layer
+│   │   ├── perplexity_service.py        # Perplexity API integration
+│   │   ├── google_validation_service.py # Vertex AI validation
+│   │   └── [other services...]          # Additional service integrations
 │   │
-│   ├── 🔍 Layer 3: Deep Diligence & Analysis
-│   ├── final_diligence_agent.py        # Final diligence (Memo 3)
-│   ├── competitor_benchmarking_agent.py # Competitor analysis
-│   ├── financial_projection_agent.py   # Financial projection validation
-│   ├── risk_scoring_agent.py           # Risk assessment & scoring
-│   │
-│   ├── 🎯 Layer 5: Investor Outcome
-│   ├── deal_structuring_agent.py       # Deal structuring & term sheets
-│   ├── matchmaking_agent.py            # VC matching & recommendations
-│   ├── engagement_agent.py             # Engagement & communication
-│   │
-│   ├── 🔄 Legacy Agents (Still Supported)
-│   ├── ingestion_agent.py              # Document processing agent
-│   ├── validation_agent.py             # Claim validation agent
-│   └── memo_agent.py                   # Investment memo generation agent
+│   ├── 🧪 test_*.py                      # Test scripts
+│   └── 📚 *.md                          # Documentation files
 │
-├── 📊 schemas/                         # Data Models Package
-│   ├── __init__.py                     # Schemas package init
-│   ├── claims.py                       # Claim data structures
-│   └── memos.py                        # Memo data models (Memo 1, 2, 3)
+├── 🎨 frontend/                          # Next.js Frontend Application
+│   ├── 📋 package.json                  # Frontend dependencies
+│   ├── 📁 src/                          # React/Next.js source code
+│   │   ├── app/                         # Next.js app router
+│   │   ├── components/                  # React components
+│   │   └── lib/                         # Utility functions
+│   ├── 📁 public/                       # Static assets
+│   ├── 📁 out/                          # Static export output
+│   └── 📄 next.config.ts                # Next.js configuration
 │
-├── 🔧 services/                        # Services Package
-│   ├── __init__.py                     # Services package init
-│   └── google_clients.py               # Google Cloud service clients
+├── 📚 Documentation Files               # Project documentation
+│   ├── DEPLOYMENT.md                    # Deployment guide
+│   ├── PERPLEXITY_VERTEX_AI_SETUP.md    # Perplexity setup
+│   ├── VALIDATION_FRAMEWORK_VERIFICATION.md # Validation docs
+│   ├── DILIGENCE_HUB_TEST_PLAN.md      # Testing guide
+│   └── [other .md files...]            # Additional guides
 │
-├── ⚙️ config/                          # Configuration Package
-│   ├── __init__.py                     # Config package init
-│   ├── deploy.sh                       # Legacy deployment script
-│   └── .gcloudignore                   # Cloud deployment exclusions
+├── 🔧 Deployment Scripts
+│   ├── deploy.sh                        # Main deployment script
+│   ├── setup-perplexity.sh             # Perplexity setup
+│   ├── verify-perplexity-secret.sh     # Secret verification
+│   └── [other .sh files...]            # Additional scripts
 │
-├── 🌐 web-app/                         # React Frontend Application
-│   ├── package.json                    # Frontend dependencies
-│   ├── src/                            # React source code
-│   └── README.md                       # Frontend documentation
-│
-├── 🧪 test_*.py                        # Test Files
-│   ├── test_full_pipeline.py           # Full pipeline testing
-│   ├── test_ai_meeting_agent.py        # AI meeting agent testing
-│   └── test_mcp_server.py              # MCP server testing
-│
-├── 📚 docs/                            # Documentation Package
-│   ├── README.md                       # Main documentation
-│   ├── TECHNICAL_README.md             # Technical documentation
-│   ├── README_DEPLOYMENT.md            # Deployment guide
-│   ├── AI_AGENT_ARCHITECTURE_ANALYSIS.md # Architecture analysis
-│   ├── MCP_SERVER_ARCHITECTURE.md      # MCP Server architecture
-│   ├── PUBSUB_CONNECTION_DIAGRAM.md    # Event-driven architecture
-│   ├── ORGANIZED_STRUCTURE.md          # Structure overview
-│   ├── CLEAN_STRUCTURE.md              # Cleanup summary
-│   └── PROJECT_SUMMARY.md              # Project summary
-│
-└── 📋 VERIFICATION_REPORT.md           # System verification report
+└── 🔥 firebase.json                     # Firebase configuration
 ```
 
 ### 📝 File Descriptions
 
 | File | Purpose | Key Features |
 |------|---------|--------------|
-| `main.py` | Cloud Function entry point | HTTP handling, CORS, orchestration |
-| `mcp_server.py` | MCP Server (Agent Control Plane) | FastAPI, WebSocket, event-driven orchestration |
-| `deploy_mcp_server.py` | MCP Server deployment | Cloud Run deployment automation |
-| `agents/orchestrator_agent.py` | Master orchestrator | 17-agent pipeline coordination |
-| `agents/intake_curation_agent.py` | Intake & curation | PDF/PPTX processing, video analysis |
-| `agents/ai_meeting_agent.py` | AI meeting bot | Google Meet integration, Q&A automation |
-| `agents/risk_scoring_agent.py` | Risk assessment | Multi-factor risk analysis, scoring |
-| `agents/deal_structuring_agent.py` | Deal structuring | Term sheet generation, valuation |
-| `agents/matchmaking_agent.py` | VC matching | Investor preference matching |
-| `schemas/claims.py` | Data models | Claim structure definitions |
-| `schemas/memos.py` | Data models | Memo structure definitions (Memo 1, 2, 3) |
-| `services/google_clients.py` | Cloud services | Google Cloud API clients |
-| `web-app/` | React frontend | User interface for the platform |
-| `test_full_pipeline.py` | Pipeline testing | End-to-end pipeline testing |
-| `VERIFICATION_REPORT.md` | System verification | Complete system status check |
+| `functions/main.py` | Cloud Functions entry point | HTTP handling, CORS, orchestration, lazy loading |
+| `functions/agents/orchestrator_agent.py` | Master orchestrator | 17-agent pipeline coordination |
+| `functions/agents/memo_enrichment_agent.py` | Memo enrichment | Perplexity API integration, field identification |
+| `functions/agents/intake_curation_agent.py` | Intake & curation | PDF/PPTX processing, video analysis |
+| `functions/agents/validation_agent.py` | Claim validation | Perplexity + Vertex AI validation |
+| `functions/services/perplexity_service.py` | Perplexity integration | Real-time web search, data enrichment |
+| `functions/services/google_validation_service.py` | Vertex AI validation | Gemini-based validation with fallback |
+| `frontend/src/` | Next.js frontend | React components, pages, authentication |
+| `firebase.json` | Firebase config | Functions, hosting, Firestore configuration |
+| `PERPLEXITY_VERTEX_AI_SETUP.md` | Setup guide | Perplexity API configuration |
+| `functions/VALIDATION_FRAMEWORK_VERIFICATION.md` | Validation docs | 10-category validation framework |
+
+## 💾 Data Storage & Flow
+
+### 📍 Data Storage Architecture
+
+Veritas uses a **multi-collection Firestore architecture** designed for scalability and real-time updates:
+
+```mermaid
+graph TD
+    UP[File Upload] --> IR[ingestionResults<br/>Original Memo Data]
+    IR --> ME[Memo Enrichment Agent]
+    ME --> MV[memo1_validated<br/>Enriched Data]
+    
+    FP[Founder Profile Form] --> FP_C[founderProfiles<br/>Founder Info]
+    
+    MV --> DR[diligenceReports<br/>Analysis Status]
+    FP_C --> DR
+    IR --> DR
+    
+    DR --> CV[companyVectorData<br/>Vector Embeddings]
+    DR --> BQ[(BigQuery<br/>Analytics)]
+    
+    FS[Firestore<br/>Real-time State] --> FE[Frontend<br/>Real-time Updates]
+```
+
+### 🗂️ Firestore Collections Deep Dive
+
+#### 1. **`ingestionResults` Collection**
+**Purpose**: Stores initial memo extraction from PDF uploads
+
+**Document Structure**:
+```json
+{
+  "id": "auto_generated_id",
+  "timestamp": "2025-11-01T10:00:00Z",
+  "processing_time_seconds": 45.2,
+  "memo_1": {
+    "title": "Company Name",
+    "company_stage": "Not specified",
+    "headquarters": "Not specified",
+    "founder": "John Doe",
+    "problem": "Market problem...",
+    "solution": "AI solution...",
+    // ... all memo fields
+  },
+  "original_filename": "pitch_deck.pdf",
+  "status": "SUCCESS",
+  "company_id": "company_123"
+}
+```
+
+**Access Pattern**:
+- **Write**: Intake Curation Agent after PDF processing
+- **Read**: Memo Enrichment Agent, Frontend for display
+- **Query**: By `company_id`, `timestamp`, or document ID
+
+#### 2. **`memo1_validated` Collection** ⭐
+**Purpose**: Stores enriched memo data with missing fields filled
+
+**Document Structure**:
+```json
+{
+  "id": "same_as_ingestionResults_id",
+  "memo_1": {
+    "title": "Company Name",
+    "company_stage": "Seed",  // ✅ Enriched from Perplexity
+    "headquarters": "San Francisco, CA",  // ✅ Enriched
+    "founded_date": "2023",  // ✅ Enriched
+    "amount_raising": "$2M",  // ✅ Enriched
+    // ... complete enriched data
+  },
+  "original_memo_id": "auto_generated_id",
+  "enrichment_metadata": {
+    "enrichment_timestamp": "2025-11-01T10:05:00Z",
+    "fields_enriched": [
+      "company_stage",
+      "headquarters",
+      "founded_date",
+      "amount_raising"
+    ],
+    "enrichment_method": "perplexity_vertex_ai",
+    "confidence_scores": {
+      "company_stage": 0.9,
+      "headquarters": 0.95
+    },
+    "sources": {
+      "company_stage": "Crunchbase",
+      "headquarters": "Company website"
+    }
+  },
+  "validation_result": {
+    "overall_score": 8.5,
+    "categories_validated": 10,
+    "company_identity": { "status": "CONFIRMED", "confidence": 0.9 },
+    "founder_team": { "status": "CONFIRMED", "confidence": 0.85 },
+    // ... 8 more categories
+  },
+  "timestamp": "2025-11-01T10:05:00Z"
+}
+```
+
+**Access Pattern**:
+- **Write**: Memo Enrichment Agent after enrichment + validation
+- **Read**: Frontend displays this collection (preferred over `ingestionResults`)
+- **Query**: By `original_memo_id`, `memo_1.title`
+
+#### 3. **`founderProfiles` Collection**
+**Purpose**: Stores founder profile data from registration form
+
+**Document Structure**:
+```json
+{
+  "id": "auto_generated_id",
+  "email": "founder@example.com",
+  "fullName": "John Doe",
+  "linkedinUrl": "https://linkedin.com/in/johndoe",
+  "professionalBackground": "10 years in tech...",
+  "education": [
+    { "degree": "BS Computer Science", "institution": "Stanford", "year": "2014" }
+  ],
+  "previousCompanies": [
+    { "company": "Google", "role": "Senior Engineer", "duration": "2014-2020" }
+  ],
+  "yearsOfExperience": 10,
+  "teamSize": "5-10",
+  "expertise": ["JavaScript", "Python", "AI"],
+  "createdAt": "2025-11-01T09:00:00Z",
+  "updatedAt": "2025-11-01T09:00:00Z"
+}
+```
+
+#### 4. **`diligenceReports` Collection**
+**Purpose**: Tracks diligence analysis status and results
+
+**Document Structure**:
+```json
+{
+  "id": "company_123_investor@example.com",
+  "companyId": "company_123",
+  "companyName": "TechCorp Inc",
+  "investorEmail": "investor@example.com",
+  "status": "completed",
+  "progress": 100,
+  "currentStep": "Analysis complete",
+  "steps": [
+    { "name": "Data Collection", "status": "completed" },
+    { "name": "Founder Validation", "status": "completed" },
+    { "name": "Market Analysis", "status": "completed" }
+  ],
+  "results": {
+    "founder_profile_validation": { /* validation findings */ },
+    "pitch_consistency_validation": { /* validation findings */ },
+    "memo1_accuracy_validation": { /* validation findings */ },
+    "synthesis": {
+      "overall_risk_score": 7.5,
+      "key_concerns": ["Market saturation", "Team size"],
+      "strengths": ["Strong founder", "Clear product vision"],
+      "recommendations": ["Proceed with due diligence"]
+    }
+  },
+  "startedAt": "2025-11-01T10:00:00Z",
+  "completedAt": "2025-11-01T10:15:00Z",
+  "createdAt": "2025-11-01T10:00:00Z"
+}
+```
+
+### 🔄 Data Flow Patterns
+
+#### **Pattern 1: Document Upload → Memo Generation**
+
+```
+1. User uploads PDF
+   ↓
+2. Cloud Function receives file
+   ↓
+3. File stored in Cloud Storage
+   ↓
+4. Pub/Sub event published
+   ↓
+5. Intake Agent triggered
+   ↓
+6. Vertex AI extracts structured data
+   ↓
+7. memo_1 saved to ingestionResults
+   ↓
+8. Frontend receives real-time update
+```
+
+#### **Pattern 2: Memo Enrichment → Validation**
+
+```
+1. User triggers enrichment
+   ↓
+2. Memo Enrichment Agent fetches from ingestionResults
+   ↓
+3. Agent identifies missing fields
+   ↓
+4. Perplexity API queries for each missing field
+   ↓
+5. Vertex AI structures enriched data
+   ↓
+6. Validation Agent validates 10 categories
+   ↓
+7. Enriched data saved to memo1_validated
+   ↓
+8. Frontend displays enriched memo
+```
+
+#### **Pattern 3: Diligence Analysis**
+
+```
+1. Investor selects company
+   ↓
+2. Frontend creates diligenceReports document
+   ↓
+3. Cloud Function triggered
+   ↓
+4. Diligence Agent fetches:
+   - memo_1 from memo1_validated
+   - founder profile from founderProfiles
+   - company data from companyVectorData
+   ↓
+5. Agent runs RAG queries on Vector Search
+   ↓
+6. Agent validates across multiple dimensions
+   ↓
+7. Results saved to diligenceReports
+   ↓
+8. Frontend displays comprehensive report
+```
+
+### 📊 BigQuery Analytics Integration
+
+For long-term analytics and reporting, validated data flows to BigQuery:
+
+```mermaid
+graph LR
+    MV[memo1_validated] -->|Export| BQ[(BigQuery)]
+    DR[diligenceReports] -->|Export| BQ
+    BQ -->|Query| DASH[Dashboards]
+    BQ -->|ML Models| INSIGHTS[Predictive Insights]
+```
+
+**BigQuery Tables**:
+- `memos_analytics`: Aggregated memo metrics
+- `validation_metrics`: Validation score distributions
+- `investor_decisions`: Investment decision tracking
+
+## 🎯 Product Flow & User Journeys
+
+### 👤 Founder Journey
+
+```mermaid
+journey
+    title Founder Journey: Pitch Deck Evaluation
+    section Registration
+      Create Account: 5: Founder
+      Complete Profile: 4: Founder
+      Verify Email: 3: Founder
+    section Submission
+      Upload Pitch Deck: 5: Founder
+      Fill Company Details: 4: Founder
+      Submit for Analysis: 5: Founder
+    section Processing
+      Wait for Processing: 2: Founder
+      Receive Memo 1: 4: Founder
+      Review Extraction: 3: Founder
+    section Enrichment
+      Request Enrichment: 4: Founder
+      View Enriched Data: 5: Founder
+      Review Validation: 4: Founder
+    section Optimization
+      Address Validation Issues: 3: Founder
+      Update Pitch Deck: 4: Founder
+      Resubmit: 4: Founder
+```
+
+**Key Founder Touchpoints**:
+1. **Profile Creation**: `/founder/profile` - Collect founder background
+2. **Document Upload**: `/founder/upload` - Upload pitch deck PDF
+3. **Memo Review**: `/dashboard/memo` - View extracted Memo 1
+4. **Enrichment Request**: `/dashboard/memo` - Trigger data enrichment
+5. **Validation Review**: `/dashboard/memo` - Review validation results
+
+### 💼 Investor Journey
+
+```mermaid
+journey
+    title Investor Journey: Startup Due Diligence
+    section Discovery
+      Browse Companies: 4: Investor
+      Filter by Criteria: 5: Investor
+      Select Company: 5: Investor
+    section Analysis
+      View Memo 1: 4: Investor
+      Request Diligence: 5: Investor
+      Review Founder Profile: 4: Investor
+    section Deep Dive
+      Review Validation Report: 5: Investor
+      Check Market Analysis: 4: Investor
+      Analyze Risk Score: 5: Investor
+    section Decision
+      Review Memo 3: 5: Investor
+      Make Investment Decision: 5: Investor
+      Generate Term Sheet: 4: Investor
+```
+
+**Key Investor Touchpoints**:
+1. **Dashboard**: `/dashboard` - Overview of all companies
+2. **Company Selection**: `/investor/companies` - Browse and filter
+3. **Diligence Hub**: `/investor/diligence` - Request and view diligence
+4. **Validation Report**: `/investor/diligence/[companyId]` - Detailed validation
+5. **Custom Queries**: `/investor/diligence/[companyId]` - Ask specific questions
+
+### 🔄 Complete Platform Flow Diagram
+
+```mermaid
+flowchart TB
+    subgraph "User Layer"
+        F[👤 Founder]
+        I[💼 Investor]
+    end
+    
+    subgraph "Frontend Layer"
+        FE[Next.js Frontend]
+        AUTH[Firebase Auth]
+    end
+    
+    subgraph "API Layer"
+        CF[Cloud Functions]
+        UP[/on_file_upload]
+        EN[/enrich_memo]
+        VAL[/validate_memo_data]
+        DIL[/query_diligence]
+    end
+    
+    subgraph "Agent Layer"
+        IA[Intake Agent]
+        MA[Memo Enrichment Agent]
+        VA[Validation Agent]
+        DA[Diligence Agent]
+    end
+    
+    subgraph "AI Services"
+        GA[Vertex AI Gemini]
+        PP[Perplexity API]
+    end
+    
+    subgraph "Data Layer"
+        FS[Firestore]
+        IR[ingestionResults]
+        MV[memo1_validated]
+        FP[founderProfiles]
+        DR[diligenceReports]
+        VS[Vector Search]
+    end
+    
+    F -->|Upload PDF| FE
+    FE -->|HTTP POST| UP
+    UP -->|Pub/Sub| IA
+    IA -->|Extract| GA
+    GA -->|Structured Data| IA
+    IA -->|Save| IR
+    IR -.->|Real-time| FE
+    
+    I -->|Request Enrichment| FE
+    FE -->|HTTP POST| EN
+    EN -->|Fetch| IR
+    EN -->|Process| MA
+    MA -->|Query| PP
+    PP -->|Enriched Data| MA
+    MA -->|Structure| GA
+    MA -->|Validate| VA
+    VA -->|Query| PP
+    VA -->|Save| MV
+    MV -.->|Real-time| FE
+    
+    I -->|Request Diligence| FE
+    FE -->|HTTP POST| DIL
+    DIL -->|Fetch| MV
+    DIL -->|Fetch| FP
+    DIL -->|Process| DA
+    DA -->|Query| VS
+    DA -->|Save| DR
+    DR -.->|Real-time| FE
+    
+    FE -->|Auth| AUTH
+```
+
+## 🎨 Platform Design Patterns
+
+### 🏛️ Architecture Patterns
+
+#### 1. **Lazy Loading Pattern**
+Agents and services are initialized only when needed:
+
+```python
+# In main.py
+ingestion_agent = None
+
+def get_ingestion_agent():
+    global ingestion_agent
+    if ingestion_agent is None:
+        ingestion_agent = IntakeCurationAgent()
+        ingestion_agent.set_up()
+    return ingestion_agent
+```
+
+**Benefits**:
+- Reduces cold start times
+- Saves memory when functions are idle
+- Enables faster deployment
+
+#### 2. **Fallback Pattern**
+Multiple validation strategies with graceful degradation:
+
+```python
+# Try Perplexity first
+try:
+    result = perplexity_service.validate(category, data)
+except PerplexityError:
+    # Fallback to Google Validation
+    result = google_validation_service.validate(category, data)
+except ValidationError:
+    # Final fallback to simple extraction
+    result = simple_extraction(data)
+```
+
+#### 3. **Event-Driven Orchestration**
+Agents communicate through Firestore and Pub/Sub:
+
+```python
+# Agent 1 completes
+db.collection('ingestionResults').document(memo_id).set(data)
+publisher.publish('memo_processed', {'memo_id': memo_id})
+
+# Cloud Function listens to Pub/Sub
+@pubsub_fn.on_message_published(topic="memo_processed")
+def trigger_enrichment(event):
+    memo_id = event.data['memo_id']
+    enrichment_agent.enrich(memo_id)
+```
+
+#### 4. **Real-time Updates**
+Frontend uses Firestore listeners for live updates:
+
+```typescript
+// Frontend code
+const unsubscribe = onSnapshot(
+  doc(db, 'memo1_validated', memoId),
+  (doc) => {
+    setMemoData(doc.data());
+    setProgress(doc.data().progress || 0);
+  }
+);
+```
+
+### 🔐 Security Patterns
+
+#### 1. **Authentication Flow**
+```mermaid
+sequenceDiagram
+    User->>Frontend: Login Request
+    Frontend->>Firebase Auth: Sign In
+    Firebase Auth-->>Frontend: ID Token
+    Frontend->>Cloud Function: Request with Token
+    Cloud Function->>Firebase Auth: Verify Token
+    Firebase Auth-->>Cloud Function: Verified User
+    Cloud Function->>Cloud Function: Process Request
+```
+
+#### 2. **CORS Configuration**
+- Whitelist allowed origins
+- Single origin per response (not comma-separated)
+- Credentials for authenticated requests
+
+#### 3. **Secret Management**
+- Perplexity API key stored in Google Secret Manager
+- Accessed via environment variables in Cloud Functions
+- Never exposed to frontend
+
+### 📈 Performance Optimizations
+
+1. **Batch Processing**: Group multiple Perplexity queries
+2. **Caching**: Cache frequently accessed Firestore documents
+3. **Parallel Processing**: Run independent validation categories concurrently
+4. **Streaming Responses**: Return partial results as they complete
+5. **Connection Pooling**: Reuse Firestore clients across requests
 
 ## 🧪 Testing
 
 ### 🔬 Unit Tests
 
 ```bash
+cd functions
+
+# Test Perplexity API integration
+python test_perplexity_vertex_enrichment.py
+bash test-perplexity-key.sh
+
+# Test validation framework
+python test_validation_framework_local.py
+
+# Test memo enrichment
+python test_enrichment.py
+
 # Run individual agent tests
-python -m pytest tests/test_ingestion_agent.py
-python -m pytest tests/test_validation_agent.py
-python -m pytest tests/test_memo_agent.py
-python -m pytest tests/test_orchestrator_agent.py
-python -m pytest tests/test_ai_meeting_agent.py
-python -m pytest tests/test_risk_scoring_agent.py
+python test-agent.py
+python test-investor-agent.py
 ```
 
 ### 🧪 Integration Tests
 
 ```bash
-# Run full 17-agent pipeline test
-python test_full_pipeline.py
+cd functions
 
-# Test AI Meeting Agent workflow
-python test_ai_meeting_agent.py
+# Test full enrichment pipeline
+python test_deployed_enrichment.py
 
-# Test MCP Server functionality
-python test_mcp_server.py
+# Test with localhost
+python run_localhost.py
 ```
 
 ### 📊 Performance Tests
@@ -996,24 +1706,45 @@ logger.info(f"Processing completed in {processing_time:.2f} seconds")
 ### 🔧 Development Setup
 
 1. **Fork the repository**
-2. **Create a feature branch**
+2. **Clone your fork**
+   ```bash
+   git clone https://github.com/your-username/VeritasAI.git
+   cd VeritasAI
+   ```
+3. **Create a feature branch**
    ```bash
    git checkout -b feature/amazing-feature
    ```
-3. **Make your changes**
-4. **Run tests**
+4. **Set up development environment**
    ```bash
-   python -m pytest
+   # Backend
+   cd functions
+   pip install -r requirements.txt
+   
+   # Frontend
+   cd ../frontend
+   npm install
    ```
-5. **Commit your changes**
+5. **Make your changes**
+6. **Run tests**
+   ```bash
+   # Backend tests
+   cd functions
+   python test_validation_framework_local.py
+   
+   # Frontend tests
+   cd ../frontend
+   npm run lint
+   ```
+7. **Commit your changes**
    ```bash
    git commit -m "Add amazing feature"
    ```
-6. **Push to the branch**
+8. **Push to the branch**
    ```bash
    git push origin feature/amazing-feature
    ```
-7. **Open a Pull Request**
+9. **Open a Pull Request**
 
 ### 📋 Contribution Guidelines
 
@@ -1043,13 +1774,22 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Open Source Community** for the various libraries and tools
 - **AI Research Community** for advancing the state of AI
 
-## 📞 Support
+## 📞 Support & Documentation
 
-- **Documentation**: [docs/README.md](docs/README.md)
-- **Deployment Guide**: [docs/README_DEPLOYMENT.md](docs/README_DEPLOYMENT.md)
-- **Architecture Analysis**: [docs/AI_AGENT_ARCHITECTURE_ANALYSIS.md](docs/AI_AGENT_ARCHITECTURE_ANALYSIS.md)
-- **Issues**: [GitHub Issues](https://github.com/your-repo/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/your-repo/discussions)
+### 📚 Key Documentation
+
+- **Perplexity Setup**: [PERPLEXITY_VERTEX_AI_SETUP.md](PERPLEXITY_VERTEX_AI_SETUP.md)
+- **Validation Framework**: [functions/VALIDATION_FRAMEWORK_VERIFICATION.md](functions/VALIDATION_FRAMEWORK_VERIFICATION.md)
+- **Deployment Guide**: [DEPLOYMENT.md](DEPLOYMENT.md)
+- **Diligence Hub**: [DILIGENCE_HUB_TEST_PLAN.md](DILIGENCE_HUB_TEST_PLAN.md)
+- **Authentication**: [FIREBASE_AUTH_SETUP.md](FIREBASE_AUTH_SETUP.md)
+- **Vector Search**: [VECTOR_SEARCH_EMBEDDINGS_SETUP.md](VECTOR_SEARCH_EMBEDDINGS_SETUP.md)
+
+### 🔍 Additional Resources
+
+- **Firestore Schema**: [FIRESTORE_SCHEMA.md](FIRESTORE_SCHEMA.md)
+- **Agent Deployment**: [AGENT_DEPLOYMENT_GUIDE.md](AGENT_DEPLOYMENT_GUIDE.md)
+- **Investor Agent**: [INVESTOR_AGENT_DEPLOYMENT.md](INVESTOR_AGENT_DEPLOYMENT.md)
 
 ---
 
@@ -1058,28 +1798,30 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 Ready to revolutionize your startup evaluation process? Deploy the advanced 17-agent AI Startup Evaluator Platform and start getting comprehensive investment insights in minutes!
 
 ```bash
-# Deploy MCP Server (Recommended)
-python deploy_mcp_server.py
+# 1. Set up Perplexity API key (Required for enrichment)
+bash setup-perplexity.sh
+bash verify-perplexity-secret.sh
 
-# Deploy legacy Cloud Functions
-./config/deploy.sh
+# 2. Deploy Cloud Functions
+cd functions
+firebase deploy --only functions
 
-# Test full pipeline
-curl -X POST https://YOUR_MCP_SERVER_URL/workflows \
+# 3. Deploy Frontend
+cd ../frontend
+npm run build:static
+firebase deploy --only hosting
+
+# 4. Test enrichment endpoint
+curl -X POST https://asia-south1-veritas-472301.cloudfunctions.net/enrich_memo \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "Startup Evaluation",
-    "steps": [{"step_id": "intake_curation", "agent_name": "intake_curation", "inputs": {"pitch_deck_data": "base64_data"}}],
-    "human_review_points": ["ai_meeting", "deal_structuring"]
+    "memo_id": "your_memo_id",
+    "company_name": "Test Company"
   }'
 
-# Test AI Meeting workflow
-curl -X POST https://YOUR_MCP_SERVER_URL/workflows \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "AI Meeting Workflow",
-    "steps": [{"step_id": "ai_meeting", "agent_name": "ai_meeting", "inputs": {"memo1_data": {"founder": "John Doe"}}}]
-  }'
+# 5. Test local development
+cd functions
+python run_localhost.py
 ```
 
 **🚀 Transform your investment process with advanced AI orchestration today!**

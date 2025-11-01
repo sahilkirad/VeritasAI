@@ -7,7 +7,7 @@ interface UseChatRoomsReturn {
   rooms: ChatRoom[];
   loading: boolean;
   error: string | null;
-  createRoom: (founderId: string, memoId: string, founderName: string, companyName: string) => Promise<ChatRoom>;
+  createRoom: (otherPartyId: string, memoId: string, otherPartyName: string, companyOrFirmName: string) => Promise<ChatRoom>;
   getRoomById: (roomId: string) => ChatRoom | undefined;
   refreshRooms: () => void;
 }
@@ -42,18 +42,22 @@ export function useChatRooms(userId: string, userRole: 'investor' | 'founder'): 
     }
   }, [userId, userRole]);
 
-  const createRoom = async (founderId: string, memoId: string, founderName: string, companyName: string): Promise<ChatRoom> => {
+  const createRoom = async (investorId: string, memoId: string, investorName: string, investorFirm: string): Promise<ChatRoom> => {
     try {
       setLoading(true);
       
       // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 1000));
       
+      // For founder role, swap the IDs (founder creates room with investor)
+      const isFounder = userRole === 'founder';
+      const roomFounderId = isFounder ? userId : investorId;
+      const roomInvestorId = isFounder ? investorId : userId;
+      
       // Check if room already exists
       const existingRoom = rooms.find(room => 
-        room.founderId === founderId && 
-        room.memoId === memoId && 
-        room.investorId === userId
+        room.founderId === roomFounderId && 
+        room.investorId === roomInvestorId
       );
       
       if (existingRoom) {
@@ -62,13 +66,13 @@ export function useChatRooms(userId: string, userRole: 'investor' | 'founder'): 
       
       // Create new room
       const newRoom: ChatRoom = {
-        id: `${userId}_${founderId}_${memoId}`,
-        investorId: userId,
-        founderId,
+        id: `${roomFounderId}_${roomInvestorId}_${Date.now()}`,
+        investorId: roomInvestorId,
+        founderId: roomFounderId,
         memoId,
-        companyName,
-        founderName,
-        investorName: 'You', // Will be replaced with actual name
+        companyName: investorFirm || 'Company',
+        founderName: isFounder ? 'You' : investorName,
+        investorName: isFounder ? investorName : 'You',
         lastMessage: 'Chat started',
         lastMessageAt: new Date(),
         unreadCount: 0,

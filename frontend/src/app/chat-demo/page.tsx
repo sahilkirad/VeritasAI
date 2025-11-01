@@ -33,9 +33,9 @@ export default function ChatDemoPage() {
   const handleCreateRoom = async () => {
     try {
       if (userRole === 'investor') {
-        await createRoom('founder1', 'memo123', 'John Doe', 'TechCorp AI');
+        await createRoom('founder1', 'memo123', 'John Doe', 'TechCorp AI'); // Investor creating with founder
       } else {
-        await createRoom('inv1', 'memo123', 'Sarah Chen', 'Accel Partners');
+        await createRoom('inv1', 'memo123', 'Sarah Chen', 'Accel Partners'); // Founder creating with investor
       }
     } catch (err) {
       console.error('Failed to create room:', err);

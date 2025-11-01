@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation';
 import React from 'react';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,8 +18,8 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarTrigger,
-  SidebarGroup,
 } from '@/components/ui/sidebar';
+import { cn } from '@/lib/utils';
 import { user } from '@/lib/data';
 import {
   LogOut,
@@ -31,71 +30,64 @@ import {
   CreditCard,
   MessageCircle,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
-// Navigation items grouped by category
-const primaryNavItems = [
+const mainNavItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/dashboard/diligence', icon: ShieldCheck, label: 'Diligence Hub' },
   { href: '/dashboard/memo', icon: FileText, label: 'Deal Memo' },
   { href: '/dashboard/messages', icon: MessageCircle, label: 'Messages' },
 ];
 
-const secondaryNavItems = [
+const utilityNavItems = [
   { href: '/dashboard/billing', icon: CreditCard, label: 'Billing' },
   { href: '/dashboard/settings', icon: Settings, label: 'Settings' },
 ];
 
-export const navItems = [
-  ...primaryNavItems,
-  ...secondaryNavItems,
-];
+export const navItems = [...mainNavItems, ...utilityNavItems];
 
 export function DashboardNav() {
     const pathname = usePathname();
 
     return (
-        <>
-          {/* Primary Navigation */}
-          <SidebarGroup>
-            <SidebarMenu>
-              {primaryNavItems.map((item) => {
-                const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
-                return (
-                  <SidebarMenuItem key={item.href}>
-                    <Link href={item.href} className="block">
-                      <SidebarMenuButton
-                        isActive={isActive}
-                        tooltip={item.label}
-                        className={cn(
-                          "group relative transition-all duration-200",
-                          "hover:bg-sidebar-accent/80 hover:translate-x-0.5",
-                          isActive && "bg-sidebar-accent shadow-sm"
-                        )}
-                      >
-                        <item.icon className={cn(
-                          "h-4 w-4 transition-colors",
-                          isActive ? "text-sidebar-accent-foreground" : "text-sidebar-foreground/70 group-hover:text-sidebar-accent-foreground"
-                        )} />
-                        <span className={cn(
-                          "transition-colors",
-                          isActive && "font-semibold"
-                        )}>{item.label}</span>
-                        {isActive && (
-                          <div className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 rounded-r-full bg-primary" />
-                        )}
-                      </SidebarMenuButton>
-                    </Link>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroup>
-
-          {/* Secondary Navigation */}
-          <SidebarGroup className="mt-auto pt-4 border-t border-sidebar-border">
-            <SidebarMenu>
-              {secondaryNavItems.map((item) => {
+        <div className="flex flex-col h-full">
+          <SidebarMenu className="space-y-1 px-2 flex-1">
+            {mainNavItems.map((item) => {
+              const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
+              return (
+                <SidebarMenuItem key={item.href}>
+                  <Link href={item.href} className="block">
+                    <SidebarMenuButton
+                      isActive={isActive}
+                      tooltip={item.label}
+                      className={cn(
+                        "group relative w-full justify-start gap-3 rounded-lg px-3 py-2.5 transition-all duration-200",
+                        isActive 
+                          ? "bg-gray-200 text-gray-900 font-semibold shadow-sm" 
+                          : "text-gray-700 hover:bg-gray-200/50 hover:text-gray-900"
+                      )}
+                    >
+                      {isActive && (
+                        <div className="absolute left-0 top-1/2 -translate-y-1/2 h-8 w-1 rounded-r-full bg-purple-600" />
+                      )}
+                      <item.icon className={cn(
+                        "h-5 w-5",
+                        isActive ? "text-gray-900" : "text-gray-600 group-hover:text-gray-900"
+                      )} />
+                      <span className={cn(
+                        "text-sm",
+                        isActive && "font-semibold"
+                      )}>{item.label}</span>
+                    </SidebarMenuButton>
+                  </Link>
+                </SidebarMenuItem>
+              );
+            })}
+          </SidebarMenu>
+          
+          {/* Utility items at bottom */}
+          <div className="mt-auto px-2 pt-4 border-t border-gray-200">
+            <SidebarMenu className="space-y-1">
+              {utilityNavItems.map((item) => {
                 const isActive = pathname === item.href || pathname.startsWith(item.href);
                 return (
                   <SidebarMenuItem key={item.href}>
@@ -104,102 +96,71 @@ export function DashboardNav() {
                         isActive={isActive}
                         tooltip={item.label}
                         className={cn(
-                          "group relative transition-all duration-200",
-                          "hover:bg-sidebar-accent/80 hover:translate-x-0.5",
-                          isActive && "bg-sidebar-accent shadow-sm"
+                          "group relative w-full justify-start gap-3 rounded-lg px-3 py-2.5 transition-all duration-200",
+                          isActive 
+                            ? "bg-gray-200 text-gray-900 font-semibold shadow-sm" 
+                            : "text-gray-700 hover:bg-gray-200/50 hover:text-gray-900"
                         )}
                       >
+                        {isActive && (
+                          <div className="absolute left-0 top-1/2 -translate-y-1/2 h-8 w-1 rounded-r-full bg-purple-600" />
+                        )}
                         <item.icon className={cn(
-                          "h-4 w-4 transition-colors",
-                          isActive ? "text-sidebar-accent-foreground" : "text-sidebar-foreground/70 group-hover:text-sidebar-accent-foreground"
+                          "h-5 w-5",
+                          isActive ? "text-gray-900" : "text-gray-600 group-hover:text-gray-900"
                         )} />
                         <span className={cn(
-                          "transition-colors",
+                          "text-sm",
                           isActive && "font-semibold"
                         )}>{item.label}</span>
-                        {isActive && (
-                          <div className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 rounded-r-full bg-primary" />
-                        )}
                       </SidebarMenuButton>
                     </Link>
                   </SidebarMenuItem>
                 );
               })}
             </SidebarMenu>
-          </SidebarGroup>
-        </>
+          </div>
+        </div>
     )
 }
 
 
 export function DashboardNavHeader() {
     const pathname = usePathname();
-    const currentNavItem = navItems.find(item => item.href === pathname) || 
-                          navItems.find(item => pathname.startsWith(item.href));
+    const currentNavItem = navItems.find(item => pathname.startsWith(item.href));
 
     return (
-        <header className="flex h-14 items-center gap-4 border-b border-border/40 bg-gradient-to-r from-background to-muted/20 px-4 shadow-sm backdrop-blur-sm lg:h-[60px] lg:px-6">
-          <SidebarTrigger className="md:hidden hover:bg-accent" />
+        <header className="flex h-14 items-center gap-4 border-b border-gray-200 bg-white px-4 lg:h-[60px] lg:px-6">
+          <SidebarTrigger className="md:hidden text-gray-700 hover:bg-gray-100" />
           <div className="flex-1">
-            <div className="flex items-center gap-3">
-              {currentNavItem && (
-                <currentNavItem.icon className="h-5 w-5 text-muted-foreground lg:h-6 lg:w-6" />
-              )}
-              <h1 className="text-lg font-semibold text-foreground transition-colors md:text-xl lg:text-2xl">
-                {currentNavItem?.label || 'Dashboard'}
-              </h1>
-            </div>
+            <h1 className="text-lg font-semibold text-gray-900 md:text-xl font-headline">
+              {currentNavItem?.label || 'Dashboard'}
+            </h1>
           </div>
-          <div className="flex items-center gap-2">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="rounded-full transition-all hover:bg-accent hover:shadow-sm" 
-              asChild
-            >
-              <Link href="/dashboard/settings">
-                <Settings className="h-5 w-5" />
-                <span className="sr-only">Settings</span>
-              </Link>
-            </Button>
+          <div className="flex items-center gap-4">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="rounded-full transition-all hover:bg-accent hover:shadow-sm"
-                >
-                  <Avatar className="h-8 w-8 ring-2 ring-border hover:ring-primary/50 transition-all">
+                <button className="flex items-center gap-2 text-sm font-medium hover:opacity-80 transition-opacity">
+                  <Avatar className="h-8 w-8 bg-gray-300">
                     <AvatarImage src={user.avatar} alt={user.name} />
-                    <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10">
-                      {user.name.charAt(0)}
-                    </AvatarFallback>
+                    <AvatarFallback className="bg-gray-400 text-gray-900">{user.name.charAt(0)}</AvatarFallback>
                   </Avatar>
-                </Button>
+                  <span className="hidden md:inline text-gray-900">{user.name}</span>
+                </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel className="font-semibold">My Account</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild className="cursor-pointer">
-                  <Link href="/dashboard/billing" className="flex items-center">
-                    <CreditCard className="mr-2 h-4 w-4" />
-                    Billing
-                  </Link>
+              <DropdownMenuContent align="end" className="bg-white border-gray-200">
+                <DropdownMenuLabel className="text-gray-900">My Account</DropdownMenuLabel>
+                <DropdownMenuSeparator className="bg-gray-200" />
+                <DropdownMenuItem asChild className="text-gray-700 hover:bg-gray-100">
+                  <Link href="/dashboard/billing">Billing</Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild className="cursor-pointer">
-                  <Link href="/dashboard/settings" className="flex items-center">
-                    <Settings className="mr-2 h-4 w-4" />
-                    Settings
-                  </Link>
+                <DropdownMenuItem asChild className="text-gray-700 hover:bg-gray-100">
+                  <Link href="/dashboard/settings">Settings</Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild className="cursor-pointer">
-                  <Link href="/dashboard/support" className="flex items-center">
-                    <span>Support</span>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild className="cursor-pointer text-destructive focus:text-destructive">
-                  <Link href="/" className="flex items-center">
+                <DropdownMenuItem className="text-gray-700 hover:bg-gray-100">Support</DropdownMenuItem>
+                <DropdownMenuSeparator className="bg-gray-200" />
+                <DropdownMenuItem asChild className="text-gray-700 hover:bg-gray-100">
+                  <Link href="/">
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Log out</span>
                   </Link>

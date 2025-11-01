@@ -29,3 +29,7 @@ vertexai>=1.38.0
 # SendGrid for email notifications
 sendgrid>=6.9.0
 
+# Machine learning libraries for embeddings and similarity
+numpy>=1.24.0
+scikit-learn>=1.3.0
+

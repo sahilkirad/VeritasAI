@@ -25,7 +25,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
-import { Bot, FileText, LayoutDashboard, LogOut, MoreVertical, Settings, Users, Shield, User } from "lucide-react"
+import { Bot, FileText, LayoutDashboard, LogOut, MoreVertical, Settings, Users, Shield, User, Sparkles } from "lucide-react"
 import { Logo } from "@/components/icons/logo"
 import { useAuth } from "@/contexts/AuthContext"
 
@@ -33,6 +33,7 @@ const navItems = [
   { href: "/founder/dashboard", icon: LayoutDashboard, label: "Home" },
   { href: "/founder/dashboard/profile", icon: User, label: "Profile" },
   { href: "/founder/dashboard/documents", icon: FileText, label: "Pitch Hub" },
+  { href: "/founder/dashboard/investor-match", icon: Sparkles, label: "Investor Match" },
   { href: "/founder/dashboard/datarooms", icon: Shield, label: "Investor Rooms" },
   { href: "/founder/dashboard/feedback", icon: Bot, label: "AI Feedback" },
   { href: "/founder/dashboard/investors", icon: Users, label: "Investor Interest" },

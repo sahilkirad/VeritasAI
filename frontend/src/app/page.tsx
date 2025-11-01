@@ -46,9 +46,9 @@ export default function LandingPage() {
       )}
       <main className="flex-1">
         <div className="container mx-auto flex max-w-5xl flex-col items-center justify-center px-4 py-16 text-center md:py-24">
-          <div className="mb-6">
-            <div className="inline-block rounded-full bg-primary p-3">
-              <Logo className="h-8 w-8 text-primary-foreground" />
+          <div className="mb-8">
+            <div className="inline-block rounded-full bg-white p-4 shadow-lg ring-2 ring-primary/20">
+              <Logo className="h-16 w-16 sm:h-20 sm:w-20" />
             </div>
           </div>
 

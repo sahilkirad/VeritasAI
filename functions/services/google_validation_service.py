@@ -174,6 +174,59 @@ class GoogleValidationService:
                 "error": str(e)
             }
     
+    def enrich_missing_fields(self, memo_data: Dict[str, Any], missing_fields: List[str], company_context: str) -> Dict[str, Any]:
+        """
+        Enrich missing fields in memo data using Vertex AI (Gemini) knowledge base.
+        This serves as a fallback when Perplexity API is unavailable.
+        
+        Args:
+            memo_data: The memo data containing available information
+            missing_fields: List of field names that need to be enriched
+            company_context: Company name and context for enrichment
+            
+        Returns:
+            Dictionary with enriched fields and metadata
+        """
+        start_time = datetime.now()
+        self.logger.info(f"Starting field enrichment using Google Vertex AI for {len(missing_fields)} fields")
+        
+        try:
+            # Generate enrichment prompt
+            prompt = self._create_field_enrichment_prompt(memo_data, missing_fields, company_context)
+            
+            # Use Gemini to enrich fields
+            response = self.gemini_model.generate_content(
+                prompt,
+                generation_config={
+                    "temperature": 0.2,
+                    "top_p": 0.9,
+                    "top_k": 40,
+                    "max_output_tokens": 4096,
+                }
+            )
+            
+            # Parse the enrichment result
+            enriched_data = self._parse_enrichment_response(response.text, missing_fields)
+            
+            processing_time = (datetime.now() - start_time).total_seconds()
+            self.logger.info(f"Successfully enriched {len(enriched_data)} fields in {processing_time:.2f} seconds.")
+            
+            return {
+                "status": "SUCCESS",
+                "enriched_data": enriched_data,
+                "fields_enriched": list(enriched_data.keys()),
+                "processing_time": processing_time,
+                "enrichment_method": "google_vertex_ai"
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Error during field enrichment: {e}", exc_info=True)
+            return {
+                "status": "FAILED",
+                "error": str(e),
+                "enriched_data": {}
+            }
+    
     def _create_market_size_validation_prompt(self, market_size_claim: str, industry_category: str) -> str:
         """Create a comprehensive prompt for market size validation."""
         return f"""
@@ -399,52 +452,50 @@ class GoogleValidationService:
         """
     
     def _create_comprehensive_validation_prompt(self, memo_data: Dict[str, Any]) -> str:
-        """Create a comprehensive prompt for memo validation."""
+        """Create a comprehensive prompt for memo validation aligned with Veritas Validation Framework."""
         return f"""
         You are a Senior Investment Analyst with 15+ years of experience in startup evaluation, due diligence, and venture capital. Your expertise spans multiple sectors including technology, healthcare, fintech, and emerging markets.
 
         **VALIDATION TASK:**
-        Conduct a comprehensive validation analysis of the following startup memo data for accuracy, completeness, and investment readiness.
+        Conduct comprehensive validation analysis using the Veritas Validation Framework across 10 critical validation categories. Validate the following startup memo data for accuracy, completeness, and investment readiness.
 
         **MEMO DATA:**
         {json.dumps(memo_data, indent=2)}
 
-        **ANALYSIS FRAMEWORK:**
-        1. **Data Quality Assessment:**
-           - Evaluate data accuracy, completeness, and consistency
-           - Assess data sources and reliability
-           - Identify gaps, inconsistencies, or red flags
-           - Evaluate data currency and relevance
+        **VERITAS VALIDATION FRAMEWORK - 10 VALIDATION CATEGORIES:**
+        
+        1. **Company Identity Validation**: Verify company registration, CIN number, incorporation date, registered address, compliance status (Sources: MCA, ZaubaCorp, Tofler)
+        
+        2. **Founder & Team Validation**: Validate LinkedIn profiles, employment history, education, prior startups/exits, domain relevance, social credibility (Sources: LinkedIn, Crunchbase, news articles)
+        
+        3. **Product & IP Validation**: Verify trademark/patent filings, product presence on app stores, user feedback, technology claims (Sources: Google Patents, USPTO, Play Store, App Store)
+        
+        4. **Market Opportunity Validation**: Validate TAM/SAM/SOM claims against public reports, verify market growth rates, assess methodology (Sources: Statista, Tracxn, CB Insights, PwC/Deloitte reports)
+        
+        5. **Competitor Validation**: Verify competitor existence, funding rounds, scale, relative positioning (Sources: Crunchbase, Tracxn, CB Insights, TechCrunch)
+        
+        6. **Financial & Traction Validation**: Validate revenue claims (ARR/MRR/GMV), customer base, growth rate consistency, unit economics (Sources: SimilarWeb, App Annie, MCA filings, public disclosures)
+        
+        7. **Fundraising & Cap Table Validation**: Verify investor participation, round sizes, valuation claims, cap table consistency (Sources: MCA filings, Crunchbase, Tracxn, funding announcements)
+        
+        8. **Compliance & Sanctions Screening**: Check KYC status, SEBI blacklists, OFAC/EU sanctions, regulatory compliance (Sources: MCA, SEBI, RBI, OpenSanctions)
+        
+        9. **Public Sentiment & Brand Validation**: Analyze review sentiment, social media engagement, press mentions, brand perception (Sources: Google Reviews, social media, Google News)
+        
+        10. **Exit / Acquisition Validation**: Verify potential acquirers, exit multiples reasonableness, comparable exits (Sources: Crunchbase, CB Insights, Pitchbook)
 
-        2. **Market Validation:**
-           - Validate market size claims and methodology
-           - Assess competitive landscape and positioning
-           - Evaluate market timing and growth potential
-           - Analyze market dynamics and trends
-
-        3. **Financial Validation:**
-           - Assess revenue projections and assumptions
-           - Evaluate unit economics and business model
-           - Analyze funding requirements and use of funds
-           - Assess valuation reasonableness and comparables
-
-        4. **Team & Execution Validation:**
-           - Evaluate founder background and experience
-           - Assess team completeness and capabilities
-           - Analyze execution track record and potential
-           - Evaluate advisory board and network
-
-        5. **Strategic Assessment:**
-           - Analyze competitive advantages and differentiation
-           - Evaluate market opportunity and scalability
-           - Assess business model viability
-           - Identify key risks and mitigation strategies
-
-        6. **Investment Readiness:**
-           - Evaluate overall investment attractiveness
-           - Assess key strengths and competitive advantages
-           - Identify key concerns and risk factors
-           - Provide actionable recommendations
+        **VALIDATION APPROACH:**
+        For each of the 10 validation categories, provide:
+        - Status: CONFIRMED (high confidence), QUESTIONABLE (medium confidence), or MISSING (low/no confidence)
+        - Confidence score: 0.0-1.0 (1.0 = highly confident, 0.5 = somewhat confident, 0.0 = not found)
+        - Findings: Specific validation results with evidence
+        - Sources: Data sources used for validation
+        
+        **VALIDATION PRIORITY:**
+        - Cross-reference claims with multiple trusted data sources
+        - Use industry benchmarks and public databases
+        - Flag discrepancies between claimed and verified data
+        - Identify missing critical information that should be verified
 
         **VALIDATION CRITERIA:**
         - Use industry benchmarks and best practices
@@ -566,10 +617,46 @@ class GoogleValidationService:
                 except json.JSONDecodeError:
                     self.logger.error(f"Failed to decode JSON: {json_str[:200]}...")
         
-        # Fallback: return error structure
+            # Fallback: return error structure
         self.logger.error(f"Failed to parse validation response: {response_text[:500]}...")
         return {
             "error": "Failed to parse validation response",
             "raw_response": response_text[:1000],
             "status": "PARSE_ERROR"
         }
+    
+    def _parse_enrichment_response(self, response_text: str, expected_fields: List[str]) -> Dict[str, Any]:
+        """Parse Gemini's enrichment response into structured field data."""
+        try:
+            # Extract JSON from response (handle markdown code blocks if present)
+            text = response_text.strip()
+            if "```json" in text:
+                text = text.split("```json")[1].split("```")[0].strip()
+            elif "```" in text:
+                text = text.split("```")[1].split("```")[0].strip()
+            
+            # Parse JSON
+            parsed = json.loads(text)
+            
+            # Extract field values and metadata
+            enriched_data = {}
+            for field, data in parsed.items():
+                if isinstance(data, dict) and "value" in data:
+                    value = data.get("value")
+                    confidence = data.get("confidence", 0.0)
+                    
+                    # Only include fields with reasonable confidence
+                    if confidence > 0.3 and value is not None and value != "null":
+                        enriched_data[field] = value
+                        enriched_data[f"{field}_confidence"] = confidence
+                        enriched_data[f"{field}_source"] = data.get("source", "Google Vertex AI")
+            
+            return enriched_data
+            
+        except json.JSONDecodeError as e:
+            self.logger.error(f"Failed to parse enrichment JSON: {e}")
+            self.logger.debug(f"Response text: {response_text[:500]}")
+            return {}
+        except Exception as e:
+            self.logger.error(f"Error parsing enrichment response: {e}", exc_info=True)
+            return {}

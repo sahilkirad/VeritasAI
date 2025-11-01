@@ -111,3 +111,4 @@ echo "  2. API key needs to be updated in Secret Manager"
 echo "- After fixing, redeploy functions if needed"
 echo "==================================================="
 
+

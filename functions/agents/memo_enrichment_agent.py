@@ -6,6 +6,7 @@ and saves to memo1_validated collection.
 
 import logging
 import asyncio
+import json
 from typing import Dict, List, Any, Optional
 from datetime import datetime
 import firebase_admin
@@ -573,6 +574,50 @@ VERIFICATION: Ensure names match exactly. Cross-reference with company website a
                     # Continue with other queries even if one fails
                     continue
             
+            # Fallback to Google Validation Service if Perplexity failed or is disabled
+            if not enriched_fields_list and missing_fields:
+                self.logger.info("Perplexity enrichment failed or no fields enriched. Falling back to Google Vertex AI enrichment...")
+                try:
+                    from services.google_validation_service import GoogleValidationService
+                    google_service = GoogleValidationService(project=self.project, location=self.location)
+                    google_service.set_up()
+                    
+                    # Build company context for enrichment
+                    company_context = company_name
+                    if founder_name:
+                        company_context += f" (Founder: {founder_name})"
+                    if industry:
+                        company_context += f" in {industry}"
+                    
+                    # Use Google Validation Service to enrich missing fields
+                    fallback_result = google_service.enrich_missing_fields(memo_1, missing_fields, company_context)
+                    
+                    if fallback_result.get("status") == "SUCCESS" and fallback_result.get("enriched_data"):
+                        fallback_data = fallback_result.get("enriched_data", {})
+                        self.logger.info(f"Google Vertex AI enrichment successful. Enriched {len([k for k in fallback_data.keys() if not k.endswith('_confidence') and not k.endswith('_source')])} fields")
+                        
+                        # Merge fallback enriched data
+                        for key, value in fallback_data.items():
+                            # Skip confidence and source metadata for now
+                            if key.endswith("_confidence") or key.endswith("_source"):
+                                continue
+                            if value and not self._is_field_empty(value):
+                                enriched_data[key] = value
+                                enriched_fields_list.append(key)
+                                
+                                # Store confidence and source if available
+                                if f"{key}_confidence" in fallback_data:
+                                    confidence_scores[key] = fallback_data[f"{key}_confidence"]
+                                if f"{key}_source" in fallback_data:
+                                    enrichment_sources[key] = fallback_data[f"{key}_source"]
+                                
+                                self.logger.info(f"Enriched field '{key}' via Google Vertex AI fallback: {str(value)[:100]}")
+                    else:
+                        self.logger.warning(f"Google Vertex AI fallback enrichment failed: {fallback_result.get('error', 'Unknown error')}")
+                        
+                except Exception as fallback_error:
+                    self.logger.error(f"Error in Google Vertex AI fallback enrichment: {fallback_error}", exc_info=True)
+            
             # Merge enriched data with original memo_1
             # Always overwrite "Not specified" or empty values with enriched data
             enriched_memo_1 = memo_1.copy()
@@ -593,13 +638,19 @@ VERIFICATION: Ensure names match exactly. Cross-reference with company website a
                 "enrichment_metadata": {
                     "enrichment_timestamp": datetime.now().isoformat(),
                     "fields_enriched": enriched_fields_list,
-                    "enrichment_method": "perplexity_vertex_ai",
+                    "enrichment_method": "perplexity_vertex_ai" if enriched_fields_list and any("perplexity" in str(source).lower() for source in enrichment_sources.values()) else "google_vertex_ai_fallback",
                     "confidence_scores": confidence_scores,
                     "sources": enrichment_sources,
                     "missing_fields_identified": missing_fields
                 },
                 "timestamp": datetime.now().isoformat()
             }
+            
+            # Run validation after enrichment - use enriched_memo_1 (not original memo_1) so we validate the complete data
+            validation_results = await self.validate_memo_claims(enriched_memo_1, company_name, founder_name, industry)
+            
+            # Add validation results to validated_data
+            validated_data["validation_results"] = validation_results
             
             # Save to memo1_validated collection
             self._save_validated_memo(memo_id, validated_data)
@@ -612,12 +663,814 @@ VERIFICATION: Ensure names match exactly. Cross-reference with company website a
                 "fields_enriched": enriched_fields_list,
                 "fields_enriched_count": len(enriched_fields_list),
                 "missing_fields_count": len(missing_fields),
-                "enrichment_metadata": validated_data["enrichment_metadata"]
+                "enrichment_metadata": validated_data["enrichment_metadata"],
+                "validation_results": validation_results
             }
             
         except Exception as e:
             self.logger.error(f"Error in enrich_memo: {e}", exc_info=True)
             return {"status": "error", "error": str(e), "memo_id": memo_id}
+    
+    async def validate_memo_claims(self, memo_data: Dict[str, Any], company_name: str, 
+                                   founder_name: str = "", industry: str = "") -> Dict[str, Any]:
+        """
+        Validate memo claims using Perplexity API for all 10 validation categories.
+        Falls back to Google Validation Service if Perplexity fails.
+        
+        Args:
+            memo_data: The memo data to validate
+            company_name: Company name
+            founder_name: Founder name(s)
+            industry: Industry category
+            
+        Returns:
+            Dictionary with structured validation results matching intake agent format
+        """
+        self.logger.info(f"Starting validation for {company_name}")
+        
+        validation_results = {
+            "company_identity": {},
+            "founder_team": {},
+            "product_ip": {},
+            "market_opportunity": {},
+            "competitors": {},
+            "financial_traction": {},
+            "fundraising_cap_table": {},
+            "compliance_sanctions": {},
+            "public_sentiment": {},
+            "exit_acquisition": {}
+        }
+        
+        try:
+            # Generate validation queries for all categories
+            validation_queries = self._generate_validation_queries(memo_data, company_name, founder_name, industry)
+            
+            # Process each validation category using Perplexity
+            validation_method_used = "perplexity"
+            perplexity_success_count = 0
+            perplexity_total_count = len(validation_queries)
+            perplexity_completely_failed = False
+            
+            # Check if Perplexity service is enabled
+            if not self.perplexity_service.enabled:
+                self.logger.warning("Perplexity service is disabled, will use Google fallback for all categories")
+                perplexity_completely_failed = True
+            else:
+                # Try Perplexity for each category
+                for category, query_info in validation_queries.items():
+                    try:
+                        query = query_info["query"]
+                        self.logger.info(f"Validating {category} using Perplexity API...")
+                        
+                        # Search with Perplexity
+                        search_results = await self.perplexity_service._perplexity_search(query)
+                        
+                        if not search_results:
+                            self.logger.warning(f"No Perplexity results for {category}, will use fallback for this category")
+                            # Don't mark as completely failed - continue with other categories
+                            continue
+                        
+                        # Process validation response
+                        category_result = await self._process_validation_response(
+                            search_results[0]["content"],
+                            category,
+                            query_info.get("expected_fields", []),
+                            search_results[0].get("citations", [])
+                        )
+                        
+                        if category_result and category_result.get("status") != "MISSING":
+                            validation_results[category] = category_result
+                            perplexity_success_count += 1
+                            self.logger.info(f"Successfully validated {category} using Perplexity")
+                        else:
+                            self.logger.warning(f"Perplexity validation returned empty for {category}")
+                            
+                    except Exception as e:
+                        self.logger.warning(f"Perplexity validation failed for {category}: {e}")
+                        # Continue with other categories - don't fail completely
+                        continue
+                
+                # Check if we got reasonable results from Perplexity
+                if perplexity_success_count == 0 and perplexity_total_count > 0:
+                    perplexity_completely_failed = True
+                    self.logger.warning(f"Perplexity failed for all {perplexity_total_count} categories, will use full fallback")
+                else:
+                    self.logger.info(f"Perplexity succeeded for {perplexity_success_count}/{perplexity_total_count} categories")
+            
+            # Fallback to Google Validation Service if Perplexity completely failed or is disabled
+            if perplexity_completely_failed or not self.perplexity_service.enabled:
+                self.logger.info("Falling back to Google Validation Service...")
+                validation_method_used = "google_fallback"
+                
+                try:
+                    from services.google_validation_service import GoogleValidationService
+                    google_service = GoogleValidationService(project=self.project, location=self.location)
+                    google_service.set_up()
+                    
+                    # Run comprehensive validation
+                    comprehensive_result = google_service.validate_memo_data(memo_data)
+                    
+                    if comprehensive_result.get("status") == "SUCCESS":
+                        # Map Google validation results to our structure
+                        validation_result = comprehensive_result.get("validation_result", {})
+                        
+                        # Map to our categories
+                        if "data_validation" in validation_result:
+                            validation_results["company_identity"] = {
+                                "status": "CONFIRMED" if validation_result["data_validation"].get("accuracy_score", 0) >= 7 else "QUESTIONABLE",
+                                "confidence": validation_result["data_validation"].get("accuracy_score", 0) / 10.0,
+                                "findings": validation_result["data_validation"],
+                                "sources": ["Google Vertex AI"],
+                                "validation_method": "google_vertex_ai"
+                            }
+                        
+                        if "market_validation" in validation_result:
+                            validation_results["market_opportunity"] = {
+                                "status": "CONFIRMED" if validation_result["market_validation"].get("market_size_accuracy", 0) >= 7 else "QUESTIONABLE",
+                                "confidence": validation_result["market_validation"].get("market_size_accuracy", 0) / 10.0,
+                                "findings": validation_result["market_validation"],
+                                "sources": ["Google Vertex AI"],
+                                "validation_method": "google_vertex_ai"
+                            }
+                        
+                        if "team_validation" in validation_result:
+                            validation_results["founder_team"] = {
+                                "status": "CONFIRMED" if validation_result["team_validation"].get("team_strength", 0) >= 7 else "QUESTIONABLE",
+                                "confidence": validation_result["team_validation"].get("team_strength", 0) / 10.0,
+                                "findings": validation_result["team_validation"],
+                                "sources": ["Google Vertex AI"],
+                                "validation_method": "google_vertex_ai"
+                            }
+                        
+                        if "financial_validation" in validation_result:
+                            validation_results["financial_traction"] = {
+                                "status": "CONFIRMED" if validation_result["financial_validation"].get("financial_viability", 0) >= 7 else "QUESTIONABLE",
+                                "confidence": validation_result["financial_validation"].get("financial_viability", 0) / 10.0,
+                                "findings": validation_result["financial_validation"],
+                                "sources": ["Google Vertex AI"],
+                                "validation_method": "google_vertex_ai"
+                            }
+                        
+                        # Use competitor validation if available
+                        competitors_list = memo_data.get("competition", memo_data.get("competitors", []))
+                        if isinstance(competitors_list, str):
+                            competitors_list = [competitors_list] if competitors_list else []
+                        elif not isinstance(competitors_list, list):
+                            competitors_list = []
+                        
+                        competitor_result = google_service.validate_competitors(competitors_list, industry)
+                        if competitor_result.get("status") == "SUCCESS":
+                            competitor_validation = competitor_result.get("validation_result", {})
+                            if "competitor_matrix" in competitor_validation:
+                                validation_results["competitors"] = {
+                                    "status": "CONFIRMED" if competitor_validation.get("analysis_confidence", 0) >= 7 else "QUESTIONABLE",
+                                    "confidence": competitor_validation.get("analysis_confidence", 0) / 10.0,
+                                    "findings": competitor_validation.get("competitor_matrix", {}),
+                                    "sources": ["Google Vertex AI"],
+                                    "validation_method": "google_vertex_ai"
+                                }
+                    
+                except Exception as fallback_error:
+                    self.logger.error(f"Google Validation Service fallback failed: {fallback_error}", exc_info=True)
+            
+            # Calculate overall validation score
+            scores = []
+            validated_categories = []
+            for category, result in validation_results.items():
+                if result and isinstance(result, dict) and "confidence" in result:
+                    confidence = result.get("confidence", 0.0)
+                    scores.append(confidence)
+                    validated_categories.append(category)
+            
+            overall_score = sum(scores) / len(scores) if scores else 0.0
+            
+            return {
+                "validation_results": validation_results,
+                "overall_validation_score": overall_score,
+                "validation_timestamp": datetime.now().isoformat(),
+                "validation_method": validation_method_used,
+                "categories_validated": len(validated_categories),
+                "validated_categories": validated_categories,
+                "perplexity_success_rate": f"{perplexity_success_count}/{perplexity_total_count}" if not perplexity_completely_failed else "0/0"
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Error in validate_memo_claims: {e}", exc_info=True)
+            import traceback
+            self.logger.error(f"Traceback: {traceback.format_exc()}")
+            return {
+                "validation_results": validation_results,
+                "overall_validation_score": 0.0,
+                "validation_timestamp": datetime.now().isoformat(),
+                "validation_method": "error",
+                "error": str(e),
+                "categories_validated": 0
+            }
+    
+    def _generate_validation_queries(self, memo_data: Dict[str, Any], company_name: str,
+                                    founder_name: str = "", industry: str = "") -> Dict[str, Dict[str, Any]]:
+        """
+        Generate Perplexity queries for each of the 10 validation categories.
+        
+        Returns:
+            Dictionary mapping category names to query information
+        """
+        queries = {}
+        
+        context = company_name
+        if founder_name:
+            context += f" (Founder: {founder_name})"
+        if industry:
+            context += f" in {industry}"
+        
+        # 1. Company Identity Validation (MCA, ZaubaCorp, Tofler)
+        queries["company_identity"] = {
+            "query": f"""Search the internet using real-time web search to validate company registration and legal existence for {context}.
+
+IMPORTANT: You must search the web and fetch real-time data from official sources. Do not rely on knowledge cutoff - use live web search results.
+
+REQUIRED VALIDATION:
+1. Company registration status - Search official registries to verify if company exists
+2. CIN number (Corporate Identification Number) - Find CIN from official databases if applicable
+3. Incorporation date and legal status - Search for incorporation records
+4. Registered address and compliance status - Find registered office address from official sources
+5. Directors information - Search for director names if available in public records
+
+DATA SOURCES TO SEARCH:
+- MCA (Ministry of Corporate Affairs) website: www.mca.gov.in - Search company name directly
+- ZaubaCorp database - Search company name on zaubacorp.com
+- Tofler company database - Search on tofler.in
+- StartupIndia portal - Search for startup registration
+- Company official website - Check "About Us" and contact pages
+- SEC EDGAR database (for US companies) - Search sec.gov/edgar/searchedgar
+
+SEARCH STRATEGY:
+1. Search: "{company_name} company registration MCA"
+2. Search: "{company_name} CIN number India"
+3. Search: "{company_name} incorporation date"
+4. Search: "{company_name} registered address"
+5. Search: "{company_name} directors list"
+
+Return ONLY valid JSON (no markdown, no code blocks):
+{{
+    "company_exists": true/false,
+    "cin_number": "CIN if found in search results",
+    "incorporation_date": "YYYY-MM-DD from search",
+    "registered_address": "address from official sources",
+    "compliance_status": "COMPLIANT/NON_COMPLIANT/UNKNOWN",
+    "confidence": 0.0-1.0,
+    "sources": ["exact URL sources from search"]
+}}""",
+            "expected_fields": ["company_exists", "cin_number", "incorporation_date", "registered_address", "compliance_status"]
+        }
+        
+        # 2. Founder & Team Validation (LinkedIn, Crunchbase, news)
+        if founder_name:
+            queries["founder_team"] = {
+                "query": f"""Search the internet using real-time web search to validate founder and team credentials for {founder_name} from {company_name}.
+
+IMPORTANT: You must search the web and fetch real-time data. Use live LinkedIn profiles, recent news articles, and current Crunchbase data.
+
+REQUIRED VALIDATION:
+1. LinkedIn profile verification - Search and find LinkedIn profile URL for {founder_name}
+2. Employment history verification - Search for and verify claimed previous roles and companies
+3. Education verification - Search for and verify claimed degrees and universities
+4. Prior startups/exits - Search for information about previous startups or exits
+5. Domain relevance - Search for information matching founder expertise with business problem
+6. Social credibility - Search for press mentions, conference appearances, awards
+
+SEARCH QUERIES TO EXECUTE:
+1. Search: "{founder_name} LinkedIn profile {company_name}"
+2. Search: "{founder_name} education degree university"
+3. Search: "{founder_name} previous companies work history"
+4. Search: "{founder_name} startup founder CEO"
+5. Search: "{founder_name} {company_name} news TechCrunch"
+6. Search: "{founder_name} Crunchbase profile"
+
+DATA SOURCES TO ACCESS:
+- LinkedIn: Search linkedin.com/in/ profiles
+- Crunchbase: Search crunchbase.com/person/ profiles
+- Google News: Search for recent articles mentioning founder
+- TechCrunch, YourStory, Inc42: Search startup news articles
+- Conference websites: Search speaker bios and conference lists
+- Press releases: Search for company announcements mentioning founder
+
+Return ONLY valid JSON (no markdown, no code blocks):
+{{
+    "linkedin_url": "https://linkedin.com/in/... (from search)",
+    "linkedin_verified": true/false,
+    "employment_verified": true/false,
+    "education_verified": true/false,
+    "prior_startups": ["startup1 from search", "startup2 from search"],
+    "domain_relevance_score": 0.0-1.0,
+    "press_mentions_count": number,
+    "confidence": 0.0-1.0,
+    "sources": ["exact URLs from search results"]
+}}""",
+                "expected_fields": ["linkedin_url", "linkedin_verified", "employment_verified", "education_verified"]
+            }
+        
+        # 3. Product & IP Validation (Patents, app stores)
+        queries["product_ip"] = {
+            "query": f"""Search the internet using real-time web search to validate product claims and intellectual property for {context}.
+
+IMPORTANT: Use live web search to check current patent databases, app stores, and product listings. Fetch real-time data.
+
+REQUIRED VALIDATION:
+1. Trademark/Patent filings - Search patent databases to verify "patent pending" or IP claims
+2. Product presence - Search app stores and web to check if product exists
+3. User feedback consistency - Search and analyze reviews and ratings from app stores
+4. Technology claims - Search for information verifying technical claims
+
+SEARCH QUERIES TO EXECUTE:
+1. Search: "{company_name} patent USPTO Google Patents"
+2. Search: "{company_name} app Play Store App Store"
+3. Search: "{company_name} product reviews ratings"
+4. Search: "{company_name} trademark registered IP"
+5. Search: "{company_name} ProductHunt"
+
+DATA SOURCES TO ACCESS:
+- Google Patents: patents.google.com - Search for patents by company name
+- USPTO: uspto.gov - Search patent database
+- IP India Portal: ipindia.gov.in - Search Indian patents and trademarks
+- Google Play Store: play.google.com - Search for app listings
+- Apple App Store: apps.apple.com - Search for iOS app
+- ProductHunt: producthunt.com - Search for product listings
+- Company website: Search product pages
+
+Return ONLY valid JSON (no markdown, no code blocks):
+{{
+    "patents_filed": number,
+    "patents_granted": number,
+    "trademarks_registered": number,
+    "product_listings_found": true/false,
+    "average_rating": 0.0-5.0,
+    "review_count": number,
+    "ip_claims_verified": true/false,
+    "confidence": 0.0-1.0,
+    "sources": ["exact URLs from search"]
+}}""",
+            "expected_fields": ["patents_filed", "product_listings_found", "ip_claims_verified"]
+        }
+        
+        # 4. Market Opportunity Validation (TAM/SAM/SOM)
+        claimed_tam = memo_data.get("market_size", memo_data.get("sam_market_size", ""))
+        queries["market_opportunity"] = {
+            "query": f"""Search the internet using real-time web search to validate market size claims (TAM/SAM/SOM) for {context}.
+
+CLAIMED MARKET SIZE: {claimed_tam}
+
+IMPORTANT: Search for latest market research reports from 2024-2025. Use real-time web search to find current market data.
+
+REQUIRED VALIDATION:
+1. TAM/SAM/SOM numbers - Search market research reports and cross-reference claimed numbers
+2. Market size methodology - Search for methodology details in reports
+3. Market growth rate (CAGR) - Search for industry CAGR data
+4. Market definition - Search for market definitions in research reports
+
+SEARCH QUERIES TO EXECUTE:
+1. Search: "{industry} market size TAM SAM 2024 2025 Statista"
+2. Search: "{industry} market research report Tracxn CB Insights"
+3. Search: "{industry} CAGR growth rate market analysis"
+4. Search: "{industry} PwC Deloitte market report"
+5. Search: "{industry} Grand View Research MarketsandMarkets"
+
+DATA SOURCES TO ACCESS:
+- Statista: statista.com - Search for market size statistics
+- Tracxn: tracxn.com - Search for market reports
+- CB Insights: cbinsights.com - Search market analyses
+- PwC/Deloitte/EY: Search their websites for industry reports
+- Grand View Research: grandviewresearch.com - Search market reports
+- MarketsandMarkets: marketsandmarkets.com - Search market research
+
+Return ONLY valid JSON (no markdown, no code blocks):
+{{
+    "claimed_tam": "{claimed_tam}",
+    "verified_tam_range": "range from search results",
+    "tam_accuracy_score": 0.0-1.0,
+    "market_growth_rate_cagr": "percentage from reports",
+    "methodology_assessment": "VALID/QUESTIONABLE/INVALID",
+    "confidence": 0.0-1.0,
+    "sources": ["exact URLs from reports found"]
+}}""",
+            "expected_fields": ["claimed_tam", "verified_tam_range", "tam_accuracy_score"]
+        }
+        
+        # 5. Competitor Validation
+        competitors = memo_data.get("competition", memo_data.get("competitors", []))
+        if isinstance(competitors, str):
+            competitors = [competitors]
+        elif not isinstance(competitors, list):
+            competitors = []
+        
+        # Handle competitors list - can contain strings or dicts
+        competitor_names = []
+        for comp in competitors:
+            if isinstance(comp, str):
+                competitor_names.append(comp)
+            elif isinstance(comp, dict):
+                # Extract name from dict (common keys: name, title, competitor_name, company_name)
+                comp_name = comp.get("name") or comp.get("title") or comp.get("competitor_name") or comp.get("company_name") or str(comp.get("value", ""))
+                if comp_name:
+                    competitor_names.append(str(comp_name))
+        
+        competitors_str = ', '.join(competitor_names) if competitor_names else 'Not specified'
+        
+        queries["competitors"] = {
+            "query": f"""Search the internet using real-time web search to validate competitor information for {context}.
+
+CLAIMED COMPETITORS: {competitors_str}
+
+IMPORTANT: Use live web search to verify each competitor exists, find their funding, and assess market position. Fetch current data.
+
+REQUIRED VALIDATION:
+1. Competitor existence - Search for each competitor to verify they exist
+2. Competitor funding - Search for recent funding rounds and amounts
+3. Competitor scale - Search for company size, revenue, market position
+4. Competitive positioning - Search for market share and positioning information
+
+SEARCH QUERIES TO EXECUTE:
+1. For each competitor, search: "[competitor name] Crunchbase"
+2. Search: "{industry} competitors startups funding"
+3. Search: "{industry} market share competitive landscape"
+4. Search: "{competitors_str} funding rounds 2024"
+
+DATA SOURCES TO ACCESS:
+- Crunchbase: crunchbase.com - Search competitor profiles
+- Tracxn: tracxn.com - Search competitor data
+- CB Insights: cbinsights.com - Search competitive intelligence
+- TechCrunch: techcrunch.com - Search competitor news
+- VCCircle, Entrackr: Search competitor coverage
+
+Return ONLY valid JSON (no markdown, no code blocks):
+{{
+    "competitors_verified": number,
+    "competitors_total": {len(competitor_names) if competitor_names else 0},
+    "funding_verified": true/false,
+    "market_positioning_verified": true/false,
+    "missing_key_competitors": ["competitor1", "competitor2"],
+    "confidence": 0.0-1.0,
+    "sources": ["exact URLs from search"]
+}}""",
+            "expected_fields": ["competitors_verified", "competitors_total", "funding_verified"]
+        }
+        
+        # 6. Financial & Traction Validation
+        claimed_revenue = memo_data.get("current_revenue", "")
+        queries["financial_traction"] = {
+            "query": f"""Search the internet using real-time web search to validate financial and traction claims for {context}.
+
+CLAIMED REVENUE: {claimed_revenue}
+
+IMPORTANT: Use live web search to find current revenue data, web traffic, app downloads, and public disclosures. Fetch real-time metrics.
+
+REQUIRED VALIDATION:
+1. Revenue claims (ARR/MRR/GMV) - Search for public evidence of revenue claims
+2. Customer base - Search for customer count, downloads, web traffic data
+3. Growth rate consistency - Search for multiple sources to verify growth claims
+4. Unit economics - Search for CAC/LTV information if publicly disclosed
+
+SEARCH QUERIES TO EXECUTE:
+1. Search: "{company_name} revenue ARR MRR funding announcement"
+2. Search: "{company_name} SimilarWeb web traffic visitors"
+3. Search: "{company_name} app downloads App Annie SensorTower"
+4. Search: "{company_name} customers users growth"
+5. Search: "{company_name} MCA filing revenue Form 8"
+
+DATA SOURCES TO ACCESS:
+- SimilarWeb: similarweb.com - Search for web traffic data
+- App Annie / SensorTower: Search for app download data
+- Google Play Store / App Store: Search for app ratings and reviews
+- MCA filings: Search MCA website for public filings
+- Press releases: Search for revenue announcements
+- Crunchbase: Search for revenue data in funding rounds
+
+Return ONLY valid JSON (no markdown, no code blocks):
+{{
+    "revenue_claim": "{claimed_revenue}",
+    "revenue_verified": true/false,
+    "customer_count_verified": true/false,
+    "web_traffic_verified": true/false,
+    "growth_rate_consistency": "CONSISTENT/QUESTIONABLE/INCONSISTENT",
+    "confidence": 0.0-1.0,
+    "sources": ["exact URLs from search"]
+}}""",
+            "expected_fields": ["revenue_verified", "customer_count_verified", "growth_rate_consistency"]
+        }
+        
+        # 7. Fundraising & Cap Table Validation
+        claimed_investors = memo_data.get("lead_investor", memo_data.get("funding_history", ""))
+        if isinstance(claimed_investors, str):
+            investors_str = claimed_investors
+        elif isinstance(claimed_investors, list):
+            # Handle list - can contain strings or dicts
+            investor_names = []
+            for inv in claimed_investors:
+                if isinstance(inv, str):
+                    investor_names.append(inv)
+                elif isinstance(inv, dict):
+                    # Extract name from dict
+                    inv_name = inv.get("name") or inv.get("title") or inv.get("investor_name") or inv.get("company_name") or str(inv.get("value", ""))
+                    if inv_name:
+                        investor_names.append(str(inv_name))
+            investors_str = ', '.join(investor_names) if investor_names else 'Not specified'
+        else:
+            investors_str = 'Not specified'
+        
+        queries["fundraising_cap_table"] = {
+            "query": f"""Search the internet using real-time web search to validate fundraising and investor claims for {context}.
+
+CLAIMED INVESTORS: {investors_str}
+
+IMPORTANT: Use live web search to find recent funding announcements, verify investors, and check round details. Fetch current data.
+
+REQUIRED VALIDATION:
+1. Investor verification - Search for funding announcements confirming investor participation
+2. Round size verification - Search for exact round amounts in announcements
+3. Valuation claims - Search for valuation information in funding rounds
+4. Cap table consistency - Search for funding history to verify round sequencing
+
+SEARCH QUERIES TO EXECUTE:
+1. Search: "{company_name} funding round {investors_str} Crunchbase"
+2. Search: "{company_name} raised funding amount valuation"
+3. Search: "{company_name} investor {investors_str} portfolio"
+4. Search: "{company_name} MCA filing PAS-3 funding"
+5. Search: "{company_name} TechCrunch funding announcement"
+
+DATA SOURCES TO ACCESS:
+- Crunchbase: crunchbase.com - Search funding rounds
+- Tracxn: tracxn.com - Search funding data
+- MCA: Search MCA website for Form PAS-3 / SH-7 filings
+- VCCircle, Inc42: Search funding announcements
+- TechCrunch: Search funding news
+- Investor websites: Search investor portfolio pages
+
+Return ONLY valid JSON (no markdown, no code blocks):
+{{
+    "investors_verified": true/false,
+    "round_size_verified": true/false,
+    "valuation_reasonable": true/false,
+    "cap_table_consistent": true/false,
+    "funding_announcements_found": number,
+    "confidence": 0.0-1.0,
+    "sources": ["exact URLs from search"]
+}}""",
+            "expected_fields": ["investors_verified", "round_size_verified", "valuation_reasonable"]
+        }
+        
+        # 8. Compliance & Sanctions Screening
+        queries["compliance_sanctions"] = {
+            "query": f"""Search the internet using real-time web search to screen for compliance issues and sanctions for {context}.
+
+IMPORTANT: Search official databases and regulatory websites for current compliance and sanctions information. Use live web search.
+
+REQUIRED VALIDATION:
+1. KYC status - Search for founder and director KYC status information
+2. SEBI blacklist - Search SEBI website for disqualified directors
+3. Sanction checks - Search OFAC, EU sanctions lists online
+4. Regulatory compliance - Search for industry-specific compliance requirements
+
+SEARCH QUERIES TO EXECUTE:
+1. Search: "{company_name} directors MCA disqualified list"
+2. Search: "{founder_name} SEBI blacklist disqualified"
+3. Search: "{company_name} OFAC sanctions list"
+4. Search: "{company_name} {industry} regulatory compliance"
+5. Search: "{company_name} RBI watchlist KYC"
+
+DATA SOURCES TO ACCESS:
+- MCA: mca.gov.in - Search disqualified directors database
+- SEBI: sebi.gov.in - Search blacklist and disqualified directors
+- RBI: rbi.org.in - Search watchlists
+- OFAC: ofac.treasury.gov - Search sanctions list
+- OpenSanctions: opensanctions.org - Search sanctions database
+- Industry regulatory websites: Search specific industry compliance requirements
+
+Return ONLY valid JSON (no markdown, no code blocks):
+{{
+    "kyc_status": "CLEAR/ISSUES/UNKNOWN",
+    "sanctions_check": "CLEAR/FLAGGED/UNKNOWN",
+    "sebi_blacklist_check": "CLEAR/FLAGGED/UNKNOWN",
+    "compliance_issues": [],
+    "risk_level": "LOW/MEDIUM/HIGH",
+    "confidence": 0.0-1.0,
+    "sources": ["exact URLs from search"]
+}}""",
+            "expected_fields": ["kyc_status", "sanctions_check", "risk_level"]
+        }
+        
+        # 9. Public Sentiment & Brand Validation
+        queries["public_sentiment"] = {
+            "query": f"""Search the internet using real-time web search to analyze public sentiment and brand perception for {context}.
+
+IMPORTANT: Search current reviews, social media, and news articles to assess real-time brand sentiment. Use live web search.
+
+REQUIRED VALIDATION:
+1. Public reviews sentiment - Search and analyze customer reviews vs claims
+2. Social media engagement - Search social media platforms for engagement trends
+3. Press mentions sentiment - Search news articles and analyze media coverage tone
+4. Brand perception - Calculate overall brand sentiment score from multiple sources
+
+SEARCH QUERIES TO EXECUTE:
+1. Search: "{company_name} reviews Google Play Store App Store"
+2. Search: "{company_name} Twitter Instagram social media"
+3. Search: "{company_name} news articles sentiment"
+4. Search: "{company_name} customer feedback complaints"
+5. Search: "{company_name} Reddit discussions reviews"
+
+DATA SOURCES TO ACCESS:
+- Google Play Store / App Store: Search for app ratings and reviews
+- Google Reviews: Search Google for business reviews
+- Twitter/X: Search for brand mentions and sentiment
+- Instagram, LinkedIn: Search for social media presence
+- Google News: Search for recent news articles
+- Reddit: Search for discussions about the company
+
+Return ONLY valid JSON (no markdown, no code blocks):
+{{
+    "average_rating": 0.0-5.0,
+    "review_sentiment": "POSITIVE/NEUTRAL/NEGATIVE",
+    "social_engagement_score": 0.0-1.0,
+    "press_sentiment": "POSITIVE/NEUTRAL/NEGATIVE",
+    "overall_brand_score": 0.0-1.0,
+    "confidence": 0.0-1.0,
+    "sources": ["exact URLs from search"]
+}}""",
+            "expected_fields": ["average_rating", "review_sentiment", "overall_brand_score"]
+        }
+        
+        # 10. Exit / Acquisition Validation
+        exit_strategy = memo_data.get("exit_strategy", memo_data.get("potential_acquirers", ""))
+        if isinstance(exit_strategy, str):
+            exit_strategy_str = exit_strategy
+        elif isinstance(exit_strategy, list):
+            # Handle list - can contain strings or dicts
+            exit_names = []
+            for item in exit_strategy:
+                if isinstance(item, str):
+                    exit_names.append(item)
+                elif isinstance(item, dict):
+                    # Extract name from dict
+                    exit_name = item.get("name") or item.get("title") or item.get("acquirer_name") or item.get("company_name") or str(item.get("value", ""))
+                    if exit_name:
+                        exit_names.append(str(exit_name))
+            exit_strategy_str = ', '.join(exit_names) if exit_names else 'Not specified'
+        else:
+            exit_strategy_str = 'Not specified'
+        
+        queries["exit_acquisition"] = {
+            "query": f"""Search the internet using real-time web search to validate exit strategy and acquisition claims for {context}.
+
+CLAIMED EXIT STRATEGY: {exit_strategy_str}
+
+IMPORTANT: Use live web search to find comparable exits, verify acquirer information, and assess exit multiples. Fetch current exit data.
+
+REQUIRED VALIDATION:
+1. Potential acquirers - Search to verify claimed acquirers exist and assess acquisition likelihood
+2. Exit multiples - Search for comparable exit multiples in the industry
+3. Comparable exits - Search for similar company exits for benchmarking
+
+SEARCH QUERIES TO EXECUTE:
+1. Search: "{industry} startup exits acquisitions 2024 2025"
+2. Search: "{exit_strategy_str} acquisitions startup exits"
+3. Search: "{industry} exit multiples valuation acquisitions"
+4. Search: "{industry} comparable exits Crunchbase CB Insights"
+5. Search: "{industry} M&A deals startup acquisitions"
+
+DATA SOURCES TO ACCESS:
+- Crunchbase: crunchbase.com - Search exit database
+- CB Insights: cbinsights.com - Search exit reports
+- Pitchbook: pitchbook.com - Search exit data
+- TechCrunch: Search acquisition announcements
+- Press releases: Search for exit announcements
+
+Return ONLY valid JSON (no markdown, no code blocks):
+{{
+    "exit_strategy_realistic": true/false,
+    "potential_acquirers_verified": number,
+    "exit_multiples_reasonable": true/false,
+    "comparable_exits_found": number,
+    "exit_probability_score": 0.0-1.0,
+    "confidence": 0.0-1.0,
+    "sources": ["exact URLs from search"]
+}}""",
+            "expected_fields": ["exit_strategy_realistic", "potential_acquirers_verified", "exit_multiples_reasonable"]
+        }
+        
+        return queries
+    
+    async def _process_validation_response(self, content: str, category: str, 
+                                          expected_fields: List[str], citations: List[str] = None) -> Dict[str, Any]:
+        """
+        Process Perplexity validation response and structure it according to intake agent format.
+        
+        Args:
+            content: Raw validation response content
+            category: Validation category name
+            expected_fields: Fields expected in the response
+            citations: List of source citations
+            
+        Returns:
+            Structured validation result
+        """
+        try:
+            # Try to extract JSON from response
+            parsed_data = None
+            
+            # Try direct JSON parsing
+            try:
+                parsed_data = json.loads(content)
+            except json.JSONDecodeError:
+                # Try extracting JSON from markdown
+                import re
+                json_match = re.search(r'\{.*\}', content, re.DOTALL)
+                if json_match:
+                    try:
+                        parsed_data = json.loads(json_match.group())
+                    except json.JSONDecodeError:
+                        pass
+            
+            # If JSON parsing failed, use Vertex AI to structure the response
+            if not parsed_data and self.perplexity_service.vertex_model:
+                try:
+                    structure_prompt = f"""Extract validation results from the following text and return ONLY valid JSON.
+
+Category: {category}
+Expected fields: {', '.join(expected_fields)}
+
+Text:
+{content[:4000]}
+
+Return JSON with these fields:
+{{
+    "status": "CONFIRMED/QUESTIONABLE/MISSING",
+    "confidence": 0.0-1.0,
+    "findings": {{...}},
+    "sources": [...]
+}}
+
+Base status on confidence: >= 0.7 = CONFIRMED, 0.4-0.69 = QUESTIONABLE, < 0.4 = MISSING"""
+                    
+                    response = self.perplexity_service.vertex_model.generate_content(structure_prompt)
+                    response_text = response.text if hasattr(response, 'text') else str(response)
+                    
+                    # Extract JSON from response
+                    json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+                    if json_match:
+                        parsed_data = json.loads(json_match.group())
+                except Exception as e:
+                    self.logger.warning(f"Vertex AI structuring failed for {category}: {e}")
+            
+            # Build structured result
+            if parsed_data:
+                confidence = parsed_data.get("confidence", 0.5)
+                if isinstance(confidence, str):
+                    try:
+                        confidence = float(confidence)
+                    except ValueError:
+                        confidence = 0.5
+                
+                # Determine status based on confidence
+                if confidence >= 0.7:
+                    status = "CONFIRMED"
+                elif confidence >= 0.4:
+                    status = "QUESTIONABLE"
+                else:
+                    status = "MISSING"
+                
+                return {
+                    "status": status,
+                    "confidence": float(confidence),
+                    "findings": parsed_data.get("findings", parsed_data),
+                    "sources": citations if citations else parsed_data.get("sources", ["Perplexity API"]),
+                    "validation_method": "perplexity"
+                }
+            else:
+                # Fallback: basic parsing
+                confidence = 0.5
+                if "verified" in content.lower() or "confirmed" in content.lower():
+                    confidence = 0.7
+                elif "questionable" in content.lower() or "unclear" in content.lower():
+                    confidence = 0.5
+                
+                status = "CONFIRMED" if confidence >= 0.7 else "QUESTIONABLE" if confidence >= 0.4 else "MISSING"
+                
+                return {
+                    "status": status,
+                    "confidence": confidence,
+                    "findings": {"raw_response": content[:500]},
+                    "sources": citations if citations else ["Perplexity API"],
+                    "validation_method": "perplexity"
+                }
+                
+        except Exception as e:
+            self.logger.error(f"Error processing validation response for {category}: {e}", exc_info=True)
+            return {
+                "status": "MISSING",
+                "confidence": 0.0,
+                "findings": {"error": str(e)},
+                "sources": [],
+                "validation_method": "perplexity"
+            }
     
     def _save_validated_memo(self, memo_id: str, validated_data: Dict[str, Any]):
         """Save validated/enriched memo to memo1_validated collection."""

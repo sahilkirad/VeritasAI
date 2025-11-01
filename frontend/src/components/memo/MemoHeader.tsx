@@ -67,24 +67,37 @@ export default function MemoHeader({ memoData, diligenceData, onTriggerDiligence
   const memo1 = memoData?.memo_1 || {};
 
   return (
-    <div className="flex items-center justify-between py-1">
-      <div>
-        <h1 className="text-xl font-bold">Deal Memo</h1>
-        <p className="text-muted-foreground text-xs">
-          AI-powered analysis for {memo1.title || memoData?.filename || 'Unknown Company'}
-        </p>
+    <div className="space-y-2">
+      {/* Red Instructional Banner */}
+      <div className="bg-red-50 border-2 border-red-300 rounded-lg p-3">
+        <div className="space-y-1.5">
+          <p className="text-sm font-semibold text-red-800">
+            ⚠️ Important Instructions:
+          </p>
+          <ul className="text-xs text-red-700 space-y-1 ml-4 list-disc">
+            <li>
+              If any field is missing, marked as "N/A," or unspecified, run AI validation to verify the data from public online sources and confirm whether it matches the information provided in the pitch deck.
+            </li>
+            <li>
+              First, run <strong>Diligence Hub</strong> by clicking the <strong>"Run Diligence"</strong> button, then return here and click <strong>"Refresh"</strong> button on Memo2.
+            </li>
+          </ul>
+        </div>
       </div>
-      <div className="flex items-center gap-1">
-        <Badge variant="outline" className="text-green-600 border-green-600 text-xs px-1 py-0">
-          {memoData?.memo_1 ? 'Complete' : 'Processing'}
-        </Badge>
-        <Button
-          onClick={handleTriggerDiligence}
-          size="sm"
-          className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-2 py-1 h-6"
-        >
-          Run Diligence
-        </Button>
+
+      {/* Header */}
+      <div className="flex items-center justify-between py-1">
+        <div>
+          <h1 className="text-xl font-bold">Deal Memo</h1>
+          <p className="text-muted-foreground text-xs">
+            AI-powered analysis for {memo1.title || memoData?.filename || 'Unknown Company'}
+          </p>
+        </div>
+        <div className="flex items-center gap-1">
+          <Badge variant="outline" className="text-green-600 border-green-600 text-xs px-1 py-0">
+            {memoData?.memo_1 ? 'Complete' : 'Processing'}
+          </Badge>
+        </div>
       </div>
     </div>
   );

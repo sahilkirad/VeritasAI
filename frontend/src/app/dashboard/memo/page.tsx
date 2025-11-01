@@ -479,8 +479,23 @@ export default function DealMemoPage() {
             const validatedData = validatedDoc.data();
             enrichedMemo1Data = validatedData.memo_1;
             memo1Data = enrichedMemo1Data || {};
+            
+            // Also fetch enrichment_metadata for displaying confidence scores and sources
+            const enrichmentMetadata = validatedData.enrichment_metadata || {};
+            const validationResults = validatedData.validation_results || {};
+            
             console.log('✅ Found enriched memo in memo1_validated, using enriched data');
             console.log('Enriched fields:', Object.keys(memo1Data));
+            console.log('Enrichment metadata:', enrichmentMetadata);
+            console.log('Validation results:', validationResults);
+            
+            // Store enrichment metadata in memo1Data for access in components
+            if (enrichmentMetadata) {
+              memo1Data.enrichment_metadata = enrichmentMetadata;
+            }
+            if (validationResults) {
+              memo1Data.validation_results = validationResults;
+            }
           } else {
             console.log('⚠️ No enriched memo found in memo1_validated, using original data');
             memo1Data = ingestionData.memo_1 || {};
@@ -1247,14 +1262,23 @@ export default function DealMemoPage() {
       {memoData && (
         <div className="bg-blue-50 border border-blue-200 rounded p-2">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-2">
               <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
               <span className="text-xs font-medium text-blue-800">Live</span>
               <span className="text-xs text-blue-600">
-                {memoData.memo_1?.timestamp ? 
-                  new Date(memoData.memo_1.timestamp.seconds * 1000).toLocaleTimeString() : 
-                  'Recent'
-                }
+                {(() => {
+                  try {
+                    if (memoData.memo_1?.timestamp?.seconds) {
+                      return new Date(memoData.memo_1.timestamp.seconds * 1000).toLocaleTimeString();
+                    } else if (memoData.memo_1?.timestamp && typeof memoData.memo_1.timestamp === 'object' && 'toDate' in memoData.memo_1.timestamp) {
+                      return memoData.memo_1.timestamp.toDate().toLocaleTimeString();
+                    } else {
+                      return 'Recent';
+                    }
+                  } catch (e) {
+                    return 'Recent';
+                  }
+                })()}
               </span>
             </div>
             <button 

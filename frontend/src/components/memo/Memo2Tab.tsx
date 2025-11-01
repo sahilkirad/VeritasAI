@@ -430,10 +430,10 @@ export default function Memo2Tab({ diligenceData, interviewData, memo1, memoId, 
   }
 
   return (
-    <div className="space-y-3 max-w-6xl mx-auto px-2">
+    <div className="space-y-6 max-w-6xl mx-auto px-2">
       {/* Header Section */}
-      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50">
-        <CardHeader>
+      <Card className="border-blue-100 shadow-sm">
+        <CardHeader className="bg-gradient-to-r from-blue-50 to-sky-50 pb-3">
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
               <div className="font-semibold text-blue-900">Company: {diligenceData?.executive_summary?.company_name || memo1?.title || 'Company Analysis'}</div>
@@ -443,11 +443,11 @@ export default function Memo2Tab({ diligenceData, interviewData, memo1, memoId, 
             <div className="text-right">
               <div className="text-xs text-blue-700">Date Completed: {formatDate(diligenceData?.completed_at || diligenceData?.created_at)}</div>
               <div className="text-xs text-blue-700">Validation Timestamp: {diligenceData?.validation_timestamp || 'N/A'}</div>
-              <div className="mt-2">
-                <Badge variant={diligenceData?.status === 'completed' ? 'default' : 'secondary'} className="mr-2">
+              <div className="mt-2 flex gap-2 justify-end">
+                <Badge variant={diligenceData?.status === 'completed' ? 'default' : 'secondary'} className="rounded-full">
                   {diligenceData?.status === 'completed' ? '✅ Completed' : 'In Progress'}
                 </Badge>
-                <Badge variant={diligenceData?.confidence_level === 'low' ? 'destructive' : 'default'}>
+                <Badge variant={diligenceData?.confidence_level === 'low' ? 'destructive' : 'default'} className="rounded-full">
                   Confidence: {safeRender(diligenceData?.confidence_level)}
                 </Badge>
               </div>
@@ -460,13 +460,13 @@ export default function Memo2Tab({ diligenceData, interviewData, memo1, memoId, 
         </CardHeader>
       </Card>
 
-      {/* Fetch Data Button (if needed) */}
-      <Card>
+      {/* Fetch Data Button */}
+      <Card className="border-blue-100 shadow-sm">
         <CardContent className="pt-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-sm font-semibold">Diligence Report Data</h3>
-              <p className="text-xs text-gray-600">
+              <h3 className="text-sm font-semibold text-blue-900">Diligence Report Data</h3>
+              <p className="text-xs text-blue-700">
                 Data loaded from diligenceReports collection
               </p>
             </div>
@@ -475,8 +475,9 @@ export default function Memo2Tab({ diligenceData, interviewData, memo1, memoId, 
               disabled={isFetching || !memoId}
               size="sm"
               variant="outline"
+              className="border-blue-200 hover:bg-blue-50"
             >
-              <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-3 w-3 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
               {isFetching ? 'Refreshing...' : 'Refresh Data'}
             </Button>
           </div>
@@ -484,113 +485,114 @@ export default function Memo2Tab({ diligenceData, interviewData, memo1, memoId, 
       </Card>
 
       {/* ⚡ QUICK ASSESSMENT */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-1 text-base">
-            <Zap className="h-4 w-4" />
+      <Card className="border-blue-100 shadow-sm">
+        <CardHeader className="bg-gradient-to-r from-blue-50 to-sky-50 pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Zap className="h-4 w-4 text-blue-600" />
             QUICK ASSESSMENT
           </CardTitle>
-          <CardDescription className="text-xs">Snapshot of DD Status</CardDescription>
+          <CardDescription className="text-sm">Snapshot of DD Status</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="overflow-hidden border rounded">
-            <table className="w-full text-xs">
-              <thead className="bg-gray-100">
+        <CardContent className="space-y-4">
+          <div className="overflow-hidden border border-blue-200 rounded-lg">
+            <table className="w-full">
+              <thead className="bg-gradient-to-r from-blue-50 to-sky-50">
                 <tr>
-                  <th className="px-3 py-2 text-left font-semibold">Metric</th>
-                  <th className="px-3 py-2 text-left font-semibold">Score / Value</th>
-                  <th className="px-3 py-2 text-left font-semibold">Status / Notes</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-blue-900">Metric</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-blue-900">Score / Value</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-blue-900">Status / Notes</th>
                 </tr>
               </thead>
-              <tbody className="divide-y bg-white">
-                <tr>
-                  <td className="px-3 py-2 font-medium">Overall DD Score</td>
-                  <td className="px-3 py-2">{overallScore ?? 'N/A'}{overallScore ? ' / 100' : ''}</td>
-                  <td className="px-3 py-2 text-red-600 font-medium">{safeRender(diligenceData?.risk_assessment || diligenceData?.executive_summary?.overall_dd_status || 'High risk')}</td>
+              <tbody className="divide-y divide-blue-100">
+                <tr className="hover:bg-blue-50/50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Overall DD Score</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">{overallScore ?? 'N/A'}{overallScore ? ' / 100' : ''}</td>
+                  <td className="px-4 py-3 text-sm text-red-600 font-medium">{safeRender(diligenceData?.risk_assessment || diligenceData?.executive_summary?.overall_dd_status || 'High risk')}</td>
                 </tr>
-                <tr>
-                  <td className="px-3 py-2 font-medium">Founder Credibility</td>
-                  <td className="px-3 py-2">{credibilityScore ?? 'N/A'}{credibilityScore ? ' / 100' : ''}</td>
-                  <td className="px-3 py-2 text-xs">{safeRender(diligenceData?.founder_credibility_assessment?.recommendation || credibilityRating || '—')}</td>
+                <tr className="hover:bg-blue-50/50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Founder Credibility</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">{credibilityScore ?? 'N/A'}{credibilityScore ? ' / 100' : ''}</td>
+                  <td className="px-4 py-3 text-sm">{safeRender(diligenceData?.founder_credibility_assessment?.recommendation || credibilityRating || '—')}</td>
                 </tr>
-                <tr>
-                  <td className="px-3 py-2 font-medium">Claim Consistency</td>
-                  <td className="px-3 py-2">{matchPct ? `${matchPct}%` : (consistencyScore ? `${consistencyScore}%` : '—')}</td>
-                  <td className="px-3 py-2 text-xs">{matchPct ? `${matchPct}% consistency verified` : '—'}</td>
+                <tr className="hover:bg-blue-50/50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Claim Consistency</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">{matchPct ? `${matchPct}%` : (consistencyScore ? `${consistencyScore}%` : '—')}</td>
+                  <td className="px-4 py-3 text-sm">{matchPct ? `${matchPct}% consistency verified` : '—'}</td>
                 </tr>
-                <tr>
-                  <td className="px-3 py-2 font-medium">Red Flags Detected</td>
-                  <td className="px-3 py-2 font-semibold">{redFlagsCount}</td>
-                  <td className="px-3 py-2 text-red-600 font-medium">{safeRender(diligenceData?.risk_assessment || 'High Risk')}</td>
+                <tr className="hover:bg-blue-50/50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Red Flags Detected</td>
+                  <td className="px-4 py-3 text-sm font-semibold text-gray-700">{redFlagsCount}</td>
+                  <td className="px-4 py-3 text-sm text-red-600 font-medium">{safeRender(diligenceData?.risk_assessment || 'High Risk')}</td>
                 </tr>
-                <tr>
-                  <td className="px-3 py-2 font-medium">Validation Gaps</td>
-                  <td className="px-3 py-2 font-semibold">{validationGapsCount}</td>
-                  <td className="px-3 py-2 text-xs text-gray-600">Multiple missing data points and unverifiable claims (see below)</td>
+                <tr className="hover:bg-blue-50/50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Validation Gaps</td>
+                  <td className="px-4 py-3 text-sm font-semibold text-gray-700">{validationGapsCount}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">Multiple missing data points and unverifiable claims (see below)</td>
                 </tr>
               </tbody>
             </table>
           </div>
         </CardContent>
       </Card>
+
       {/* 🧭 EXECUTIVE SUMMARY */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-1 text-base">
-            <Target className="h-4 w-4" />
+      <Card className="border-blue-100 shadow-sm">
+        <CardHeader className="bg-gradient-to-r from-blue-50 to-sky-50 pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Target className="h-4 w-4 text-blue-600" />
             EXECUTIVE SUMMARY
           </CardTitle>
-          <CardDescription className="text-xs">Due Diligence Validation Report – Complete Structure</CardDescription>
+          <CardDescription className="text-sm">Due Diligence Validation Report – Complete Structure</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="overflow-hidden border rounded">
-            <table className="w-full text-xs">
-              <thead className="bg-gray-100">
+        <CardContent className="space-y-4">
+          <div className="overflow-hidden border border-blue-200 rounded-lg">
+            <table className="w-full">
+              <thead className="bg-gradient-to-r from-blue-50 to-sky-50">
                 <tr>
-                  <th className="px-3 py-2 text-left font-semibold">Parameter</th>
-                  <th className="px-3 py-2 text-left font-semibold">Details</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-blue-900">Parameter</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-blue-900">Details</th>
                 </tr>
               </thead>
-              <tbody className="divide-y bg-white">
-                <tr>
-                  <td className="px-3 py-2 font-medium">Company</td>
-                  <td className="px-3 py-2">{diligenceData?.executive_summary?.company_name || memo1?.title || 'Company Analysis'}</td>
+              <tbody className="divide-y divide-blue-100">
+                <tr className="hover:bg-blue-50/50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Company</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">{diligenceData?.executive_summary?.company_name || memo1?.title || 'Company Analysis'}</td>
                 </tr>
-                <tr>
-                  <td className="px-3 py-2 font-medium">Interview Date</td>
-                  <td className="px-3 py-2">{(() => { const d = safeDate(interviewData?.createdAt) || safeDate(memo1?.timestamp); return d ? d.toLocaleDateString('en-GB') : 'Not Available'; })()}</td>
+                <tr className="hover:bg-blue-50/50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Interview Date</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">{(() => { const d = safeDate(interviewData?.createdAt) || safeDate(memo1?.timestamp); return d ? d.toLocaleDateString('en-GB') : 'Not Available'; })()}</td>
                 </tr>
-                <tr>
-                  <td className="px-3 py-2 font-medium">Interview Duration</td>
-                  <td className="px-3 py-2">{interviewData?.questions?.length ? `${interviewData.questions.length * 5} minutes` : 'Not Available'}</td>
+                <tr className="hover:bg-blue-50/50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Interview Duration</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">{interviewData?.questions?.length ? `${interviewData.questions.length * 5} minutes` : 'Not Available'}</td>
                 </tr>
-                <tr>
-                  <td className="px-3 py-2 font-medium">Founder Interviewed</td>
-                  <td className="px-3 py-2">{interviewData?.founderEmail || memo1?.founder_email || memo1?.founder_name || 'Not Available'}</td>
+                <tr className="hover:bg-blue-50/50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Founder Interviewed</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">{interviewData?.founderEmail || memo1?.founder_email || memo1?.founder_name || 'Not Available'}</td>
                 </tr>
-                <tr>
-                  <td className="px-3 py-2 font-medium">DD Agent</td>
-                  <td className="px-3 py-2">AI Diligence Validator (Memo 2 Agent)</td>
+                <tr className="hover:bg-blue-50/50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">DD Agent</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">AI Diligence Validator (Memo 2 Agent)</td>
                 </tr>
-                <tr>
-                  <td className="px-3 py-2 font-medium">Validation Method</td>
-                  <td className="px-3 py-2">Founder Interview + LinkedIn Verification</td>
+                <tr className="hover:bg-blue-50/50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Validation Method</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">Founder Interview + LinkedIn Verification</td>
                 </tr>
-                <tr>
-                  <td className="px-3 py-2 font-medium">Overall DD Score</td>
-                  <td className="px-3 py-2 font-bold text-blue-600">{overallScore ?? 'N/A'}{overallScore ? ' / 100' : ''}</td>
+                <tr className="hover:bg-blue-50/50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Overall DD Score</td>
+                  <td className="px-4 py-3 text-sm font-bold text-blue-600">{overallScore ?? 'N/A'}{overallScore ? ' / 100' : ''}</td>
                 </tr>
-                <tr>
-                  <td className="px-3 py-2 font-medium">Recommendation</td>
-                  <td className="px-3 py-2 text-sm">{safeRender(recommendation)}</td>
+                <tr className="hover:bg-blue-50/50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Recommendation</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">{safeRender(recommendation)}</td>
                 </tr>
-                <tr>
-                  <td className="px-3 py-2 font-medium">Key Findings</td>
-                  <td className="px-3 py-2">{redFlagsCount} Red Flags identified; {validationGapsCount} Validation Gaps recorded</td>
+                <tr className="hover:bg-blue-50/50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Key Findings</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">{redFlagsCount} Red Flags identified; {validationGapsCount} Validation Gaps recorded</td>
                 </tr>
-                <tr>
-                  <td className="px-3 py-2 font-medium">Overall Confidence Level</td>
-                  <td className="px-3 py-2 font-semibold text-orange-600">{safeRender(diligenceData?.confidence_level || 'Low')}</td>
+                <tr className="hover:bg-blue-50/50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Overall Confidence Level</td>
+                  <td className="px-4 py-3 text-sm font-semibold text-orange-600">{safeRender(diligenceData?.confidence_level || 'Low')}</td>
                 </tr>
               </tbody>
             </table>
@@ -599,55 +601,16 @@ export default function Memo2Tab({ diligenceData, interviewData, memo1, memoId, 
       </Card>
 
       {/* 👥 FOUNDER CREDIBILITY ASSESSMENT */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-1 text-base">
-            <Users className="h-4 w-4" />
+      <Card className="border-green-100 shadow-sm">
+        <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Users className="h-4 w-4 text-green-600" />
             FOUNDER CREDIBILITY ASSESSMENT
           </CardTitle>
-          <CardDescription className="text-xs">Interview Performance Scoring & LinkedIn Verification</CardDescription>
+          <CardDescription className="text-sm">Comprehensive founder background and credibility evaluation</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="overflow-hidden border rounded mb-3">
-            <table className="w-full text-xs">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="px-3 py-2 text-left font-semibold">Dimension</th>
-                  <th className="px-3 py-2 text-left font-semibold">Score (out of 10)</th>
-                  <th className="px-3 py-2 text-left font-semibold">Evidence</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y bg-white">
-                <tr>
-                  <td className="px-3 py-2 font-medium">Communication Quality</td>
-                  <td className="px-3 py-2">{diligenceData?.founder_credibility_assessment?.dimensions?.communication_quality?.score || 'N/A'}</td>
-                  <td className="px-3 py-2 text-gray-600">{diligenceData?.founder_credibility_assessment?.dimensions?.communication_quality?.evidence || 'Not Available'}</td>
-                </tr>
-                <tr>
-                  <td className="px-3 py-2 font-medium">Domain Expertise</td>
-                  <td className="px-3 py-2">{diligenceData?.founder_credibility_assessment?.dimensions?.domain_expertise?.score || 'N/A'}</td>
-                  <td className="px-3 py-2 text-gray-600">{diligenceData?.founder_credibility_assessment?.dimensions?.domain_expertise?.evidence || 'Not Available'}</td>
-                </tr>
-                <tr>
-                  <td className="px-3 py-2 font-medium">Market Understanding</td>
-                  <td className="px-3 py-2">{diligenceData?.founder_credibility_assessment?.dimensions?.market_understanding?.score || 'N/A'}</td>
-                  <td className="px-3 py-2 text-gray-600">{diligenceData?.founder_credibility_assessment?.dimensions?.market_understanding?.evidence || 'Not Available'}</td>
-                </tr>
-                <tr>
-                  <td className="px-3 py-2 font-medium">Financial Acumen</td>
-                  <td className="px-3 py-2">{diligenceData?.founder_credibility_assessment?.dimensions?.financial_acumen?.score || 'N/A'}</td>
-                  <td className="px-3 py-2 text-gray-600">{diligenceData?.founder_credibility_assessment?.dimensions?.financial_acumen?.evidence || 'Not Available'}</td>
-                </tr>
-                <tr>
-                  <td className="px-3 py-2 font-medium">Leadership & Execution</td>
-                  <td className="px-3 py-2">{diligenceData?.founder_credibility_assessment?.dimensions?.leadership_execution?.score || 'N/A'}</td>
-                  <td className="px-3 py-2 text-gray-600">{diligenceData?.founder_credibility_assessment?.dimensions?.leadership_execution?.evidence || 'Not Available'}</td>
-                </tr>
-              </tbody>
-            </table>
-                </div>
-          
-          <div className="bg-green-50 border border-green-200 rounded p-3">
+        <CardContent className="space-y-4">
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-4">
             <div className="mb-2">
               <span className="text-sm font-semibold text-green-800">Overall Credibility Score: </span>
               <span className="text-lg font-bold text-green-600">
@@ -668,125 +631,59 @@ export default function Memo2Tab({ diligenceData, interviewData, memo1, memoId, 
       </Card>
 
 
-      {/* 📊 PITCH CONSISTENCY CHECK */}
-      {diligenceData?.pitch_consistency_check && (
-        <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-1 text-base">
-            <CheckCircle className="h-4 w-4" />
-            PITCH CONSISTENCY CHECK
-            </CardTitle>
-          <CardDescription className="text-xs">
-            Claim-by-Claim Validation Matrix
-            </CardDescription>
-          </CardHeader>
-        <CardContent>
-          <div className="overflow-hidden border rounded mb-3">
-            <table className="w-full text-xs">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="px-3 py-2 text-left font-semibold">Claim</th>
-                  <th className="px-3 py-2 text-left font-semibold">Pitch Value</th>
-                  <th className="px-3 py-2 text-left font-semibold">Interview Response</th>
-                  <th className="px-3 py-2 text-left font-semibold">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y bg-white">
-                <tr>
-                  <td className="px-3 py-2 font-medium">Time to Insights</td>
-                  <td className="px-3 py-2">&lt;5 minutes</td>
-                  <td className="px-3 py-2 text-gray-600">"Average 3–7 minutes"</td>
-                  <td className="px-3 py-2"><span className="text-green-600 font-semibold">✅ Consistent</span></td>
-                </tr>
-                <tr>
-                  <td className="px-3 py-2 font-medium">Current Revenue</td>
-                  <td className="px-3 py-2">$400K FY25–26</td>
-                  <td className="px-3 py-2 text-gray-600">"$350K annualized ARR"</td>
-                  <td className="px-3 py-2"><span className="text-yellow-600 font-semibold">⚠ Slight Variance</span></td>
-                </tr>
-                <tr>
-                  <td className="px-3 py-2 font-medium">Customer Count</td>
-                  <td className="px-3 py-2">5 booked + 7 pilots</td>
-                  <td className="px-3 py-2 text-gray-600">"6 confirmed + 5 pilots"</td>
-                  <td className="px-3 py-2"><span className="text-green-600 font-semibold">✅ Consistent</span></td>
-                </tr>
-                <tr>
-                  <td className="px-3 py-2 font-medium">LTV</td>
-                  <td className="px-3 py-2">&gt;$1 Million</td>
-                  <td className="px-3 py-2 text-gray-600">"$800K–$1.2M range"</td>
-                  <td className="px-3 py-2"><span className="text-green-600 font-semibold">✅ Consistent</span></td>
-                </tr>
-                <tr>
-                  <td className="px-3 py-2 font-medium">Growth Projections</td>
-                  <td className="px-3 py-2">$0.5M → $360M</td>
-                  <td className="px-3 py-2 text-gray-600">"Acknowledged aggressive"</td>
-                  <td className="px-3 py-2"><span className="text-yellow-600 font-semibold">⚠ Aggressive</span></td>
-                </tr>
-              </tbody>
-            </table>
-              </div>
-
-          <div className="bg-blue-50 border border-blue-200 rounded p-3">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-sm font-semibold text-blue-800">Consistency Score:</span>
-              <span className="text-lg font-bold text-blue-600">
-                {matchPct ? (matchPct >= 80 ? '8.2' : (matchPct / 10).toFixed(1)) : (consistencyScore ? (consistencyScore >= 80 ? '8.2' : (consistencyScore / 10).toFixed(1)) : 'N/A')} / 10
-              </span>
-                  </div>
-            <div className="text-xs text-blue-700">
-              {matchPct && matchPct >= 80 ? '✅ Excellent Alignment (82% Match)' : matchPct ? `${matchPct}% Match` : consistencyScore ? `${consistencyScore}% consistency verified` : '—'}
-            </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* 🚨 RED FLAGS & CONCERNS */}
       {diligenceData?.red_flags_concerns && redFlagsCount > 0 && (
-        <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-1 text-base">
-            <AlertTriangle className="h-4 w-4" />
-            RED FLAGS & CONCERNS
+        <Card className="border-orange-100 shadow-sm">
+          <CardHeader className="bg-gradient-to-r from-orange-50 to-amber-50 pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg text-orange-900">
+              <AlertTriangle className="h-4 w-4 text-orange-600" />
+              RED FLAGS & CONCERNS
             </CardTitle>
-          <CardDescription className="text-xs">
-            Risk Assessment & Mitigation Analysis
+            <CardDescription className="text-sm">
+              Risk Assessment & Mitigation Analysis
             </CardDescription>
           </CardHeader>
-        <CardContent>
-          <div className="overflow-hidden border rounded mb-3">
-            <table className="w-full text-xs">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="px-3 py-2 text-left font-semibold">Severity</th>
-                  <th className="px-3 py-2 text-left font-semibold">Risk Description</th>
-                  <th className="px-3 py-2 text-left font-semibold">Impact</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y bg-white">
-                {(diligenceData?.red_flags_concerns?.flags || diligenceData?.key_findings?.red_flags || []).slice(0, 5).map((f: any, i: number) => {
-                  const flagText = typeof f === 'string' ? f : safeRender(f.description || f.flag_type || f);
-                  const severity = typeof f === 'object' && f !== null ? (f.severity || 'Medium') : 'Medium';
-                  return (
-                    <tr key={i}>
-                      <td className="px-3 py-2">
-                        <span className="text-yellow-600 font-semibold">🟡 {severity}</span>
-                      </td>
-                      <td className="px-3 py-2">{flagText}</td>
-                      <td className="px-3 py-2 text-red-600 font-medium">High</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          
-          <div className="bg-red-50 border border-red-200 rounded p-3">
-            <div className="text-sm font-semibold text-red-800 mb-2">Summary:</div>
-            <div className="text-xs text-red-700 space-y-1">
-              <div>Total Red Flags: <strong>{redFlagsCount}</strong></div>
-              <div>Critical Blockers: <strong>{diligenceData?.red_flags_concerns?.critical_blockers ?? 0}</strong></div>
-              <div>Overall Risk: <strong className="text-red-800">{safeRender(diligenceData?.risk_assessment || 'High')}</strong></div>
+          <CardContent className="space-y-4">
+            <div className="overflow-hidden border border-orange-200 rounded-lg">
+              <table className="w-full">
+                <thead className="bg-gradient-to-r from-orange-50 to-amber-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-orange-900">Severity</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-orange-900">Risk Description</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-orange-900">Impact</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-orange-100">
+                  {(diligenceData?.red_flags_concerns?.flags || diligenceData?.key_findings?.red_flags || []).slice(0, 5).map((f: any, i: number) => {
+                    const flagText = typeof f === 'string' ? f : safeRender(f.description || f.flag_type || f);
+                    const severity = typeof f === 'object' && f !== null ? (f.severity || 'Medium') : 'Medium';
+                    return (
+                      <tr key={i} className="hover:bg-orange-50/50">
+                        <td className="px-4 py-3">
+                          <Badge variant="outline" className="rounded-full bg-orange-50 text-orange-700 border-orange-200">
+                            🟡 {severity}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-700">{flagText}</td>
+                        <td className="px-4 py-3">
+                          <Badge variant="outline" className="rounded-full bg-red-50 text-red-700 border-red-200">
+                            High
+                          </Badge>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            
+            <div className="bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-lg p-4">
+              <div className="text-sm font-semibold text-red-800 mb-2">Summary:</div>
+              <div className="text-sm text-red-700 space-y-1">
+                <div>Total Red Flags: <strong>{redFlagsCount}</strong></div>
+                <div>Critical Blockers: <strong>{diligenceData?.red_flags_concerns?.critical_blockers ?? 0}</strong></div>
+                <div>Overall Risk: <strong className="text-red-800">{safeRender(diligenceData?.risk_assessment || 'High')}</strong></div>
               </div>
             </div>
           </CardContent>
@@ -795,17 +692,17 @@ export default function Memo2Tab({ diligenceData, interviewData, memo1, memoId, 
 
       {/* Financial Validation */}
       {diligenceData?.financial_validation ? (
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-1 text-base">
-            <DollarSign className="h-3 w-3" />
+      <Card className="border-green-100 shadow-sm">
+        <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <DollarSign className="h-4 w-4 text-green-600" />
             Financial Validation
           </CardTitle>
-          <CardDescription className="text-xs">
+          <CardDescription className="text-sm">
             Unit Economics & Burn Rate Verification
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-2">
+        <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4 text-xs">
             {diligenceData?.financial_validation?.unit_economics && (
               <div className="p-2 bg-green-50 border border-green-200 rounded">
@@ -829,76 +726,53 @@ export default function Memo2Tab({ diligenceData, interviewData, memo1, memoId, 
       ) : null}
 
       {/* 📈 MARKET & CLAIM VALIDATION */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-1 text-base">
-            <BarChart3 className="h-4 w-4" />
+      <Card className="border-purple-100 shadow-sm">
+        <CardHeader className="bg-gradient-to-r from-purple-50 to-indigo-50 pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <BarChart3 className="h-4 w-4 text-purple-600" />
             MARKET & CLAIM VALIDATION
           </CardTitle>
-          <CardDescription className="text-xs">Public data cross-checks for market size and key claims</CardDescription>
+          <CardDescription className="text-sm">Public data cross-checks for market size and key claims</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-2">
+        <CardContent className="space-y-4">
           {/* Market Benchmarking Header (if available) */}
           {diligenceData?.market_benchmarking && (
             <div className="mb-1">
               <div className="text-sm font-semibold">Market Benchmarking</div>
-              <div className="text-[11px] text-gray-600">Industry comparison and competitive positioning analysis</div>
+              <div className="text-xs text-gray-600">Industry comparison and competitive positioning analysis</div>
             </div>
           )}
-          {/* Claims validation from diligence */}
-          <div className="overflow-hidden border rounded">
-            <table className="w-full text-xs">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-2 py-1 text-left font-semibold">Claim</th>
-                  <th className="px-2 py-1 text-left font-semibold">Source</th>
-                  <th className="px-2 py-1 text-left font-semibold">Finding</th>
-                  <th className="px-2 py-1 text-left font-semibold">Match</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 bg-white">
-                {(diligenceData?.market_validation?.claims || []).map((c: any, i: number) => (
-                  <tr key={i}>
-                    <td className="px-2 py-1 font-medium">{safeRender(c.claim)}</td>
-                    <td className="px-2 py-1 text-gray-600">{safeRender(c.source)}</td>
-                    <td className="px-2 py-1 text-gray-600">{safeRender(c.finding)}</td>
-                    <td className="px-2 py-1">{safeRender(c.match)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
           {diligenceData?.market_validation?.summary && (
-            <div className="text-xs text-gray-700">{safeRender(diligenceData.market_validation.summary)}</div>
+            <div className="text-sm text-gray-700">{safeRender(diligenceData.market_validation.summary)}</div>
           )}
 
           {/* Benchmarking: industry averages */}
-          <div className="border rounded p-3 mb-3">
+          <div className="border border-purple-200 rounded-lg p-4">
             <div className="text-sm font-semibold mb-2">Metric</div>
-            <div className="overflow-hidden border rounded">
-              <table className="w-full text-xs">
-                <thead className="bg-gray-100">
+            <div className="overflow-hidden border border-purple-200 rounded-lg">
+              <table className="w-full">
+                <thead className="bg-gradient-to-r from-purple-50 to-indigo-50">
                   <tr>
-                    <th className="px-3 py-2 text-left font-semibold">Metric</th>
-                    <th className="px-3 py-2 text-left font-semibold">Value / Finding</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-purple-900">Metric</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-purple-900">Value / Finding</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y bg-white">
+                <tbody className="divide-y divide-purple-100">
                   {(diligenceData?.market_benchmarking?.industry_averages?.metrics || []).map((m: any, i: number) => (
-                    <tr key={i}>
-                      <td className="px-3 py-2 font-medium">{safeRender(m.label) || 'Metric'}</td>
-                      <td className="px-3 py-2">{safeRender(m.value)}</td>
+                    <tr key={i} className="hover:bg-purple-50/50">
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900">{safeRender(m.label) || 'Metric'}</td>
+                      <td className="px-4 py-3 text-sm text-gray-700">{safeRender(m.value)}</td>
                     </tr>
                   ))}
                   {(!diligenceData?.market_benchmarking?.industry_averages?.metrics || diligenceData.market_benchmarking.industry_averages.metrics.length === 0) && (
-                    <tr>
-                      <td className="px-3 py-2 font-medium">Market Size</td>
-                      <td className="px-3 py-2">Not Available</td>
+                    <tr className="hover:bg-purple-50/50">
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900">Market Size</td>
+                      <td className="px-4 py-3 text-sm text-gray-700">Not Available</td>
                     </tr>
                   )}
-                  <tr>
-                    <td className="px-3 py-2 font-medium">Status</td>
-                    <td className="px-3 py-2 text-orange-600">{safeRender(diligenceData?.market_benchmarking?.status || 'Default Data Used')}</td>
+                  <tr className="hover:bg-purple-50/50">
+                    <td className="px-4 py-3 text-sm font-medium text-gray-900">Status</td>
+                    <td className="px-4 py-3 text-sm text-orange-600">{safeRender(diligenceData?.market_benchmarking?.status || 'Default Data Used')}</td>
                   </tr>
                 </tbody>
               </table>
@@ -908,27 +782,27 @@ export default function Memo2Tab({ diligenceData, interviewData, memo1, memoId, 
           {/* Competitive Landscape */}
           <div className="mb-3">
             <div className="text-sm font-semibold mb-2">Competitive Landscape</div>
-            <div className="overflow-hidden border rounded">
-              <table className="w-full text-xs">
-                <thead className="bg-gray-100">
+            <div className="overflow-hidden border border-purple-200 rounded-lg">
+              <table className="w-full">
+                <thead className="bg-gradient-to-r from-purple-50 to-indigo-50">
                   <tr>
-                    <th className="px-3 py-2 text-left font-semibold">Company</th>
-                    <th className="px-3 py-2 text-left font-semibold">{safeRender(diligenceData.market_benchmarking?.metric_labels?.metric1) || 'Failure Rate'}</th>
-                    <th className="px-3 py-2 text-left font-semibold">{safeRender(diligenceData.market_benchmarking?.metric_labels?.metric2) || 'Processing Fees'}</th>
-                    <th className="px-3 py-2 text-left font-semibold">AI Powered</th>
-                    <th className="px-3 py-2 text-left font-semibold">Notes</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-purple-900">Company</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-purple-900">{safeRender(diligenceData.market_benchmarking?.metric_labels?.metric1) || 'Failure Rate'}</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-purple-900">{safeRender(diligenceData.market_benchmarking?.metric_labels?.metric2) || 'Processing Fees'}</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-purple-900">AI Powered</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-purple-900">Notes</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y bg-white">
+                <tbody className="divide-y divide-purple-100">
                   {(diligenceData?.market_benchmarking?.competitive_landscape || []).map((row: any, i: number) => (
-                    <tr key={i} className={row.is_target ? 'bg-blue-50' : ''}>
-                      <td className="px-3 py-2 font-medium">
+                    <tr key={i} className={`hover:bg-purple-50/50 ${row.is_target ? 'bg-blue-50' : ''}`}>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900">
                         {safeRender(row.company_name)}
                       </td>
-                      <td className="px-3 py-2">{safeRender(row.metric1_value)}</td>
-                      <td className="px-3 py-2">{safeRender(row.metric2_value)}</td>
-                      <td className="px-3 py-2">{safeRender(row.ai_powered)}</td>
-                      <td className="px-3 py-2 text-gray-600">{safeRender(row.notes)}</td>
+                      <td className="px-4 py-3 text-sm text-gray-700">{safeRender(row.metric1_value)}</td>
+                      <td className="px-4 py-3 text-sm text-gray-700">{safeRender(row.metric2_value)}</td>
+                      <td className="px-4 py-3 text-sm text-gray-700">{safeRender(row.ai_powered)}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{safeRender(row.notes)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -937,9 +811,9 @@ export default function Memo2Tab({ diligenceData, interviewData, memo1, memoId, 
           </div>
 
           {/* Market Opportunity */}
-          <div className="border rounded p-3 bg-blue-50">
+          <div className="border border-purple-200 rounded-lg p-4 bg-gradient-to-r from-purple-50 to-indigo-50">
             <div className="text-sm font-semibold mb-1">Market Opportunity:</div>
-            <div className="text-xs text-gray-700">
+            <div className="text-sm text-gray-700">
               {safeRender(diligenceData?.market_benchmarking?.market_opportunity?.description || 'Market opportunity analysis unavailable. However, AI-powered workforce readiness solutions show growing adoption, with achievable market share potential of 5–10% given strong execution.')}
             </div>
           </div>
@@ -973,59 +847,61 @@ export default function Memo2Tab({ diligenceData, interviewData, memo1, memoId, 
       ) : null}
 
       {/* 🧮 COMPONENT SCORES */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-1 text-base">
-            <BarChart3 className="h-4 w-4" />
+      <Card className="border-blue-100 shadow-sm">
+        <CardHeader className="bg-gradient-to-r from-blue-50 to-sky-50 pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <BarChart3 className="h-4 w-4 text-blue-600" />
             COMPONENT SCORES
           </CardTitle>
+          <CardDescription className="text-sm">Detailed component-level scoring breakdown</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="overflow-hidden border rounded">
-            <table className="w-full text-xs">
-              <thead className="bg-gray-100">
+        <CardContent className="space-y-4">
+          <div className="overflow-hidden border border-blue-200 rounded-lg">
+            <table className="w-full">
+              <thead className="bg-gradient-to-r from-blue-50 to-sky-50">
                 <tr>
-                  <th className="px-3 py-2 text-left font-semibold">Component</th>
-                  <th className="px-3 py-2 text-left font-semibold">Score (/100)</th>
-                  <th className="px-3 py-2 text-left font-semibold">Status / Notes</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-blue-900">Component</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-blue-900">Score (/100)</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-blue-900">Status / Notes</th>
                 </tr>
               </thead>
-              <tbody className="divide-y bg-white">
-                <tr>
-                  <td className="px-3 py-2 font-medium">Founder Credibility</td>
-                  <td className="px-3 py-2 font-bold">{credibilityScore ?? 'N/A'}{credibilityScore ? ' / 100' : ''}</td>
-                  <td className="px-3 py-2 text-xs">{safeRender(diligenceData?.founder_credibility_assessment?.validation_status || 'Verified')}</td>
+              <tbody className="divide-y divide-blue-100">
+                <tr className="hover:bg-blue-50/50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Founder Credibility</td>
+                  <td className="px-4 py-3 text-sm font-bold text-gray-700">{credibilityScore ?? 'N/A'}{credibilityScore ? ' / 100' : ''}</td>
+                  <td className="px-4 py-3 text-sm">{safeRender(diligenceData?.founder_credibility_assessment?.validation_status || 'Verified')}</td>
                 </tr>
-                <tr>
-                  <td className="px-3 py-2 font-medium">Memo1 Accuracy</td>
-                  <td className="px-3 py-2 font-bold">{diligenceData?.memo1_accuracy_data?.accuracy_score ?? 'N/A'}{diligenceData?.memo1_accuracy_data?.accuracy_score ? ' / 100' : ''}</td>
-                  <td className="px-3 py-2 text-xs">Limited verification due to incomplete source document</td>
+                <tr className="hover:bg-blue-50/50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Memo1 Accuracy</td>
+                  <td className="px-4 py-3 text-sm font-bold text-gray-700">{diligenceData?.memo1_accuracy_data?.accuracy_score ?? 'N/A'}{diligenceData?.memo1_accuracy_data?.accuracy_score ? ' / 100' : ''}</td>
+                  <td className="px-4 py-3 text-sm">Limited verification due to incomplete source document</td>
                 </tr>
-                <tr>
-                  <td className="px-3 py-2 font-medium">Pitch Consistency</td>
-                  <td className="px-3 py-2 font-bold">{consistencyScore ?? 'N/A'}{consistencyScore ? ' / 100' : ''}</td>
-                  <td className="px-3 py-2 text-xs">Partially validated ({matchPct || consistencyScore || 0}% match in overlapping fields)</td>
+                <tr className="hover:bg-blue-50/50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Pitch Consistency</td>
+                  <td className="px-4 py-3 text-sm font-bold text-gray-700">{consistencyScore ?? 'N/A'}{consistencyScore ? ' / 100' : ''}</td>
+                  <td className="px-4 py-3 text-sm">Partially validated ({matchPct || consistencyScore || 0}% match in overlapping fields)</td>
                 </tr>
-                <tr>
-                  <td className="px-3 py-2 font-medium">Overall DD Score</td>
-                  <td className="px-3 py-2 font-bold text-red-600">{overallScore ?? 'N/A'}{overallScore ? ' / 100' : ''}</td>
-                  <td className="px-3 py-2 text-xs text-red-600 font-medium">High Risk, {safeRender(diligenceData?.confidence_level || 'Low')} Confidence</td>
+                <tr className="hover:bg-blue-50/50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Overall DD Score</td>
+                  <td className="px-4 py-3 text-sm font-bold text-red-600">{overallScore ?? 'N/A'}{overallScore ? ' / 100' : ''}</td>
+                  <td className="px-4 py-3 text-sm text-red-600 font-medium">High Risk, {safeRender(diligenceData?.confidence_level || 'Low')} Confidence</td>
                 </tr>
               </tbody>
             </table>
-                        </div>
+          </div>
         </CardContent>
       </Card>
 
       {/* 💡 KEY VALIDATION GAPS */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-1 text-base">
-            <AlertTriangle className="h-4 w-4" />
+      <Card className="border-orange-100 shadow-sm">
+        <CardHeader className="bg-gradient-to-r from-orange-50 to-amber-50 pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg text-orange-900">
+            <AlertTriangle className="h-4 w-4 text-orange-600" />
             KEY VALIDATION GAPS
           </CardTitle>
+          <CardDescription className="text-sm">Areas requiring additional verification</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <div className="mb-2">
             <span className="text-sm font-semibold">Total Gaps Identified: </span>
             <span className="text-lg font-bold text-red-600">{validationGapsCount}</span>
@@ -1051,60 +927,62 @@ export default function Memo2Tab({ diligenceData, interviewData, memo1, memoId, 
       </Card>
 
       {/* 🔒 FINAL ASSESSMENT & INVESTMENT RECOMMENDATION */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-1 text-base">
-            <Target className="h-4 w-4" />
+      <Card className="border-green-100 shadow-sm">
+        <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Target className="h-4 w-4 text-green-600" />
             FINAL ASSESSMENT & INVESTMENT RECOMMENDATION
           </CardTitle>
+          <CardDescription className="text-sm">Comprehensive investment evaluation and recommendation</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="overflow-hidden border rounded mb-3">
-            <table className="w-full text-xs">
-              <thead className="bg-gray-100">
+        <CardContent className="space-y-4">
+          <div className="overflow-hidden border border-green-200 rounded-lg">
+            <table className="w-full">
+              <thead className="bg-gradient-to-r from-green-50 to-emerald-50">
                 <tr>
-                  <th className="px-3 py-2 text-left font-semibold">Category</th>
-                  <th className="px-3 py-2 text-left font-semibold">Result</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-green-900">Category</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-green-900">Result</th>
                 </tr>
               </thead>
-              <tbody className="divide-y bg-white">
-                <tr>
-                  <td className="px-3 py-2 font-medium">Overall DD Score</td>
-                  <td className="px-3 py-2 font-bold">{overallScore ?? 'N/A'}{overallScore ? ' / 100' : ''}</td>
+              <tbody className="divide-y divide-green-100">
+                <tr className="hover:bg-green-50/50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Overall DD Score</td>
+                  <td className="px-4 py-3 text-sm font-bold text-gray-700">{overallScore ?? 'N/A'}{overallScore ? ' / 100' : ''}</td>
                 </tr>
-                <tr>
-                  <td className="px-3 py-2 font-medium">Confidence Level</td>
-                  <td className="px-3 py-2 font-semibold text-orange-600">{safeRender(diligenceData?.confidence_level || 'Low')}</td>
+                <tr className="hover:bg-green-50/50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Confidence Level</td>
+                  <td className="px-4 py-3 text-sm font-semibold text-orange-600">{safeRender(diligenceData?.confidence_level || 'Low')}</td>
                 </tr>
-                <tr>
-                  <td className="px-3 py-2 font-medium">Risk Level</td>
-                  <td className="px-3 py-2 font-semibold text-red-600">{safeRender(diligenceData?.risk_assessment || 'High')}</td>
+                <tr className="hover:bg-green-50/50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Risk Level</td>
+                  <td className="px-4 py-3 text-sm font-semibold text-red-600">{safeRender(diligenceData?.risk_assessment || 'High')}</td>
                 </tr>
-                <tr>
-                  <td className="px-3 py-2 font-medium">Investment Stance</td>
-                  <td className="px-3 py-2 font-bold text-yellow-600">⚠ Proceed with Caution</td>
+                <tr className="hover:bg-green-50/50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Investment Stance</td>
+                  <td className="px-4 py-3 text-sm font-bold text-yellow-600">⚠ Proceed with Caution</td>
                 </tr>
-                <tr>
-                  <td className="px-3 py-2 font-medium">Primary Recommendation</td>
-                  <td className="px-3 py-2 text-sm">{safeRender(recommendation || diligenceData?.executive_summary_text || 'Conduct full, independent background verification of all founders and advisors. Request verified financials, technical whitepaper, and a complete market study before proceeding with investment.')}</td>
+                <tr className="hover:bg-green-50/50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Primary Recommendation</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">{safeRender(recommendation || diligenceData?.executive_summary_text || 'Conduct full, independent background verification of all founders and advisors. Request verified financials, technical whitepaper, and a complete market study before proceeding with investment.')}</td>
                 </tr>
               </tbody>
             </table>
-                  </div>
+          </div>
         </CardContent>
       </Card>
 
       {/* ✅ PRIORITY ACTIONS */}
       {diligenceData?.priority_actions && diligenceData.priority_actions.length > 0 && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-1 text-base">
-              <CheckCircle className="h-4 w-4" />
+        <Card className="border-green-100 shadow-sm">
+          <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <CheckCircle className="h-4 w-4 text-green-600" />
               PRIORITY ACTIONS
             </CardTitle>
+            <CardDescription className="text-sm">Recommended next steps</CardDescription>
           </CardHeader>
-          <CardContent>
-            <ol className="list-decimal pl-5 space-y-2 text-xs">
+          <CardContent className="space-y-4">
+            <ol className="list-decimal pl-5 space-y-2 text-sm">
               {diligenceData.priority_actions.map((action: string, i: number) => (
                 <li key={i} className="text-gray-700">{safeRender(action)}</li>
               ))}
@@ -1114,15 +992,16 @@ export default function Memo2Tab({ diligenceData, interviewData, memo1, memoId, 
       )}
 
       {/* 📌 FINAL SUMMARY */}
-      <Card className="bg-gradient-to-r from-gray-50 to-blue-50">
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-1 text-base">
-            <FileText className="h-4 w-4" />
+      <Card className="border-blue-100 shadow-sm bg-gradient-to-r from-blue-50 to-sky-50">
+        <CardHeader className="bg-gradient-to-r from-blue-50 to-sky-50 pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <FileText className="h-4 w-4 text-blue-600" />
             FINAL SUMMARY
           </CardTitle>
+          <CardDescription className="text-sm">Comprehensive due diligence summary</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="text-xs text-gray-700 leading-relaxed">
+        <CardContent className="space-y-4">
+          <div className="text-sm text-gray-700 leading-relaxed">
             {safeRender(diligenceData?.executive_summary_text || diligenceData?.executive_summary?.detailed_analysis || 
               `${diligenceData?.executive_summary?.company_name || memo1?.title || 'The company'} addresses a relevant and growing problem. The founding team appears credible, but the diligence reveals significant information gaps, aggressive financial projections, and high execution risk. Without verified data on founder backgrounds, financials, and technical architecture, this opportunity remains high-risk and requires complete revalidation before any investment decision.`)}
           </div>
@@ -1130,13 +1009,13 @@ export default function Memo2Tab({ diligenceData, interviewData, memo1, memoId, 
       </Card>
 
       {/* Interview Transcript Display - Enhanced Section */}
-      <Card>
-        <CardHeader className="pb-2">
+      <Card className="border-blue-100 shadow-sm">
+        <CardHeader className="bg-gradient-to-r from-blue-50 to-sky-50 pb-3">
           <CardTitle className="flex items-center gap-2 text-lg">
-            <FileText className="h-4 w-4" />
+            <FileText className="h-4 w-4 text-blue-600" />
             Interview Transcript & Analysis
           </CardTitle>
-          <CardDescription className="text-xs">
+          <CardDescription className="text-sm">
             Complete AI-led founder interview transcript, responses, and comprehensive analysis
           </CardDescription>
         </CardHeader>

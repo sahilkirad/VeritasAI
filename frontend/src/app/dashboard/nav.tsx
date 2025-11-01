@@ -26,7 +26,6 @@ import {
   Settings,
   LayoutDashboard,
   ShieldCheck,
-  Bot,
   FileText,
   CreditCard,
   MessageCircle, // Add this import
@@ -35,10 +34,8 @@ import {
 export const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/dashboard/diligence', icon: ShieldCheck, label: 'Diligence Hub' },
-  { href: '/dashboard/interview', icon: Bot, label: 'AI Interview' },
   { href: '/dashboard/memo', icon: FileText, label: 'Deal Memo' },
   { href: '/dashboard/messages', icon: MessageCircle, label: 'Messages' },
-  { href: '/dashboard/create-room', icon: MessageCircle, label: 'Create a Room' },
   { href: '/dashboard/billing', icon: CreditCard, label: 'Billing' },
   { href: '/dashboard/settings', icon: Settings, label: 'Settings' },
 ];

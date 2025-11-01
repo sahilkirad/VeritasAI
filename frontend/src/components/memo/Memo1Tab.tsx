@@ -204,6 +204,17 @@ interface Memo1Data {
   user_engagement_stats?: string;
   growth_metrics?: string;
   
+  // Enrichment metadata (for displaying confidence scores and sources)
+  enrichment_metadata?: {
+    enrichment_timestamp?: string;
+    fields_enriched?: string[];
+    enrichment_method?: string;
+    confidence_scores?: Record<string, number>;
+    sources?: Record<string, string>;
+    missing_fields_identified?: string[];
+  };
+  validation_results?: any;
+  
   // Enriched fields (AI-powered data from Perplexity)
   company_stage_enriched?: EnrichedField;
   headquarters_enriched?: EnrichedField;
@@ -428,9 +439,17 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
 
   // Enhanced memo1 with fallbacks, enriched data, and fetched enriched data
   // Priority: enrichedData (from memo1_validated) > memo1 (original) > defaults
+  
+  // Extract enrichment_metadata if available (for confidence scores and sources)
+  const enrichmentMetadata = memo1.enrichment_metadata || enrichedData?.enrichment_metadata || null;
+  const validationResults = memo1.validation_results || enrichedData?.validation_results || null;
+  
   const enhancedMemo1: Memo1Data = {
     ...memo1,
     ...parsedFinancialData,
+    // Attach enrichment metadata for UI display
+    ...(enrichmentMetadata && { enrichment_metadata: enrichmentMetadata }),
+    ...(validationResults && { validation_results: validationResults }),
     // Override with enriched data if available (prioritize enriched data from memo1_validated)
     ...(enrichedData && {
       // Core fields that might be enriched
@@ -557,23 +576,91 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
     return String(value);
   };
 
-  // Helper function to render enriched field with badge and source link
+  // Helper function to parse sources from enrichment_metadata or validation_results
+  const getSourcesForField = (fieldName: string): string[] => {
+    const sources: string[] = [];
+    
+    // Check enrichment_metadata.sources
+    if (enrichmentMetadata?.sources?.[fieldName]) {
+      const sourceValue = enrichmentMetadata.sources[fieldName];
+      // Handle string or array of URLs
+      if (typeof sourceValue === 'string') {
+        // Try to parse URLs from the string (may contain multiple URLs or descriptions)
+        const urlMatches = sourceValue.match(/https?:\/\/[^\s,)]+/g);
+        if (urlMatches && urlMatches.length > 0) {
+          sources.push(...urlMatches);
+        } else if (sourceValue.startsWith('http')) {
+          sources.push(sourceValue);
+        }
+      } else if (Array.isArray(sourceValue)) {
+        const arr = sourceValue as unknown[];
+        if (arr.length > 0) {
+          const stringSources = arr.filter((s: any) => typeof s === 'string' && s.startsWith('http')) as string[];
+          if (stringSources.length > 0) {
+            sources.push(...stringSources);
+          }
+        }
+      }
+    }
+    
+    // Check validation_results for category sources
+    if (validationResults?.validation_results) {
+      // Try to find sources in validation category results
+      Object.values(validationResults.validation_results).forEach((categoryResult: any) => {
+        if (categoryResult?.sources && Array.isArray(categoryResult.sources)) {
+          sources.push(...categoryResult.sources.filter((s: string) => s && s.startsWith('http')));
+        }
+      });
+    }
+    
+    return [...new Set(sources)]; // Remove duplicates
+  };
+
+  // Helper function to render enriched field with badge and source links
   const renderEnrichedField = (fieldName: string, enrichedField?: EnrichedField) => {
     const originalValue = enhancedMemo1[fieldName as keyof Memo1Data] as string;
     const displayValue = safeRenderValue(enrichedField?.value || originalValue);
-    const isEnriched = enrichedField?.enriched;
+    const isEnriched = enrichedField?.enriched || enrichmentMetadata?.fields_enriched?.includes(fieldName);
+    
+    // Get sources from enrichment_metadata
+    const sources = getSourcesForField(fieldName);
     
     return (
       <div className="space-y-2">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <p className="text-sm text-muted-foreground">{displayValue}</p>
           {isEnriched && (
             <Badge variant="secondary" className="text-xs">
               AI-enriched
             </Badge>
           )}
+          {enrichmentMetadata?.confidence_scores?.[fieldName] && (
+            <Badge variant="outline" className="text-xs">
+              {(enrichmentMetadata.confidence_scores[fieldName] * 100).toFixed(0)}% confidence
+            </Badge>
+          )}
         </div>
-        {isEnriched && enrichedField?.source_url && (
+        {sources.length > 0 && (
+          <div className="space-y-1">
+            <div className="text-xs font-semibold text-gray-600">References:</div>
+            <div className="flex flex-wrap gap-2">
+              {sources.map((source, idx) => (
+                <a
+                  key={idx}
+                  href={source}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  {source.replace(/^https?:\/\//, '').replace(/\/$/, '').substring(0, 50)}
+                  {source.length > 50 ? '...' : ''}
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+        {isEnriched && enrichedField?.source_url && !sources.includes(enrichedField.source_url) && (
           <a 
             href={enrichedField.source_url} 
             target="_blank" 
@@ -864,19 +951,14 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
   };
 
   return (
-    <div className="space-y-2">
-      {/* Company Snapshot */}
-      <Card>
-        <CardHeader className="pb-2">
+    <div className="space-y-6">
+      {/* Action Buttons Bar */}
+      <Card className="border-blue-100 bg-gradient-to-r from-blue-50 to-indigo-50">
+        <CardContent className="pt-4">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="flex items-center gap-1 text-base">
-                <Building2 className="h-3 w-3" />
-                Company Snapshot
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Key company information extracted from pitch deck
-              </CardDescription>
+              <h3 className="text-sm font-semibold text-blue-900">Quick Actions</h3>
+              <p className="text-xs text-blue-700">Enrichment and validation tools</p>
             </div>
             <div className="flex gap-2">
               <Button
@@ -884,7 +966,7 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
                 disabled={isFetchingEnriched}
                 variant="outline"
                 size="sm"
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 border-blue-200 hover:bg-blue-50"
               >
                 <RefreshCw className={`h-3 w-3 ${isFetchingEnriched ? 'animate-spin' : ''}`} />
                 {isFetchingEnriched ? 'Fetching...' : 'Fetch Enriched'}
@@ -893,16 +975,17 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
                 onClick={handleRunValidation}
                 disabled={isValidating}
                 variant="outline"
-                className="flex items-center gap-2"
+                size="sm"
+                className="flex items-center gap-2 border-blue-200 hover:bg-blue-50"
               >
                 {isValidating ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className="h-3 w-3 animate-spin" />
                     Validating...
                   </>
                 ) : (
                   <>
-                    <CheckCircle className="h-4 w-4" />
+                    <CheckCircle className="h-3 w-3" />
                     Run AI Validation
                   </>
                 )}
@@ -910,98 +993,112 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
             <Button
               onClick={handleScheduleInterview}
               disabled={isScheduling}
-              className="flex items-center gap-2"
+                size="sm"
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
             >
               {isScheduling ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className="h-3 w-3 animate-spin" />
                   Scheduling...
                 </>
               ) : (
                 <>
-                  <Calendar className="h-4 w-4" />
+                    <Calendar className="h-3 w-3" />
                   Schedule Interview
                 </>
               )}
             </Button>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Company Snapshot */}
+      <Card className="border-blue-100 shadow-sm">
+        <CardHeader className="bg-gradient-to-r from-blue-50 to-sky-50 pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Building2 className="h-4 w-4 text-blue-600" />
+            Company Snapshot
+          </CardTitle>
+          <CardDescription className="text-sm">
+            Key company information extracted from pitch deck
+          </CardDescription>
         </CardHeader>
-        <CardContent>
-          {/* Company Overview Table - Compact */}
-          <div className="overflow-hidden border rounded mb-3">
+        <CardContent className="space-y-4">
+          {/* Company Overview Table */}
+          <div className="overflow-hidden border border-blue-200 rounded-lg">
             <table className="w-full">
-              <thead className="bg-slate-50">
+              <thead className="bg-gradient-to-r from-blue-50 to-sky-50">
                 <tr>
-                  <th className="px-2 py-1 text-left text-xs font-semibold text-slate-900">Field</th>
-                  <th className="px-2 py-1 text-left text-xs font-semibold text-slate-900">Value</th>
-                  <th className="px-2 py-1 text-left text-xs font-semibold text-slate-900">Status</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-blue-900">Field</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-blue-900">Value</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-blue-900">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
-                <tr>
-                  <td className="px-2 py-1 text-xs font-medium text-gray-900">Company Name</td>
-                  <td className="px-2 py-1 text-xs text-gray-700">{safeRenderAnyValue(enhancedMemo1.title)}</td>
-                  <td className="px-2 py-1">
+              <tbody className="divide-y divide-blue-100">
+                <tr className="hover:bg-blue-50/50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Company Name</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">{safeRenderAnyValue(enhancedMemo1.title)}</td>
+                  <td className="px-4 py-3">
                     {enhancedMemo1.title ? (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                        ✓
-                      </span>
+                      <Badge variant="outline" className="rounded-full bg-green-50 text-green-700 border-green-200">
+                        ✓ Available
+                      </Badge>
                     ) : (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                        -
-                      </span>
+                      <Badge variant="outline" className="rounded-full bg-gray-50 text-gray-600 border-gray-200">
+                        Not specified
+                      </Badge>
                     )}
                   </td>
                 </tr>
-                <tr>
-                  <td className="px-2 py-1 text-xs font-medium text-gray-900">Stage</td>
-                  <td className="px-2 py-1 text-xs text-gray-700">
+                <tr className="hover:bg-blue-50/50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Stage</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">
                     {renderEnrichedField("company_stage", enhancedMemo1.company_stage_enriched)}
                   </td>
-                  <td className="px-2 py-1">
+                  <td className="px-4 py-3">
                     {enhancedMemo1.company_stage ? (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                        ✓
-                      </span>
+                      <Badge variant="outline" className="rounded-full bg-green-50 text-green-700 border-green-200">
+                        ✓ Available
+                      </Badge>
                     ) : (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                        -
-                      </span>
+                      <Badge variant="outline" className="rounded-full bg-gray-50 text-gray-600 border-gray-200">
+                        Not specified
+                      </Badge>
                     )}
                   </td>
                 </tr>
-                <tr>
-                  <td className="px-2 py-1 text-xs font-medium text-gray-900">Headquarters</td>
-                  <td className="px-2 py-1 text-xs text-gray-700">
+                <tr className="hover:bg-blue-50/50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Headquarters</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">
                     {renderEnrichedField("headquarters", enhancedMemo1.headquarters_enriched)}
                   </td>
-                  <td className="px-2 py-1">
+                  <td className="px-4 py-3">
                     {enhancedMemo1.headquarters ? (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                        ✓
-                      </span>
+                      <Badge variant="outline" className="rounded-full bg-green-50 text-green-700 border-green-200">
+                        ✓ Available
+                      </Badge>
                     ) : (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                        -
-                      </span>
+                      <Badge variant="outline" className="rounded-full bg-gray-50 text-gray-600 border-gray-200">
+                        Not specified
+                      </Badge>
                     )}
                   </td>
                 </tr>
-                <tr>
-                  <td className="px-2 py-1 text-xs font-medium text-gray-900">Founded</td>
-                  <td className="px-2 py-1 text-xs text-gray-700">
+                <tr className="hover:bg-blue-50/50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Founded</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">
                     {renderEnrichedField("founded_date", enhancedMemo1.founded_date_enriched)}
                   </td>
-                  <td className="px-2 py-1">
+                  <td className="px-4 py-3">
                     {enhancedMemo1.founded_date ? (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                        ✓
-                      </span>
+                      <Badge variant="outline" className="rounded-full bg-green-50 text-green-700 border-green-200">
+                        ✓ Available
+                      </Badge>
                     ) : (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                        -
-                      </span>
+                      <Badge variant="outline" className="rounded-full bg-gray-50 text-gray-600 border-gray-200">
+                        Not specified
+                      </Badge>
                     )}
                   </td>
                 </tr>
@@ -1010,81 +1107,81 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
           </div>
 
           {/* Funding & Investment Table */}
-          <div className="overflow-hidden border rounded-lg mb-6">
+          <div className="overflow-hidden border border-green-200 rounded-lg">
             <table className="w-full">
-              <thead className="bg-emerald-50">
+              <thead className="bg-gradient-to-r from-green-50 to-emerald-50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-emerald-900">Funding Information</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-emerald-900">Value</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-emerald-900">Status</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-green-900">Funding Information</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-green-900">Value</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-green-900">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
-                <tr>
-                  <td className="px-2 py-1 text-xs font-medium text-gray-900">Amount Raising</td>
-                  <td className="px-2 py-1 text-xs text-gray-700">
+              <tbody className="divide-y divide-green-100">
+                <tr className="hover:bg-green-50/50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Amount Raising</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">
                     {renderEnrichedField("amount_raising", enhancedMemo1.amount_raising_enriched)}
                   </td>
-                  <td className="px-2 py-1">
+                  <td className="px-4 py-3">
                     {enhancedMemo1.amount_raising ? (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                        ✓
-                      </span>
+                      <Badge variant="outline" className="rounded-full bg-green-50 text-green-700 border-green-200">
+                        ✓ Available
+                      </Badge>
                     ) : (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                        -
-                      </span>
+                      <Badge variant="outline" className="rounded-full bg-gray-50 text-gray-600 border-gray-200">
+                        Not specified
+                      </Badge>
                     )}
                   </td>
                 </tr>
-                <tr>
-                  <td className="px-2 py-1 text-xs font-medium text-gray-900">Post-Money Valuation</td>
-                  <td className="px-2 py-1 text-xs text-gray-700">
+                <tr className="hover:bg-green-50/50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Post-Money Valuation</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">
                     {renderEnrichedField("post_money_valuation", enhancedMemo1.post_money_valuation_enriched)}
                   </td>
-                  <td className="px-2 py-1">
+                  <td className="px-4 py-3">
                     {enhancedMemo1.post_money_valuation ? (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                        ✓
-                      </span>
+                      <Badge variant="outline" className="rounded-full bg-green-50 text-green-700 border-green-200">
+                        ✓ Available
+                      </Badge>
                     ) : (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                        -
-                      </span>
+                      <Badge variant="outline" className="rounded-full bg-gray-50 text-gray-600 border-gray-200">
+                        Not specified
+                      </Badge>
                     )}
                   </td>
                 </tr>
-                <tr>
-                  <td className="px-2 py-1 text-xs font-medium text-gray-900">Investment Sought</td>
-                  <td className="px-2 py-1 text-xs text-gray-700">
+                <tr className="hover:bg-green-50/50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Investment Sought</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">
                     {renderEnrichedField("investment_sought", enhancedMemo1.investment_sought_enriched)}
                   </td>
-                  <td className="px-2 py-1">
+                  <td className="px-4 py-3">
                     {enhancedMemo1.investment_sought ? (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                        ✓
-                      </span>
+                      <Badge variant="outline" className="rounded-full bg-green-50 text-green-700 border-green-200">
+                        ✓ Available
+                      </Badge>
                     ) : (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                        -
-                      </span>
+                      <Badge variant="outline" className="rounded-full bg-gray-50 text-gray-600 border-gray-200">
+                        Not specified
+                      </Badge>
                     )}
                   </td>
                 </tr>
-                <tr>
-                  <td className="px-2 py-1 text-xs font-medium text-gray-900">Ownership Target</td>
-                  <td className="px-2 py-1 text-xs text-gray-700">
+                <tr className="hover:bg-green-50/50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Ownership Target</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">
                     {renderEnrichedField("ownership_target", enhancedMemo1.ownership_target_enriched)}
                   </td>
-                  <td className="px-2 py-1">
+                  <td className="px-4 py-3">
                     {enhancedMemo1.ownership_target ? (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                        ✓
-                      </span>
+                      <Badge variant="outline" className="rounded-full bg-green-50 text-green-700 border-green-200">
+                        ✓ Available
+                      </Badge>
                     ) : (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                        -
-                      </span>
+                      <Badge variant="outline" className="rounded-full bg-gray-50 text-gray-600 border-gray-200">
+                        Not specified
+                      </Badge>
                     )}
                   </td>
                 </tr>
@@ -1093,47 +1190,47 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
           </div>
 
           {/* Key Insights Table */}
-          <div className="overflow-hidden border rounded-lg">
+          <div className="overflow-hidden border border-purple-200 rounded-lg">
             <table className="w-full">
-              <thead className="bg-amber-50">
+              <thead className="bg-gradient-to-r from-purple-50 to-indigo-50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-amber-900">Key Insights</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-amber-900">Value</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-amber-900">Status</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-purple-900">Key Insights</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-purple-900">Value</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-purple-900">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
-                <tr>
-                  <td className="px-2 py-1 text-xs font-medium text-gray-900">Key Thesis</td>
-                  <td className="px-2 py-1 text-xs text-gray-700">
+              <tbody className="divide-y divide-purple-100">
+                <tr className="hover:bg-purple-50/50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Key Thesis</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">
                     {renderEnrichedField("key_thesis", enhancedMemo1.key_thesis_enriched)}
                   </td>
-                  <td className="px-2 py-1">
+                  <td className="px-4 py-3">
                     {enhancedMemo1.key_thesis ? (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                        ✓
-                      </span>
+                      <Badge variant="outline" className="rounded-full bg-green-50 text-green-700 border-green-200">
+                        ✓ Available
+                      </Badge>
                     ) : (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                        -
-                      </span>
+                      <Badge variant="outline" className="rounded-full bg-gray-50 text-gray-600 border-gray-200">
+                        Not specified
+                      </Badge>
                     )}
                   </td>
                 </tr>
-                <tr>
-                  <td className="px-2 py-1 text-xs font-medium text-gray-900">Key Metric</td>
-                  <td className="px-2 py-1 text-xs text-gray-700">
+                <tr className="hover:bg-purple-50/50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Key Metric</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">
                     {renderEnrichedField("key_metric", enhancedMemo1.key_metric_enriched)}
                   </td>
-                  <td className="px-2 py-1">
+                  <td className="px-4 py-3">
                     {enhancedMemo1.key_metric ? (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                        ✓
-                      </span>
+                      <Badge variant="outline" className="rounded-full bg-green-50 text-green-700 border-green-200">
+                        ✓ Available
+                      </Badge>
                     ) : (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                        -
-                      </span>
+                      <Badge variant="outline" className="rounded-full bg-gray-50 text-gray-600 border-gray-200">
+                        Not specified
+                      </Badge>
                     )}
                   </td>
                 </tr>
@@ -1144,17 +1241,17 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
       </Card>
 
       {/* Executive Summary */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
+      <Card className="border-blue-100 shadow-sm">
+        <CardHeader className="bg-gradient-to-r from-blue-50 to-sky-50 pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <FileText className="h-4 w-4 text-blue-600" />
             Executive Summary
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-sm">
             Summary of the founder's pitch deck PDF submission
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground leading-relaxed">
             {enhancedMemo1.summary || enhancedMemo1.summary_analysis || 
             "Based on the initial document analysis, this company shows potential in the market with a clear problem-solution fit. Key areas for further investigation include market validation and competitive positioning."}
@@ -1163,105 +1260,105 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
       </Card>
 
       {/* INDUSTRY & MARKET SIZE */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5" />
+      <Card className="border-purple-100 shadow-sm">
+        <CardHeader className="bg-gradient-to-r from-purple-50 to-indigo-50 pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <BarChart3 className="h-4 w-4 text-purple-600" />
             Industry & Market Size Analysis
             </CardTitle>
-            <CardDescription>
+          <CardDescription className="text-sm">
             Market analysis extracted from the pitch deck
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
           {/* Market Positioning Table */}
-          <div className="overflow-hidden border rounded-lg">
+          <div className="overflow-hidden border border-purple-200 rounded-lg">
             <table className="w-full">
-              <thead className="bg-blue-50">
+              <thead className="bg-gradient-to-r from-purple-50 to-indigo-50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-blue-900">Market Parameter</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-blue-900">Value</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-blue-900">Source</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-purple-900">Market Parameter</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-purple-900">Value</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-purple-900">Source</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
-                <tr>
-                  <td className="px-2 py-1 text-xs font-medium text-gray-900">Industry Category</td>
-                  <td className="px-2 py-1 text-xs text-gray-700">
+              <tbody className="divide-y divide-purple-100">
+                <tr className="hover:bg-purple-50/50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Industry Category</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">
                     {safeRenderAnyValue(enhancedMemo1.industry_category_enriched?.value || enhancedMemo1.industry_category)}
                     {enhancedMemo1.industry_category_enriched?.enriched && (
-                      <Badge variant="secondary" className="ml-2 text-xs">AI-enriched</Badge>
+                      <Badge variant="secondary" className="ml-2 rounded-full text-xs">AI-enriched</Badge>
                     )}
                   </td>
-                  <td className="px-2 py-1">
+                  <td className="px-4 py-3">
                     {enhancedMemo1.industry_category ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      <Badge variant="outline" className="rounded-full bg-green-50 text-green-700 border-green-200">
                         Pitch Deck
-                      </span>
+                      </Badge>
                     ) : (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                        -
-                      </span>
+                      <Badge variant="outline" className="rounded-full bg-gray-50 text-gray-600 border-gray-200">
+                        Not specified
+                      </Badge>
                     )}
                   </td>
                 </tr>
-                <tr>
-                  <td className="px-2 py-1 text-xs font-medium text-gray-900">Target Market</td>
-                  <td className="px-2 py-1 text-xs text-gray-700">
+                <tr className="hover:bg-purple-50/50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Target Market</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">
                     {safeRenderAnyValue(enhancedMemo1.target_market_enriched?.value || enhancedMemo1.target_market || enhancedMemo1.target_customers)}
                     {enhancedMemo1.target_market_enriched?.enriched && (
-                      <Badge variant="secondary" className="ml-2 text-xs">AI-enriched</Badge>
+                      <Badge variant="secondary" className="ml-2 rounded-full text-xs">AI-enriched</Badge>
                     )}
                   </td>
-                  <td className="px-2 py-1">
+                  <td className="px-4 py-3">
                     {(enhancedMemo1.target_market || enhancedMemo1.target_customers) ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      <Badge variant="outline" className="rounded-full bg-green-50 text-green-700 border-green-200">
                         Pitch Deck
-                      </span>
+                      </Badge>
                     ) : (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                        -
-                      </span>
+                      <Badge variant="outline" className="rounded-full bg-gray-50 text-gray-600 border-gray-200">
+                        Not specified
+                      </Badge>
                     )}
                   </td>
                 </tr>
-                <tr>
-                  <td className="px-2 py-1 text-xs font-medium text-gray-900">Market Timing</td>
-                  <td className="px-2 py-1 text-xs text-gray-700">
+                <tr className="hover:bg-purple-50/50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Market Timing</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">
                     {safeRenderAnyValue(enhancedMemo1.market_timing_enriched?.value || enhancedMemo1.market_timing)}
                     {enhancedMemo1.market_timing_enriched?.enriched && (
-                      <Badge variant="secondary" className="ml-2 text-xs">AI-enriched</Badge>
+                      <Badge variant="secondary" className="ml-2 rounded-full text-xs">AI-enriched</Badge>
                     )}
                   </td>
-                  <td className="px-2 py-1">
+                  <td className="px-4 py-3">
                     {enhancedMemo1.market_timing ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      <Badge variant="outline" className="rounded-full bg-green-50 text-green-700 border-green-200">
                         Pitch Deck
-                      </span>
+                      </Badge>
                     ) : (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                        -
-                      </span>
+                      <Badge variant="outline" className="rounded-full bg-gray-50 text-gray-600 border-gray-200">
+                        Not specified
+                      </Badge>
                     )}
                   </td>
                 </tr>
-                <tr>
-                  <td className="px-2 py-1 text-xs font-medium text-gray-900">Market Penetration</td>
-                  <td className="px-2 py-1 text-xs text-gray-700">
+                <tr className="hover:bg-purple-50/50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Market Penetration</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">
                     {safeRenderAnyValue(enhancedMemo1.market_penetration_enriched?.value || enhancedMemo1.market_penetration)}
                     {enhancedMemo1.market_penetration_enriched?.enriched && (
-                      <Badge variant="secondary" className="ml-2 text-xs">AI-enriched</Badge>
+                      <Badge variant="secondary" className="ml-2 rounded-full text-xs">AI-enriched</Badge>
                     )}
                   </td>
-                  <td className="px-2 py-1">
+                  <td className="px-4 py-3">
                     {enhancedMemo1.market_penetration ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      <Badge variant="outline" className="rounded-full bg-green-50 text-green-700 border-green-200">
                         Pitch Deck
-                      </span>
+                      </Badge>
                     ) : (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                        -
-                      </span>
+                      <Badge variant="outline" className="rounded-full bg-gray-50 text-gray-600 border-gray-200">
+                        Not specified
+                      </Badge>
                     )}
                   </td>
                 </tr>
@@ -1270,67 +1367,97 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
           </div>
 
           {/* Market Size Analysis Table */}
-          <div className="overflow-hidden border rounded-lg mb-6">
+          <div className="overflow-hidden border border-purple-200 rounded-lg">
             <table className="w-full">
-              <thead className="bg-purple-50">
+              <thead className="bg-gradient-to-r from-purple-50 to-indigo-50">
                 <tr>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-purple-900">Market Metric</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-purple-900">Value</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-purple-900">Source</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
-                <tr>
-                  <td className="px-2 py-1 text-xs font-medium text-gray-900">Total Addressable Market (TAM)</td>
-                  <td className="px-2 py-1 text-xs text-gray-700">
+              <tbody className="divide-y divide-purple-100">
+                <tr className="hover:bg-purple-50/50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Total Addressable Market (TAM)</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">
                     {enhancedMemo1.market_size_enriched?.value || safeRenderValue(enhancedMemo1.market_size) || "Not specified"}
                     {enhancedMemo1.market_size_enriched?.enriched && (
-                      <Badge variant="secondary" className="ml-2 text-xs">AI-enriched</Badge>
+                      <Badge variant="secondary" className="ml-2 rounded-full text-xs">AI-enriched</Badge>
                     )}
                   </td>
-                  <td className="px-2 py-1">
+                  <td className="px-4 py-3">
                     {enhancedMemo1.market_size ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      <Badge variant="outline" className="rounded-full bg-green-50 text-green-700 border-green-200">
                         Pitch Deck
-                      </span>
+                      </Badge>
                     ) : (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                        -
-                      </span>
+                      <Badge variant="outline" className="rounded-full bg-gray-50 text-gray-600 border-gray-200">
+                        Not specified
+                      </Badge>
                     )}
                   </td>
                 </tr>
-                <tr>
-                  <td className="px-2 py-1 text-xs font-medium text-gray-900">Serviceable Available Market (SAM)</td>
-                  <td className="px-2 py-1 text-xs text-gray-700">
+                <tr className="hover:bg-purple-50/50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Serviceable Available Market (SAM)</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">
+                    <div className="space-y-1">
                     {safeRenderValue(enhancedMemo1.sam_market_size) || "Not specified"}
+                      {enrichmentMetadata?.fields_enriched?.includes('sam_market_size') && (
+                        <Badge variant="secondary" className="ml-2 rounded-full text-xs">AI-enriched</Badge>
+                      )}
+                      {getSourcesForField("sam_market_size").length > 0 && (
+                        <div className="mt-1 space-y-0.5">
+                          {getSourcesForField("sam_market_size").map((source, idx) => (
+                            <a key={idx} href={source} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline flex items-center gap-1">
+                              <ExternalLink className="h-2 w-2" />
+                              Source
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </td>
-                  <td className="px-2 py-1">
+                  <td className="px-4 py-3">
                     {enhancedMemo1.sam_market_size ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        Pitch Deck
-                      </span>
+                      <Badge variant="outline" className="rounded-full bg-green-50 text-green-700 border-green-200">
+                        {enrichmentMetadata?.fields_enriched?.includes('sam_market_size') ? 'AI-enriched' : 'Pitch Deck'}
+                      </Badge>
                     ) : (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                        -
-                      </span>
+                      <Badge variant="outline" className="rounded-full bg-gray-50 text-gray-600 border-gray-200">
+                        Not specified
+                      </Badge>
                     )}
                   </td>
                 </tr>
-                <tr>
-                  <td className="px-2 py-1 text-xs font-medium text-gray-900">Serviceable Obtainable Market (SOM)</td>
-                  <td className="px-2 py-1 text-xs text-gray-700">
+                <tr className="hover:bg-purple-50/50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Serviceable Obtainable Market (SOM)</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">
+                    <div className="space-y-1">
                     {safeRenderValue(enhancedMemo1.som_market_size) || "Not specified"}
+                      {enrichmentMetadata?.fields_enriched?.includes('som_market_size') && (
+                        <Badge variant="secondary" className="ml-2 rounded-full text-xs">AI-enriched</Badge>
+                      )}
+                      {getSourcesForField("som_market_size").length > 0 && (
+                        <div className="mt-1 space-y-0.5">
+                          {getSourcesForField("som_market_size").map((source, idx) => (
+                            <a key={idx} href={source} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline flex items-center gap-1">
+                              <ExternalLink className="h-2 w-2" />
+                              Source
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </td>
-                  <td className="px-2 py-1">
+                  <td className="px-4 py-3">
                     {enhancedMemo1.som_market_size ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        Pitch Deck
-                      </span>
+                      <Badge variant="outline" className="rounded-full bg-green-50 text-green-700 border-green-200">
+                        {enrichmentMetadata?.fields_enriched?.includes('som_market_size') ? 'AI-enriched' : 'Pitch Deck'}
+                      </Badge>
                     ) : (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                        -
-                      </span>
+                      <Badge variant="outline" className="rounded-full bg-gray-50 text-gray-600 border-gray-200">
+                        Not specified
+                      </Badge>
                     )}
                   </td>
                 </tr>
@@ -1339,47 +1466,47 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
                 </div>
 
           {/* Competitive Advantages Table */}
-          <div className="overflow-hidden border rounded-lg mb-6">
+          <div className="overflow-hidden border border-orange-200 rounded-lg">
             <table className="w-full">
-              <thead className="bg-orange-50">
+              <thead className="bg-gradient-to-r from-orange-50 to-amber-50">
                 <tr>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-orange-900">Competitive Factor</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-orange-900">Description</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-orange-900">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
-                <tr>
-                  <td className="px-2 py-1 text-xs font-medium text-gray-900">Competitive Advantages</td>
-                  <td className="px-2 py-1 text-xs text-gray-700">
+              <tbody className="divide-y divide-orange-100">
+                <tr className="hover:bg-orange-50/50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Competitive Advantages</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">
                     {enhancedMemo1.competitive_advantages || "Not specified"}
                   </td>
-                  <td className="px-2 py-1">
+                  <td className="px-4 py-3">
                     {enhancedMemo1.competitive_advantages ? (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                        ✓
-                      </span>
+                      <Badge variant="outline" className="rounded-full bg-green-50 text-green-700 border-green-200">
+                        ✓ Available
+                      </Badge>
                     ) : (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                        -
-                      </span>
+                      <Badge variant="outline" className="rounded-full bg-gray-50 text-gray-600 border-gray-200">
+                        Not specified
+                      </Badge>
                     )}
                   </td>
                 </tr>
-                <tr>
-                  <td className="px-2 py-1 text-xs font-medium text-gray-900">Market Timing</td>
-                  <td className="px-2 py-1 text-xs text-gray-700">
+                <tr className="hover:bg-orange-50/50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Market Timing</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">
                     {enhancedMemo1.market_timing || "Not specified"}
                   </td>
-                  <td className="px-2 py-1">
+                  <td className="px-4 py-3">
                     {enhancedMemo1.market_timing ? (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                        ✓
-                      </span>
+                      <Badge variant="outline" className="rounded-full bg-green-50 text-green-700 border-green-200">
+                        ✓ Available
+                      </Badge>
                     ) : (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                        -
-                      </span>
+                      <Badge variant="outline" className="rounded-full bg-gray-50 text-gray-600 border-gray-200">
+                        Not specified
+                      </Badge>
                     )}
                   </td>
                 </tr>
@@ -1389,7 +1516,7 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
 
           {/* Market Opportunity Summary */}
           {enhancedMemo1.market_size && (
-            <div className="p-4 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg border">
+            <div className="p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg border border-purple-200">
               <h4 className="font-semibold text-gray-800 mb-3">Market Opportunity Summary</h4>
               <div className="space-y-2 text-sm text-gray-700">
                 <p><strong>Market Size:</strong> {safeRenderValue(enhancedMemo1.market_size) || "Not specified"}</p>
@@ -1416,80 +1543,111 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
               </div>
           )}
 
-          {/* Comprehensive References */}
+          {/* Comprehensive References - Fetched from memo1_validated */}
+          {(() => {
+            // Collect all unique sources from enrichment_metadata and validation_results
+            const allSources: string[] = [];
+            
+            // Get sources from enrichment_metadata.sources (field-specific)
+            if (enrichmentMetadata?.sources) {
+              Object.values(enrichmentMetadata.sources).forEach((sourceValue) => {
+                if (typeof sourceValue === 'string') {
+                  // Extract URLs from string
+                  const urlMatches = sourceValue.match(/https?:\/\/[^\s,)]+/g);
+                  if (urlMatches) {
+                    allSources.push(...urlMatches);
+                  } else if (sourceValue.startsWith('http')) {
+                    allSources.push(sourceValue);
+                  }
+                } else if (Array.isArray(sourceValue)) {
+                  const arr = sourceValue as unknown[];
+                  if (arr.length > 0) {
+                    const stringSources = arr.filter((s: any) => typeof s === 'string' && s.startsWith('http')) as string[];
+                    if (stringSources.length > 0) {
+                      allSources.push(...stringSources);
+                    }
+                  }
+                }
+              });
+            }
+            
+            // Get sources from validation_results (category-level sources)
+            if (validationResults?.validation_results) {
+              Object.values(validationResults.validation_results).forEach((categoryResult: any) => {
+                if (categoryResult?.sources && Array.isArray(categoryResult.sources)) {
+                  categoryResult.sources.forEach((source: string) => {
+                    if (source && typeof source === 'string' && source.startsWith('http')) {
+                      allSources.push(source);
+                    }
+                  });
+                }
+              });
+            }
+            
+            // Remove duplicates and sort
+            const uniqueSources = [...new Set(allSources)].sort();
+            
+            return uniqueSources.length > 0 ? (
           <div className="p-4 bg-gray-50 rounded-lg border">
             <h4 className="font-semibold text-gray-800 mb-3">References (Direct, clickable links):</h4>
             <div className="grid gap-2 text-xs">
-              <div className="space-y-1">
-                <a href="https://www.verifiedmarketreports.com/product/talent-acquisition-software-market/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center">
-                  [1] Verified Market Reports, Talent Acquisition Software Market Overview (Feb 2025)
-                  <ExternalLink className="ml-1 h-2 w-2" />
-                </a>
-                <a href="https://www.grandviewresearch.com/industry-analysis/talent-management-software-market" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center">
-                  [2] Grand View Research, Talent Management Software Market Size Report, 2030 (Jan 2023)
-                  <ExternalLink className="ml-1 h-2 w-2" />
-                </a>
-                <a href="https://www.marketresearchfuture.com/reports/talent-acquisition-software-market-2034" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center">
-                  [3] Market Research Future, Talent Acquisition Software Market Report, 2034 (Jan 2025)
-                  <ExternalLink className="ml-1 h-2 w-2" />
-                </a>
-                <a href="https://www.fortunebusinessinsights.com/recruitment-software-market-102123" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center">
-                  [4] Fortune Business Insights, Recruitment Software Market Report (Jun 2025)
-                  <ExternalLink className="ml-1 h-2 w-2" />
-                </a>
-                <a href="https://www.marketgrowthreports.com/simulation-based-learning-market" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center">
-                  [5] MarketGrowthReports, Simulation-Based Learning Market
-                  <ExternalLink className="ml-1 h-2 w-2" />
-                </a>
-                <a href="https://www.imarcgroup.com/edtech-market" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center">
-                  [6] IMARC Group, EdTech Market Report, 2023
-                  <ExternalLink className="ml-1 h-2 w-2" />
-                </a>
-                <a href="https://www.marketsandmarkets.com/Market-Reports/talent-management-software-market-1234.html" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center">
-                  [7] MarketsandMarkets, Talent Management Software Market
-                  <ExternalLink className="ml-1 h-2 w-2" />
-                </a>
-                <a href="https://www.linkedin.com/pulse/talent-acquisition-market-drivers-2025" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center">
-                  [8] LinkedIn Article on Talent Acquisition Market Drivers
-                  <ExternalLink className="ml-1 h-2 w-2" />
-                </a>
-                <a href="https://www.researchandmarkets.com/reports/digital-talent-acquisition-market-2030" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center">
-                  [9] Research and Markets, Digital Talent Acquisition Market Report, 2030
-                  <ExternalLink className="ml-1 h-2 w-2" />
-                </a>
-                <a href="https://www.hirevue.com/insights/early-career-hiring-trends-2024" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center">
-                  [10] HireVue, Early Career Hiring and Assessment Reports 2024
-                  <ExternalLink className="ml-1 h-2 w-2" />
-                </a>
+                  <div className="space-y-1 max-h-96 overflow-y-auto">
+                    {uniqueSources.map((source, index) => {
+                      // Extract domain name for display
+                      const domainMatch = source.match(/https?:\/\/(?:www\.)?([^\/]+)/);
+                      const displayName = domainMatch ? domainMatch[1] : source;
+                      
+                      return (
+                        <a
+                          key={index}
+                          href={source}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline flex items-center gap-1 py-1"
+                        >
+                          <span className="text-gray-500">[{index + 1}]</span>
+                          <ExternalLink className="h-3 w-3" />
+                          <span className="break-all">{displayName}</span>
+                        </a>
+                      );
+                    })}
               </div>
             </div>
             <p className="text-xs text-gray-600 mt-3">
-              This comprehensive set of up-to-date, credible industry analyses substantiate the company's market opportunity, 
-              underpinned by strong growth trends in the relevant industry sectors.
+                  These sources are automatically extracted from enrichment metadata and validation results stored in memo1_validated. 
+                  They represent real-time web search results and verified data sources used for AI enrichment.
             </p>
           </div>
+            ) : null;
+          })()}
         </CardContent>
       </Card>
 
       {/* Problem & Solution */}
       <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Problem Statement</CardTitle>
+        <Card className="border-blue-100 shadow-sm">
+          <CardHeader className="bg-gradient-to-r from-blue-50 to-sky-50 pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <AlertTriangle className="h-4 w-4 text-blue-600" />
+              Problem Statement
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground leading-relaxed">
               {enhancedMemo1.problem || "No problem statement provided"}
             </p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Solution</CardTitle>
+        <Card className="border-green-100 shadow-sm">
+          <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Target className="h-4 w-4 text-green-600" />
+              Solution
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground leading-relaxed">
               {enhancedMemo1.solution || "No solution description provided"}
             </p>
           </CardContent>
@@ -1497,12 +1655,15 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
             </div>
 
       {/* Business Model & Revenue Streams */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <DollarSign className="h-4 w-4" />
+      <Card className="border-green-100 shadow-sm">
+        <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <DollarSign className="h-4 w-4 text-green-600" />
             Business Model & Revenue Streams
           </CardTitle>
+          <CardDescription className="text-sm">
+            Revenue model and pricing strategy
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
             <div>
@@ -1528,14 +1689,17 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
       </Card>
 
       {/* Team Information */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
+      <Card className="border-orange-100 shadow-sm">
+        <CardHeader className="bg-gradient-to-r from-orange-50 to-amber-50 pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Users className="h-4 w-4 text-orange-600" />
             Team Information
           </CardTitle>
+          <CardDescription className="text-sm">
+            Team composition and advisory board
+          </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <div className="space-y-4">
             <div>
               <h4 className="font-semibold mb-2">Team Overview</h4>
@@ -1658,38 +1822,19 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
         </CardContent>
       </Card>
 
-      {/* Competition */}
-      {enhancedMemo1.competition && enhancedMemo1.competition.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Competition</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {Array.isArray(enhancedMemo1.competition) ? (
-                enhancedMemo1.competition.map((competitor: any, index: number) => (
-                <Badge key={index} variant="outline">
-                  {typeof competitor === 'string' ? competitor : JSON.stringify(competitor)}
-                </Badge>
-                ))
-              ) : (
-                <p className="text-sm text-muted-foreground">Not specified</p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Product Features */}
       {enhancedMemo1.product_features && Array.isArray(enhancedMemo1.product_features) && enhancedMemo1.product_features.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Target className="h-4 w-4" />
+        <Card className="border-purple-100 shadow-sm">
+          <CardHeader className="bg-gradient-to-r from-purple-50 to-indigo-50 pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Target className="h-4 w-4 text-purple-600" />
               Product Features
             </CardTitle>
+            <CardDescription className="text-sm">
+              Key product capabilities and features
+            </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             {Array.isArray(enhancedMemo1.product_features) ? (
               <ul className="space-y-2">
                 {enhancedMemo1.product_features.map((feature: any, index: number) => (
@@ -1707,12 +1852,15 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
       )}
 
       {/* Technology Stack */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Cpu className="h-4 w-4" />
+      <Card className="border-blue-100 shadow-sm">
+        <CardHeader className="bg-gradient-to-r from-blue-50 to-sky-50 pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Cpu className="h-4 w-4 text-blue-600" />
             Technology Stack
           </CardTitle>
+          <CardDescription className="text-sm">
+            Technical infrastructure and innovation
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
@@ -1747,12 +1895,15 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
       </Card>
 
       {/* Key Metrics & Traction */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-4 w-4" />
+      <Card className="border-green-100 shadow-sm">
+        <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <TrendingUp className="h-4 w-4 text-green-600" />
             Key Metrics & Traction
           </CardTitle>
+          <CardDescription className="text-sm">
+            Growth metrics and key milestones
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
@@ -1803,14 +1954,17 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
 
       {/* Initial Flags */}
       {enhancedMemo1.initial_flags && Array.isArray(enhancedMemo1.initial_flags) && enhancedMemo1.initial_flags.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-amber-600">
-              <AlertTriangle className="h-4 w-4" />
+        <Card className="border-orange-100 shadow-sm">
+          <CardHeader className="bg-gradient-to-r from-orange-50 to-amber-50 pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg text-orange-900">
+              <AlertTriangle className="h-4 w-4 text-orange-600" />
               Initial Flags
             </CardTitle>
+            <CardDescription className="text-sm">
+              Areas requiring attention
+            </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             {Array.isArray(enhancedMemo1.initial_flags) ? (
             <ul className="space-y-2">
               {enhancedMemo1.initial_flags.map((flag: any, index: number) => (
@@ -1829,14 +1983,17 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
 
       {/* Validation Points */}
       {enhancedMemo1.validation_points && Array.isArray(enhancedMemo1.validation_points) && enhancedMemo1.validation_points.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-green-600">
-              <CheckCircle className="h-4 w-4" />
+        <Card className="border-green-100 shadow-sm">
+          <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg text-green-900">
+              <CheckCircle className="h-4 w-4 text-green-600" />
               Key Validation Points
             </CardTitle>
+            <CardDescription className="text-sm">
+              Important validation checkpoints
+            </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             {Array.isArray(enhancedMemo1.validation_points) ? (
             <ul className="space-y-2">
               {enhancedMemo1.validation_points.map((point: any, index: number) => (
@@ -1854,19 +2011,19 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
       )}
 
       {/* Financial Details */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <DollarSign className="h-4 w-4" />
+      <Card className="border-green-100 shadow-sm">
+        <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <DollarSign className="h-4 w-4 text-green-600" />
             Financial Details
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-sm">
             Investment-grade financial metrics and valuation analysis
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-8">
+        <CardContent className="space-y-6">
           {/* Executive Financial Summary */}
-          <div className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+          <div className="p-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
             <div className="flex items-start gap-3">
               <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
                 <span className="text-white text-sm font-bold">💰</span>
@@ -1909,75 +2066,75 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
           {/* Company Valuation & Funding */}
           <div>
             <h4 className="font-semibold text-lg text-gray-900 mb-4">Company Valuation & Funding</h4>
-            <div className="overflow-hidden border rounded-lg shadow-sm">
+            <div className="overflow-hidden border border-green-200 rounded-lg shadow-sm">
               <table className="w-full">
-                <thead className="bg-gradient-to-r from-slate-50 to-gray-50">
+                <thead className="bg-gradient-to-r from-green-50 to-emerald-50">
                   <tr>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 border-r">Financial Metric</th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 border-r">Value</th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 border-r">Status</th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Analysis</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-green-900 border-r border-green-200">Financial Metric</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-green-900 border-r border-green-200">Value</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-green-900 border-r border-green-200">Status</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-green-900">Analysis</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
-                  <tr className="hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900 border-r">
+                <tbody className="divide-y divide-green-100">
+                  <tr className="hover:bg-green-50/50">
+                    <td className="px-4 py-3 text-sm font-medium text-gray-900 border-r border-green-200">
                       <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                         Pre-Money Valuation
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-700 border-r font-mono">
+                    <td className="px-4 py-3 text-sm text-gray-700 border-r border-green-200 font-mono">
                       {enhancedMemo1.pre_money_valuation || "Not disclosed"}
                     </td>
-                    <td className="px-6 py-4 border-r">
+                    <td className="px-4 py-3 border-r border-green-200">
                       {enhancedMemo1.pre_money_valuation ? (
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
+                        <Badge variant="outline" className="rounded-full bg-green-50 text-green-700 border-green-200">
                           ✓ Available
-                        </span>
+                        </Badge>
                       ) : (
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200">
+                        <Badge variant="outline" className="rounded-full bg-orange-50 text-orange-700 border-orange-200">
                           ⚠ Missing
-                        </span>
+                        </Badge>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-xs text-gray-600">
+                    <td className="px-4 py-3 text-xs text-gray-600">
                       {enhancedMemo1.pre_money_valuation ? "Valuation disclosed in pitch deck" : "Requires direct company disclosure"}
                     </td>
                   </tr>
-                  <tr className="hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900 border-r">
+                  <tr className="hover:bg-green-50/50">
+                    <td className="px-4 py-3 text-sm font-medium text-gray-900 border-r border-green-200">
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                         Post-Money Valuation
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-700 border-r font-mono">
+                    <td className="px-4 py-3 text-sm text-gray-700 border-r border-green-200 font-mono">
                       {enhancedMemo1.post_money_valuation || "Not disclosed"}
                     </td>
-                    <td className="px-6 py-4 border-r">
+                    <td className="px-4 py-3 border-r border-green-200">
                       {enhancedMemo1.post_money_valuation ? (
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
+                        <Badge variant="outline" className="rounded-full bg-green-50 text-green-700 border-green-200">
                           ✓ Available
-                        </span>
+                        </Badge>
                       ) : (
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200">
+                        <Badge variant="outline" className="rounded-full bg-orange-50 text-orange-700 border-orange-200">
                           ⚠ Missing
-                        </span>
+                        </Badge>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-xs text-gray-600">
+                    <td className="px-4 py-3 text-xs text-gray-600">
                       {enhancedMemo1.post_money_valuation ? "Post-money valuation confirmed" : "Calculate: Pre-money + Investment amount"}
                     </td>
                   </tr>
-                  <tr className="hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900 border-r">
+                  <tr className="hover:bg-green-50/50">
+                    <td className="px-4 py-3 text-sm font-medium text-gray-900 border-r border-green-200">
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
                         Lead Investors
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-700 border-r">
+                    <td className="px-4 py-3 text-sm text-gray-700 border-r border-green-200">
                       {(() => {
                         const parsedInvestors = parseInvestorData(enhancedMemo1.lead_investor || '');
                         if (parsedInvestors && parsedInvestors.length > 0) {
@@ -2014,18 +2171,18 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
                         return enhancedMemo1.lead_investor || "Not disclosed";
                       })()}
                     </td>
-                    <td className="px-6 py-4 border-r">
+                    <td className="px-4 py-3 border-r border-green-200">
                       {enhancedMemo1.lead_investor ? (
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
+                        <Badge variant="outline" className="rounded-full bg-green-50 text-green-700 border-green-200">
                           ✓ Available
-                        </span>
+                        </Badge>
                       ) : (
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200">
+                        <Badge variant="outline" className="rounded-full bg-gray-50 text-gray-600 border-gray-200">
                           Not disclosed
-                        </span>
+                        </Badge>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-xs text-gray-600">
+                    <td className="px-4 py-3 text-xs text-gray-600">
                       {enhancedMemo1.lead_investor ? (
                         <div className="space-y-1">
                           <div className="text-green-600 font-medium">✓ Lead investors identified</div>
@@ -2037,14 +2194,14 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
                       )}
                     </td>
                   </tr>
-                  <tr className="hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900 border-r">
+                  <tr className="hover:bg-green-50/50">
+                    <td className="px-4 py-3 text-sm font-medium text-gray-900 border-r border-green-200">
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
                         Committed Funding
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-700 border-r">
+                    <td className="px-4 py-3 text-sm text-gray-700 border-r border-green-200">
                       {(() => {
                         const fundingText = enhancedMemo1.committed_funding || '';
                         if (fundingText.includes('Rs 2 crore') || fundingText.includes('$285,000')) {
@@ -2063,12 +2220,12 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
                                   </div>
                                 </div>
                                 <div className="mt-2 flex flex-wrap gap-1">
-                                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800 border border-orange-200">
+                                  <Badge variant="outline" className="rounded-full bg-orange-50 text-orange-700 border-orange-200">
                                     Seed Round
-                                  </span>
-                                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
+                                  </Badge>
+                                  <Badge variant="outline" className="rounded-full bg-green-50 text-green-700 border-green-200">
                                     Completed
-                                  </span>
+                                  </Badge>
                                 </div>
                               </div>
                             </div>
@@ -2077,18 +2234,18 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
                         return enhancedMemo1.committed_funding || "Not disclosed";
                       })()}
                     </td>
-                    <td className="px-6 py-4 border-r">
+                    <td className="px-4 py-3 border-r border-green-200">
                       {enhancedMemo1.committed_funding ? (
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
+                        <Badge variant="outline" className="rounded-full bg-green-50 text-green-700 border-green-200">
                           ✓ Available
-                        </span>
+                        </Badge>
                       ) : (
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200">
+                        <Badge variant="outline" className="rounded-full bg-orange-50 text-orange-700 border-orange-200">
                           ⚠ Missing
-                        </span>
+                        </Badge>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-xs text-gray-600">
+                    <td className="px-4 py-3 text-xs text-gray-600">
                       {enhancedMemo1.committed_funding ? (
                         <div className="space-y-1">
                           <div className="text-green-600 font-medium">✓ Funding confirmed</div>
@@ -2108,19 +2265,19 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
           {/* Revenue & Key Metrics */}
           <div>
             <h4 className="font-semibold text-lg text-gray-900 mb-4">Revenue & Key Metrics</h4>
-            <div className="overflow-hidden border rounded-lg shadow-sm">
+            <div className="overflow-hidden border border-green-200 rounded-lg shadow-sm">
               <table className="w-full">
-                <thead className="bg-gradient-to-r from-blue-50 to-indigo-50">
+                <thead className="bg-gradient-to-r from-green-50 to-emerald-50">
                   <tr>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-blue-900 border-r">Financial Metric</th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-blue-900 border-r">Value</th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-blue-900 border-r">Status</th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-blue-900">Formula & Analysis</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-green-900 border-r border-green-200">Financial Metric</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-green-900 border-r border-green-200">Value</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-green-900 border-r border-green-200">Status</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-green-900">Formula & Analysis</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
-                  <tr className="hover:bg-blue-50/30">
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900 border-r">
+                <tbody className="divide-y divide-green-100">
+                  <tr className="hover:bg-green-50/50">
+                    <td className="px-4 py-3 text-sm font-medium text-gray-900 border-r border-green-200">
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                         Current Revenue
@@ -2651,82 +2808,85 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
       </Card>
 
       {/* Deal Details */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
+      <Card className="border-blue-100 shadow-sm">
+        <CardHeader className="bg-gradient-to-r from-blue-50 to-sky-50 pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <FileText className="h-4 w-4 text-blue-600" />
             Deal Details
           </CardTitle>
+          <CardDescription className="text-sm">
+            Investment round and deal parameters
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Round Information Table */}
-          <div className="overflow-hidden border rounded-lg">
+          <div className="overflow-hidden border border-blue-200 rounded-lg">
             <table className="w-full">
-              <thead className="bg-indigo-50">
+              <thead className="bg-gradient-to-r from-blue-50 to-sky-50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-indigo-900">Deal Parameter</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-indigo-900">Value</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-indigo-900">Status</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-blue-900">Deal Parameter</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-blue-900">Value</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-blue-900">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
-                <tr>
-                  <td className="px-2 py-1 text-xs font-medium text-gray-900">Round Stage</td>
-                  <td className="px-2 py-1 text-xs text-gray-700">{enhancedMemo1.round_stage || "Not specified"}</td>
-                  <td className="px-2 py-1">
+              <tbody className="divide-y divide-blue-100">
+                <tr className="hover:bg-blue-50/50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Round Stage</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">{enhancedMemo1.round_stage || "Not specified"}</td>
+                  <td className="px-4 py-3">
                     {enhancedMemo1.round_stage ? (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                        ✓
-                      </span>
+                      <Badge variant="outline" className="rounded-full bg-green-50 text-green-700 border-green-200">
+                        ✓ Available
+                      </Badge>
                     ) : (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                        -
-                      </span>
+                      <Badge variant="outline" className="rounded-full bg-gray-50 text-gray-600 border-gray-200">
+                        Not specified
+                      </Badge>
                     )}
                   </td>
                 </tr>
-                <tr>
-                  <td className="px-2 py-1 text-xs font-medium text-gray-900">Amount Raising</td>
-                  <td className="px-2 py-1 text-xs text-gray-700">{enhancedMemo1.amount_raising || enhancedMemo1.funding_ask || "Not specified"}</td>
-                  <td className="px-2 py-1">
+                <tr className="hover:bg-blue-50/50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Amount Raising</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">{enhancedMemo1.amount_raising || enhancedMemo1.funding_ask || "Not specified"}</td>
+                  <td className="px-4 py-3">
                     {(enhancedMemo1.amount_raising || enhancedMemo1.funding_ask) ? (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                        ✓
-                      </span>
+                      <Badge variant="outline" className="rounded-full bg-green-50 text-green-700 border-green-200">
+                        ✓ Available
+                      </Badge>
                     ) : (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                        -
-                      </span>
+                      <Badge variant="outline" className="rounded-full bg-gray-50 text-gray-600 border-gray-200">
+                        Not specified
+                      </Badge>
                     )}
                   </td>
                 </tr>
-                <tr>
-                  <td className="px-2 py-1 text-xs font-medium text-gray-900">Investment Sought</td>
-                  <td className="px-2 py-1 text-xs text-gray-700">{enhancedMemo1.investment_sought || "Not specified"}</td>
-                  <td className="px-2 py-1">
+                <tr className="hover:bg-blue-50/50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Investment Sought</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">{enhancedMemo1.investment_sought || "Not specified"}</td>
+                  <td className="px-4 py-3">
                     {enhancedMemo1.investment_sought ? (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                        ✓
-                      </span>
+                      <Badge variant="outline" className="rounded-full bg-green-50 text-green-700 border-green-200">
+                        ✓ Available
+                      </Badge>
                     ) : (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                        -
-                      </span>
+                      <Badge variant="outline" className="rounded-full bg-gray-50 text-gray-600 border-gray-200">
+                        Not specified
+                      </Badge>
                     )}
                   </td>
                 </tr>
-                <tr>
-                  <td className="px-2 py-1 text-xs font-medium text-gray-900">Ownership Target</td>
-                  <td className="px-2 py-1 text-xs text-gray-700">{enhancedMemo1.ownership_target || "Not specified"}</td>
-                  <td className="px-2 py-1">
+                <tr className="hover:bg-blue-50/50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Ownership Target</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">{enhancedMemo1.ownership_target || "Not specified"}</td>
+                  <td className="px-4 py-3">
                     {enhancedMemo1.ownership_target ? (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                        ✓
-                      </span>
+                      <Badge variant="outline" className="rounded-full bg-green-50 text-green-700 border-green-200">
+                        ✓ Available
+                      </Badge>
                     ) : (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                        -
-                      </span>
+                      <Badge variant="outline" className="rounded-full bg-gray-50 text-gray-600 border-gray-200">
+                        Not specified
+                      </Badge>
                     )}
                   </td>
                 </tr>
@@ -2747,17 +2907,17 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
       </Card>
 
       {/* Exit Strategy */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-4 w-4" />
+      <Card className="border-purple-100 shadow-sm">
+        <CardHeader className="bg-gradient-to-r from-purple-50 to-indigo-50 pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <TrendingUp className="h-4 w-4 text-purple-600" />
             Exit Strategy
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-sm">
             Investment exit analysis and strategic acquisition opportunities
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-8">
+        <CardContent className="space-y-6">
           {/* Exit Strategy Executive Summary */}
           <div className="p-6 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg border border-purple-200">
             <div className="flex items-start gap-3">
@@ -3011,12 +3171,15 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
 
       {/* Risk Assessment */}
       {enhancedMemo1.key_risks && Array.isArray(enhancedMemo1.key_risks) && enhancedMemo1.key_risks.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-amber-600">
-              <AlertTriangle className="h-4 w-4" />
+        <Card className="border-orange-100 shadow-sm">
+          <CardHeader className="bg-gradient-to-r from-orange-50 to-amber-50 pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg text-orange-900">
+              <AlertTriangle className="h-4 w-4 text-orange-600" />
               Risk Assessment
             </CardTitle>
+            <CardDescription className="text-sm">
+              Key risks and mitigation strategies
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
@@ -3054,13 +3217,13 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
 
       {/* Validation Results Section */}
       {enhancedMemo1.validation_result && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-600" />
+        <Card className="border-green-100 shadow-sm">
+          <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <CheckCircle className="h-4 w-4 text-green-600" />
               AI Validation Analysis
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-sm">
               Comprehensive validation analysis using Vertex AI
             </CardDescription>
           </CardHeader>

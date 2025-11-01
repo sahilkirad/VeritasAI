@@ -1271,8 +1271,10 @@ def validate_memo_data(req: https_fn.Request):
             print(f"Error resolving memo_id: {e}, using original memo_id: {memo_id}")
             resolved_memo_id = memo_id
         
-        # Step 1: Run enrichment agent to fill missing fields
+        # Step 1: Run enrichment agent (includes validation via Perplexity API with Google fallback)
         enrichment_result = None
+        validation_results = None
+        
         if memo_type == "memo_1":
             try:
                 from agents.memo_enrichment_agent import MemoEnrichmentAgent
@@ -1280,61 +1282,163 @@ def validate_memo_data(req: https_fn.Request):
                 enrichment_agent.set_up()
                 
                 # Run enrichment asynchronously with resolved memo_id
+                # This now includes validation using Perplexity API (with Google fallback)
                 import asyncio
                 enrichment_result = asyncio.run(enrichment_agent.enrich_memo(resolved_memo_id, memo_type))
+                
+                # Extract validation results from enrichment_result
+                validation_results = enrichment_result.get("validation_results")
+                
                 print(f"Enrichment completed: {enrichment_result.get('fields_enriched_count', 0)} fields enriched")
+                if validation_results:
+                    validation_method = validation_results.get("validation_method", "unknown")
+                    overall_score = validation_results.get("overall_validation_score", 0.0)
+                    categories_validated = validation_results.get("categories_validated", 0)
+                    print(f"Validation completed using {validation_method}: Overall score: {overall_score:.2f}, Categories validated: {categories_validated}/10")
+                else:
+                    print("Warning: No validation results returned from enrichment agent")
+                    
             except Exception as e:
-                print(f"Enrichment failed (non-blocking): {e}")
+                print(f"Enrichment/Validation failed (non-blocking): {e}")
+                import traceback
+                traceback.print_exc()
                 enrichment_result = {"error": str(e)}
         
-        # Step 2: Run validation service
-        from services.google_validation_service import GoogleValidationService
-        validation_service = GoogleValidationService()
-        validation_service.set_up()
-        
-        # Use enriched data if available, otherwise use original
-        validation_data = memo_data
-        if memo_id:
+        # Step 2: Fallback validation if enrichment didn't include validation results
+        if not validation_results or not enrichment_result:
+            print("Running fallback validation using Google Validation Service...")
             try:
-                db = firestore.client()
-                validated_doc = db.collection("memo1_validated").document(memo_id).get()
-                if validated_doc.exists:
-                    validated_data = validated_doc.to_dict().get("memo_1", memo_data)
-                    print(f"Using enriched data from memo1_validated for validation")
-            except Exception as e:
-                print(f"Error fetching enriched data: {e}")
+                from services.google_validation_service import GoogleValidationService
+                validation_service = GoogleValidationService(project="veritas-472301", location="asia-south1")
+                validation_service.set_up()
+                
+                # Use enriched data if available, otherwise use original
+                validation_data = memo_data
+                if resolved_memo_id:
+                    try:
+                        db = firestore.client()
+                        validated_doc = db.collection("memo1_validated").document(resolved_memo_id).get()
+                        if validated_doc.exists:
+                            validated_data = validated_doc.to_dict().get("memo_1", memo_data)
+                            print(f"Using enriched data from memo1_validated for fallback validation")
+                    except Exception as e:
+                        print(f"Error fetching enriched data: {e}")
+                
+                # Run fallback validation
+                validation_result = validation_service.validate_memo_data(validation_data)
+                
+                if validation_result.get("status") == "SUCCESS":
+                    # Map Google validation results to our validation framework structure
+                    validation_results = {
+                        "validation_results": {
+                            "company_identity": {
+                                "status": "CONFIRMED" if validation_result.get("validation_result", {}).get("data_validation", {}).get("accuracy_score", 0) >= 7 else "QUESTIONABLE",
+                                "confidence": validation_result.get("validation_result", {}).get("data_validation", {}).get("accuracy_score", 0) / 10.0,
+                                "findings": validation_result.get("validation_result", {}).get("data_validation", {}),
+                                "sources": ["Google Vertex AI"],
+                                "validation_method": "google_vertex_ai_fallback"
+                            },
+                            "market_opportunity": {
+                                "status": "CONFIRMED" if validation_result.get("validation_result", {}).get("market_validation", {}).get("market_size_accuracy", 0) >= 7 else "QUESTIONABLE",
+                                "confidence": validation_result.get("validation_result", {}).get("market_validation", {}).get("market_size_accuracy", 0) / 10.0,
+                                "findings": validation_result.get("validation_result", {}).get("market_validation", {}),
+                                "sources": ["Google Vertex AI"],
+                                "validation_method": "google_vertex_ai_fallback"
+                            },
+                            "founder_team": {
+                                "status": "CONFIRMED" if validation_result.get("validation_result", {}).get("team_validation", {}).get("team_strength", 0) >= 7 else "QUESTIONABLE",
+                                "confidence": validation_result.get("validation_result", {}).get("team_validation", {}).get("team_strength", 0) / 10.0,
+                                "findings": validation_result.get("validation_result", {}).get("team_validation", {}),
+                                "sources": ["Google Vertex AI"],
+                                "validation_method": "google_vertex_ai_fallback"
+                            },
+                            "financial_traction": {
+                                "status": "CONFIRMED" if validation_result.get("validation_result", {}).get("financial_validation", {}).get("financial_viability", 0) >= 7 else "QUESTIONABLE",
+                                "confidence": validation_result.get("validation_result", {}).get("financial_validation", {}).get("financial_viability", 0) / 10.0,
+                                "findings": validation_result.get("validation_result", {}).get("financial_validation", {}),
+                                "sources": ["Google Vertex AI"],
+                                "validation_method": "google_vertex_ai_fallback"
+                            }
+                        },
+                        "overall_validation_score": sum([
+                            validation_result.get("validation_result", {}).get("data_validation", {}).get("accuracy_score", 0),
+                            validation_result.get("validation_result", {}).get("market_validation", {}).get("market_size_accuracy", 0),
+                            validation_result.get("validation_result", {}).get("team_validation", {}).get("team_strength", 0),
+                            validation_result.get("validation_result", {}).get("financial_validation", {}).get("financial_viability", 0)
+                        ]) / 40.0,  # Average of 4 scores
+                        "validation_timestamp": datetime.now().isoformat(),
+                        "validation_method": "google_vertex_ai_fallback"
+                    }
+                    print(f"Fallback validation completed using Google Vertex AI")
+            except Exception as fallback_error:
+                print(f"Fallback validation also failed: {fallback_error}")
+                validation_results = {
+                    "validation_results": {},
+                    "overall_validation_score": 0.0,
+                    "validation_timestamp": datetime.now().isoformat(),
+                    "validation_method": "error",
+                    "error": str(fallback_error)
+                }
         
-        # Run validation
-        result = validation_service.validate_memo_data(validation_data)
+        # Build final result with both enrichment and validation
+        # Note: validation_results already contains the full structure with validation_results key
+        result = {}
+        if validation_results:
+            # validation_results already has the correct structure from enrichment agent
+            result.update(validation_results)
+            # Ensure we have the top-level fields
+            if "validation_results" not in result:
+                result["validation_results"] = validation_results.get("validation_results", {})
+            result["overall_validation_score"] = validation_results.get("overall_validation_score", 0.0)
+            result["validation_timestamp"] = validation_results.get("validation_timestamp", datetime.now().isoformat())
+            result["validation_method"] = validation_results.get("validation_method", "unknown")
+            result["categories_validated"] = validation_results.get("categories_validated", len([k for k, v in validation_results.get("validation_results", {}).items() if v]))
+        else:
+            # If no validation results, create empty structure
+            result = {
+                "validation_results": {},
+                "overall_validation_score": 0.0,
+                "validation_timestamp": datetime.now().isoformat(),
+                "validation_method": "none",
+                "categories_validated": 0
+            }
         
         # Add enrichment info to result
         if enrichment_result:
-            result["enrichment"] = enrichment_result
+            result["enrichment"] = {
+                "fields_enriched": enrichment_result.get("fields_enriched", []),
+                "fields_enriched_count": enrichment_result.get("fields_enriched_count", 0),
+                "status": enrichment_result.get("status", "unknown"),
+                "enrichment_metadata": enrichment_result.get("enrichment_metadata", {})
+            }
         
-        # Store validation result in Firestore
-        if resolved_memo_id:
+        # Store validation result in Firestore (already saved by enrichment agent, but update if needed)
+        if resolved_memo_id and validation_results:
             try:
                 db = firestore.client()
                 
                 if memo_type == "diligence":
                     # Store in diligenceResults collection
-                    diligence_doc_ref = db.collection("diligenceResults").document(memo_id)
-                    diligence_doc_ref.update({
-                        "validation_result": result
-                    })
-                    print(f"Validation result stored in diligenceResults for memo: {memo_id}")
-                else:
-                    # Update memo1_validated with validation results
-                    validated_doc_ref = db.collection("memo1_validated").document(resolved_memo_id)
-                    # Use set with merge=True instead of update (update doesn't support merge parameter)
-                    validated_doc_ref.set({
-                        "validation_result": result,
+                    diligence_doc_ref = db.collection("diligenceResults").document(resolved_memo_id)
+                    diligence_doc_ref.set({
+                        "validation_results": validation_results,
                         "validation_timestamp": datetime.now().isoformat()
                     }, merge=True)
-                    print(f"Validation result stored in memo1_validated for memo: {memo_id}")
+                    print(f"Validation result stored in diligenceResults for memo: {resolved_memo_id}")
+                else:
+                    # Update memo1_validated with validation results (enrichment agent already saved basic structure)
+                    validated_doc_ref = db.collection("memo1_validated").document(resolved_memo_id)
+                    validated_doc_ref.set({
+                        "validation_results": validation_results,
+                        "validation_timestamp": datetime.now().isoformat(),
+                        "validation_method": validation_results.get("validation_method", "unknown")
+                    }, merge=True)
+                    print(f"Validation result stored/updated in memo1_validated for memo: {resolved_memo_id}")
                     
             except Exception as e:
                 print(f"Error storing validation result: {e}")
+                import traceback
+                traceback.print_exc()
                 # Don't fail the request if storage fails
         
         # Return results with proper JSON content type

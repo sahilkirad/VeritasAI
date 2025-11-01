@@ -4,7 +4,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Target, CheckCircle, ThumbsUp, ThumbsDown, MessageCircle, Users, TrendingUp, DollarSign, BarChart3, AlertTriangle, ExternalLink, Cpu, Database, Cloud, Zap, Shield, Building, Loader2, FileText } from "lucide-react";
-import CompetitorMatrix from "./CompetitorMatrix";
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useToast } from "@/hooks/use-toast";
@@ -502,7 +501,22 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
   };
 
   const handleCreateRoom = () => {
-    router.push('/dashboard/create-room');
+    // Get founder data from memo1Data
+    const founderName = Array.isArray(memo1Data?.founder_name) 
+      ? memo1Data.founder_name[0] 
+      : memo1Data?.founder_name || 'Founder';
+    const founderEmail = memo1Data?.founder_email || '';
+    const companyName = memo1Data?.title || memo1Data?.company_name || 'Company';
+    
+    // Navigate to messages page with query parameters
+    const params = new URLSearchParams({
+      founderName: founderName,
+      founderEmail: founderEmail || `${founderName.toLowerCase().replace(/\s+/g, '')}@${companyName.toLowerCase().replace(/\s+/g, '')}.com`,
+      companyName: companyName,
+      autoCreate: 'true'
+    });
+    
+    router.push(`/dashboard/messages?${params.toString()}`);
   };
 
   const handleRunValidation = async () => {
@@ -542,21 +556,19 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
   };
 
   return (
-    <div className="space-y-2">
-      
-
+    <div className="space-y-6">
       {/* Executive Summary */}
-      <Card className="border shadow-sm">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-3 w-3" />
+      <Card className="border-blue-100 shadow-sm">
+        <CardHeader className="bg-gradient-to-r from-blue-50 to-sky-50 pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <FileText className="h-4 w-4 text-blue-600" />
             Executive Summary
           </CardTitle>
-          <CardDescription className="text-xs">
+          <CardDescription className="text-sm">
             Comprehensive investment analysis and due diligence report
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           {/* Investment Overview */}
           <div className="mb-4">
             <h3 className="text-base font-semibold text-gray-900 mb-2 flex items-center gap-2">
@@ -764,64 +776,64 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
       </Card>
 
       {/* Current Revenue Streams from our Service Offering */}
-      <Card className="border shadow-sm">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <DollarSign className="h-3 w-3" />
+      <Card className="border-green-100 shadow-sm">
+        <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <DollarSign className="h-4 w-4 text-green-600" />
             Current Revenue Streams from our Service Offering
           </CardTitle>
-          <CardDescription className="text-xs">
+          <CardDescription className="text-sm">
             Revenue model analysis and financial metrics from pitch deck
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-2">
-          <div className="p-3 bg-gray-50 rounded border">
-            <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
-              <TrendingUp className="h-3 w-3" />
+        <CardContent className="space-y-4">
+          <div className="p-4 bg-gradient-to-r from-blue-50 to-sky-50 rounded-lg border border-blue-200">
+            <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-blue-600" />
               Revenue Model Analysis
             </h4>
-            <div className="overflow-hidden border rounded-lg shadow-sm">
+            <div className="overflow-hidden border border-blue-200 rounded-lg shadow-sm">
               <table className="w-full">
-                <thead className="bg-gradient-to-r from-blue-100 to-indigo-100">
+                <thead className="bg-gradient-to-r from-blue-50 to-sky-50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-sm font-bold text-blue-900 border-r border-blue-200">Metric</th>
-                    <th className="px-4 py-3 text-left text-sm font-bold text-blue-900 border-r border-blue-200">Value</th>
-                    <th className="px-4 py-3 text-left text-sm font-bold text-blue-900">Status</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-blue-900 border-r border-blue-200">Metric</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-blue-900 border-r border-blue-200">Value</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-blue-900">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-blue-200">
-                  <tr className="hover:bg-blue-50">
-                    <td className="px-4 py-3 text-sm font-semibold text-gray-800 border-r border-blue-200">Business Model</td>
-                    <td className="px-4 py-3 text-sm text-blue-700 border-r border-blue-200">{enhancedDiligenceData?.revenue_model || "Not specified in pitch deck"}</td>
+                <tbody className="divide-y divide-blue-100">
+                  <tr className="hover:bg-blue-50/50">
+                    <td className="px-4 py-3 text-sm font-medium text-gray-900 border-r border-blue-200">Business Model</td>
+                    <td className="px-4 py-3 text-sm text-gray-700 border-r border-blue-200">{enhancedDiligenceData?.revenue_model || "Not specified in pitch deck"}</td>
                     <td className="px-4 py-3 text-sm">
-                      <Badge variant={enhancedDiligenceData?.revenue_model ? "default" : "secondary"} className="text-xs">
+                      <Badge variant={enhancedDiligenceData?.revenue_model ? "default" : "secondary"} className="rounded-full text-xs">
                         {enhancedDiligenceData?.revenue_model ? "Available" : "Pending"}
                       </Badge>
                     </td>
                   </tr>
-                  <tr className="hover:bg-blue-50">
-                    <td className="px-4 py-3 text-sm font-semibold text-gray-800 border-r border-blue-200">Current Revenue</td>
-                    <td className="px-4 py-3 text-sm text-blue-700 border-r border-blue-200">{enhancedDiligenceData?.current_revenue || "Not specified"}</td>
+                  <tr className="hover:bg-blue-50/50">
+                    <td className="px-4 py-3 text-sm font-medium text-gray-900 border-r border-blue-200">Current Revenue</td>
+                    <td className="px-4 py-3 text-sm text-gray-700 border-r border-blue-200">{enhancedDiligenceData?.current_revenue || "Not specified"}</td>
                     <td className="px-4 py-3 text-sm">
-                      <Badge variant={enhancedDiligenceData?.current_revenue ? "default" : "secondary"} className="text-xs">
+                      <Badge variant={enhancedDiligenceData?.current_revenue ? "default" : "secondary"} className="rounded-full text-xs">
                         {enhancedDiligenceData?.current_revenue ? "Available" : "Pending"}
                       </Badge>
                     </td>
                   </tr>
-                  <tr className="hover:bg-blue-50">
-                    <td className="px-4 py-3 text-sm font-semibold text-gray-800 border-r border-blue-200">Revenue Growth Rate</td>
-                    <td className="px-4 py-3 text-sm text-blue-700 border-r border-blue-200">{enhancedDiligenceData?.revenue_growth_rate || "Not specified"}</td>
+                  <tr className="hover:bg-blue-50/50">
+                    <td className="px-4 py-3 text-sm font-medium text-gray-900 border-r border-blue-200">Revenue Growth Rate</td>
+                    <td className="px-4 py-3 text-sm text-gray-700 border-r border-blue-200">{enhancedDiligenceData?.revenue_growth_rate || "Not specified"}</td>
                     <td className="px-4 py-3 text-sm">
-                      <Badge variant={enhancedDiligenceData?.revenue_growth_rate ? "default" : "secondary"} className="text-xs">
+                      <Badge variant={enhancedDiligenceData?.revenue_growth_rate ? "default" : "secondary"} className="rounded-full text-xs">
                         {enhancedDiligenceData?.revenue_growth_rate ? "Available" : "Pending"}
                       </Badge>
                     </td>
                   </tr>
-                  <tr className="hover:bg-blue-50">
-                    <td className="px-4 py-3 text-sm font-semibold text-gray-800 border-r border-blue-200">Target Customers</td>
-                    <td className="px-4 py-3 text-sm text-blue-700 border-r border-blue-200">{enhancedDiligenceData?.target_customers || "Not specified"}</td>
+                  <tr className="hover:bg-blue-50/50">
+                    <td className="px-4 py-3 text-sm font-medium text-gray-900 border-r border-blue-200">Target Customers</td>
+                    <td className="px-4 py-3 text-sm text-gray-700 border-r border-blue-200">{enhancedDiligenceData?.target_customers || "Not specified"}</td>
                     <td className="px-4 py-3 text-sm">
-                      <Badge variant={enhancedDiligenceData?.target_customers ? "default" : "secondary"} className="text-xs">
+                      <Badge variant={enhancedDiligenceData?.target_customers ? "default" : "secondary"} className="rounded-full text-xs">
                         {enhancedDiligenceData?.target_customers ? "Available" : "Pending"}
                       </Badge>
                     </td>
@@ -832,53 +844,53 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
           </div>
 
           {/* Unit Economics */}
-          <div className="p-3 bg-gray-50 rounded border">
-            <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
-              <BarChart3 className="h-3 w-3" />
+          <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
+            <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-green-600" />
               Unit Economics Analysis
             </h4>
-            <div className="overflow-hidden border rounded-lg shadow-sm">
+            <div className="overflow-hidden border border-green-200 rounded-lg shadow-sm">
               <table className="w-full">
-                <thead className="bg-gradient-to-r from-green-100 to-emerald-100">
+                <thead className="bg-gradient-to-r from-green-50 to-emerald-50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-sm font-bold text-green-900 border-r border-green-200">Metric</th>
-                    <th className="px-4 py-3 text-left text-sm font-bold text-green-900 border-r border-green-200">Value</th>
-                    <th className="px-4 py-3 text-left text-sm font-bold text-green-900">Status</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-green-900 border-r border-green-200">Metric</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-green-900 border-r border-green-200">Value</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-green-900">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-green-200">
-                  <tr className="hover:bg-green-50">
-                    <td className="px-4 py-3 text-sm font-semibold text-gray-800 border-r border-green-200">Customer Acquisition Cost (CAC)</td>
-                    <td className="px-4 py-3 text-sm text-green-700 border-r border-green-200">{enhancedDiligenceData?.customer_acquisition_cost || "Not specified"}</td>
+                <tbody className="divide-y divide-green-100">
+                  <tr className="hover:bg-green-50/50">
+                    <td className="px-4 py-3 text-sm font-medium text-gray-900 border-r border-green-200">Customer Acquisition Cost (CAC)</td>
+                    <td className="px-4 py-3 text-sm text-gray-700 border-r border-green-200">{enhancedDiligenceData?.customer_acquisition_cost || "Not specified"}</td>
                     <td className="px-4 py-3 text-sm">
-                      <Badge variant={enhancedDiligenceData?.customer_acquisition_cost ? "default" : "secondary"} className="text-xs">
+                      <Badge variant={enhancedDiligenceData?.customer_acquisition_cost ? "default" : "secondary"} className="rounded-full text-xs">
                         {enhancedDiligenceData?.customer_acquisition_cost ? "Available" : "Pending"}
                       </Badge>
                     </td>
                   </tr>
-                  <tr className="hover:bg-green-50">
-                    <td className="px-4 py-3 text-sm font-semibold text-gray-800 border-r border-green-200">Lifetime Value (LTV)</td>
-                    <td className="px-4 py-3 text-sm text-green-700 border-r border-green-200">{enhancedDiligenceData?.lifetime_value || "Not specified"}</td>
+                  <tr className="hover:bg-green-50/50">
+                    <td className="px-4 py-3 text-sm font-medium text-gray-900 border-r border-green-200">Lifetime Value (LTV)</td>
+                    <td className="px-4 py-3 text-sm text-gray-700 border-r border-green-200">{enhancedDiligenceData?.lifetime_value || "Not specified"}</td>
                     <td className="px-4 py-3 text-sm">
-                      <Badge variant={enhancedDiligenceData?.lifetime_value ? "default" : "secondary"} className="text-xs">
+                      <Badge variant={enhancedDiligenceData?.lifetime_value ? "default" : "secondary"} className="rounded-full text-xs">
                         {enhancedDiligenceData?.lifetime_value ? "Available" : "Pending"}
                       </Badge>
                     </td>
                   </tr>
-                  <tr className="hover:bg-green-50">
-                    <td className="px-4 py-3 text-sm font-semibold text-gray-800 border-r border-green-200">Gross Margin</td>
-                    <td className="px-4 py-3 text-sm text-green-700 border-r border-green-200">{enhancedDiligenceData?.gross_margin || "Not specified"}</td>
+                  <tr className="hover:bg-green-50/50">
+                    <td className="px-4 py-3 text-sm font-medium text-gray-900 border-r border-green-200">Gross Margin</td>
+                    <td className="px-4 py-3 text-sm text-gray-700 border-r border-green-200">{enhancedDiligenceData?.gross_margin || "Not specified"}</td>
                     <td className="px-4 py-3 text-sm">
-                      <Badge variant={enhancedDiligenceData?.gross_margin ? "default" : "secondary"} className="text-xs">
+                      <Badge variant={enhancedDiligenceData?.gross_margin ? "default" : "secondary"} className="rounded-full text-xs">
                         {enhancedDiligenceData?.gross_margin ? "Available" : "Pending"}
                       </Badge>
                     </td>
                   </tr>
-                  <tr className="hover:bg-green-50">
-                    <td className="px-4 py-3 text-sm font-semibold text-gray-800 border-r border-green-200">Burn Rate</td>
-                    <td className="px-4 py-3 text-sm text-green-700 border-r border-green-200">{enhancedDiligenceData?.burn_rate || "Not specified"}</td>
+                  <tr className="hover:bg-green-50/50">
+                    <td className="px-4 py-3 text-sm font-medium text-gray-900 border-r border-green-200">Burn Rate</td>
+                    <td className="px-4 py-3 text-sm text-gray-700 border-r border-green-200">{enhancedDiligenceData?.burn_rate || "Not specified"}</td>
                     <td className="px-4 py-3 text-sm">
-                      <Badge variant={enhancedDiligenceData?.burn_rate ? "default" : "secondary"} className="text-xs">
+                      <Badge variant={enhancedDiligenceData?.burn_rate ? "default" : "secondary"} className="rounded-full text-xs">
                         {enhancedDiligenceData?.burn_rate ? "Available" : "Pending"}
                       </Badge>
                     </td>
@@ -891,15 +903,16 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
       </Card>
 
       {/* Pricing Strategy */}
-      <Card className="border shadow-sm">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="h-3 w-3" />
+      <Card className="border-purple-100 shadow-sm">
+        <CardHeader className="bg-gradient-to-r from-purple-50 to-indigo-50 pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <BarChart3 className="h-4 w-4 text-purple-600" />
             Pricing Strategy
           </CardTitle>
+          <CardDescription className="text-sm">Pricing model and go-to-market strategy</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-2">
-          <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+        <CardContent className="space-y-4">
+          <div className="p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg border border-purple-200">
             <h4 className="font-semibold text-blue-800 mb-2">Pricing Strategy from Pitch Deck</h4>
             <div className="text-sm text-blue-700 space-y-2">
               <p><strong>Pricing Strategy:</strong> {typeof enhancedDiligenceData?.pricing_strategy === 'string' ? enhancedDiligenceData.pricing_strategy : typeof enhancedDiligenceData?.pricing_strategy === 'object' ? JSON.stringify(enhancedDiligenceData.pricing_strategy) : "Not specified in pitch deck"}</p>
@@ -947,17 +960,17 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
       
 
       {/* Unit Economics */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
+      <Card className="border-green-100 shadow-sm">
+        <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <TrendingUp className="h-4 w-4 text-green-600" />
             Unit Economics
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-sm">
             Customer acquisition costs, lifetime value, and revenue model analysis
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-2">
+        <CardContent className="space-y-4">
           {/* Academic Institutions */}
           <div>
             <h4 className="font-semibold mb-2">Key metrics for revenue generation - for Academic Institutions</h4>
@@ -1266,84 +1279,6 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
         </CardContent>
       </Card>
 
-      {/* Exit Strategy */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
-            Exit Strategy
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <h4 className="font-semibold text-blue-800 mb-2">Exit Strategy from Pitch Deck</h4>
-            <div className="text-sm text-blue-700 space-y-2">
-              <p><strong>Exit Strategy:</strong> {enhancedDiligenceData?.exit_strategy || "Not specified in pitch deck"}</p>
-              <p><strong>IPO Timeline:</strong> {enhancedDiligenceData?.ipo_timeline || "Not specified"}</p>
-              <p><strong>Exit Valuation:</strong> {enhancedDiligenceData?.exit_valuation || "Not specified"}</p>
-            </div>
-                </div>
-                
-          {/* Potential Acquirers */}
-          {diligenceData?.potential_acquirers && Array.isArray(diligenceData.potential_acquirers) && diligenceData.potential_acquirers.length > 0 && (
-            <div>
-              <h4 className="font-semibold mb-2">Potential Acquirers</h4>
-              <ul className="text-sm text-muted-foreground space-y-1">
-                {diligenceData.potential_acquirers.map((acquirer, index) => (
-                  <li key={index}>• {acquirer}</li>
-                ))}
-              </ul>
-                </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Team Information */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            Team Information
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <div className="grid gap-3 md:grid-cols-2">
-              <div className="p-3 bg-blue-50 rounded-lg">
-              <h5 className="font-medium text-blue-800">Team Size</h5>
-                <p className="text-sm text-blue-600">{enhancedDiligenceData?.team_size || (enhancedDiligenceData as any)?.team || "Not specified"}</p>
-              </div>
-            <div className="p-3 bg-green-50 rounded-lg">
-              <h5 className="font-medium text-green-800">Execution Track Record</h5>
-              <p className="text-sm text-green-600">{enhancedDiligenceData?.execution_track_record || "Not specified"}</p>
-              </div>
-            </div>
-
-          {/* Key Team Members */}
-          {diligenceData?.key_team_members && Array.isArray(diligenceData.key_team_members) && diligenceData.key_team_members.length > 0 && (
-            <div>
-              <h4 className="font-semibold mb-2">Key Team Members</h4>
-              <ul className="text-sm text-muted-foreground space-y-1">
-                {diligenceData.key_team_members.map((member, index) => (
-                  <li key={index}>• {member}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Advisory Board */}
-          {diligenceData?.advisory_board && Array.isArray(diligenceData.advisory_board) && diligenceData.advisory_board.length > 0 && (
-            <div>
-              <h4 className="font-semibold mb-2">Advisory Board</h4>
-              <ul className="text-sm text-muted-foreground space-y-1">
-                {diligenceData.advisory_board.map((advisor, index) => (
-                  <li key={index}>• {advisor}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-          </CardContent>
-        </Card>
-
       {/* Investment Decision */}
       <Card>
         <CardHeader>
@@ -1407,7 +1342,11 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
             <Button 
               className="bg-green-600 hover:bg-green-700 text-white"
               onClick={() => {
-                // Handle Accept action
+                toast({
+                  title: "Investment Accepted",
+                  description: "The investment has been marked as accepted.",
+                  variant: "default"
+                });
                 console.log('Investment Accepted');
               }}
             >
@@ -1418,7 +1357,11 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
             <Button 
               variant="destructive"
               onClick={() => {
-                // Handle Decline action
+                toast({
+                  title: "Investment Declined",
+                  description: "The investment has been marked as declined.",
+                  variant: "destructive"
+                });
                 console.log('Investment Declined');
               }}
             >
@@ -1430,7 +1373,11 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
               variant="outline"
               className="border-yellow-500 text-yellow-600 hover:bg-yellow-50"
               onClick={() => {
-                // Handle Hold action
+                toast({
+                  title: "Investment on Hold",
+                  description: "The investment decision has been put on hold.",
+                  variant: "default"
+                });
                 console.log('Investment on Hold');
               }}
             >
@@ -1440,7 +1387,7 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
             
             <Button
               onClick={handleRunValidation}
-              disabled={isValidating}
+              disabled={isValidating || !memoId}
               variant="outline"
               className="flex items-center gap-2"
             >
@@ -1767,13 +1714,6 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
         </CardContent>
       </Card>
 
-      {/* Competitor Analysis Matrix */}
-      <CompetitorMatrix 
-        data={diligenceData?.competitor_matrix || null}
-        sources={diligenceData?.validation_result?.sources}
-        dataQuality={diligenceData?.validation_result?.data_quality}
-        analysisConfidence={diligenceData?.validation_result?.analysis_confidence}
-      />
     </div>
   );
 }

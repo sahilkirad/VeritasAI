@@ -28,12 +28,13 @@ export function QuickBooksConnectDialog({ open, onOpenChange, onConnected }: Qui
   const [accessToken, setAccessToken] = useState('');
 
   // Pre-fill the access token when dialog opens
-  const PRE_FILLED_ACCESS_TOKEN = 'qb-oauth-abcdef1234567890';
+  const PRE_FILLED_ACCESS_TOKEN = process.env.NEXT_PUBLIC_QUICKBOOKS_ACCESS_TOKEN || 'qb-oauth-abcdef1234567890';
+  const PRE_FILLED_COMPANY_ID = process.env.NEXT_PUBLIC_QUICKBOOKS_COMPANY_ID || '1234567890';
 
   useEffect(() => {
     if (open) {
       setAccessToken(PRE_FILLED_ACCESS_TOKEN);
-      setCompanyId('1234567890');
+      setCompanyId(PRE_FILLED_COMPANY_ID);
       setError('');
       setSuccess(false);
     } else {

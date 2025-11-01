@@ -12,6 +12,8 @@ import { Label } from "@/components/ui/label"
 import { Logo } from "@/components/icons/logo"
 import { useAuth } from "@/contexts/AuthContext"
 import { useState } from "react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Info } from "lucide-react"
 
 export default function FounderSignupPage() {
   const [isLoading, setIsLoading] = useState(false)
@@ -72,6 +74,12 @@ export default function FounderSignupPage() {
           <CardDescription>Join Veritas as a founder to showcase your vision.</CardDescription>
         </CardHeader>
         <CardContent>
+          <Alert className="mb-4 bg-blue-50 border-blue-200 text-blue-900 [&>svg]:text-blue-600">
+            <Info className="h-4 w-4" />
+            <AlertDescription>
+              Please enter your real email address and credentials to receive the interview link. After creating your account, click the Sign In button to access your dashboard.
+            </AlertDescription>
+          </Alert>
           <form onSubmit={handleEmailSignUp} className="grid gap-4">
             {error && (
               <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">

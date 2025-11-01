@@ -10,6 +10,9 @@ import { AnalyticsDataDisplay } from "@/components/AnalyticsDataDisplay";
 import { googleAnalyticsService, type AnalyticsData } from "@/lib/google-analytics";
 import { useChat } from "@/hooks/useChat";
 import { Badge } from "@/components/ui/badge";
+import { StripeConnectDialog } from "@/components/StripeConnectDialog";
+import { HubSpotConnectDialog } from "@/components/HubSpotConnectDialog";
+import { QuickBooksConnectDialog } from "@/components/QuickBooksConnectDialog";
 
 
 export default function FounderDashboardPage() {
@@ -17,6 +20,18 @@ export default function FounderDashboardPage() {
   const [isGoogleAnalyticsConnected, setIsGoogleAnalyticsConnected] = useState(false);
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
   const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
+  
+  // Stripe connection state
+  const [isStripeDialogOpen, setIsStripeDialogOpen] = useState(false);
+  const [isStripeConnected, setIsStripeConnected] = useState(false);
+  
+  // HubSpot connection state
+  const [isHubSpotDialogOpen, setIsHubSpotDialogOpen] = useState(false);
+  const [isHubSpotConnected, setIsHubSpotConnected] = useState(false);
+  
+  // QuickBooks connection state
+  const [isQuickBooksDialogOpen, setIsQuickBooksDialogOpen] = useState(false);
+  const [isQuickBooksConnected, setIsQuickBooksConnected] = useState(false);
   
   // Mock user data - in real app, get from auth context
   const userId = 'founder1';
@@ -26,10 +41,10 @@ export default function FounderDashboardPage() {
   
 
   const sources = [
-    { name: 'Stripe', description: 'Sync financial data', connected: true },
+    { name: 'Stripe', description: 'Sync financial data', connected: isStripeConnected },
     { name: 'Google Analytics', description: 'Track user engagement', connected: isGoogleAnalyticsConnected },
-    { name: 'QuickBooks', description: 'Manage accounting', connected: false },
-    { name: 'HubSpot', description: 'Sync CRM data', connected: false },
+    { name: 'QuickBooks', description: 'Manage accounting', connected: isQuickBooksConnected },
+    { name: 'HubSpot', description: 'Sync CRM data', connected: isHubSpotConnected },
   ];
 
   // Check Google Analytics connection status on component mount
@@ -74,6 +89,45 @@ export default function FounderDashboardPage() {
     await googleAnalyticsService.disconnect();
     setIsGoogleAnalyticsConnected(false);
     setAnalyticsData(null);
+  };
+
+  // Stripe connection handlers
+  const handleStripeConnect = () => {
+    setIsStripeDialogOpen(true);
+  };
+
+  const handleStripeConnected = () => {
+    setIsStripeConnected(true);
+  };
+
+  const handleStripeDisconnect = () => {
+    setIsStripeConnected(false);
+  };
+
+  // HubSpot connection handlers
+  const handleHubSpotConnect = () => {
+    setIsHubSpotDialogOpen(true);
+  };
+
+  const handleHubSpotConnected = () => {
+    setIsHubSpotConnected(true);
+  };
+
+  const handleHubSpotDisconnect = () => {
+    setIsHubSpotConnected(false);
+  };
+
+  // QuickBooks connection handlers
+  const handleQuickBooksConnect = () => {
+    setIsQuickBooksDialogOpen(true);
+  };
+
+  const handleQuickBooksConnected = () => {
+    setIsQuickBooksConnected(true);
+  };
+
+  const handleQuickBooksDisconnect = () => {
+    setIsQuickBooksConnected(false);
   };
 
 
@@ -139,13 +193,13 @@ export default function FounderDashboardPage() {
        </div>
 
         {/* Investor Rooms Card */}
-        <Card className="border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 shadow-lg">
+        <Card className="border-gray-200 bg-white shadow-lg">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-green-900">
+            <CardTitle className="flex items-center gap-2">
               <MessageSquare className="h-5 w-5" />
               Investor Rooms
             </CardTitle>
-            <CardDescription className="text-green-700">
+            <CardDescription>
               Connect with investors who are interested in your company. Build relationships and advance your funding conversations.
             </CardDescription>
           </CardHeader>
@@ -154,7 +208,7 @@ export default function FounderDashboardPage() {
               {/* Stats Section */}
               <div className="space-y-4">
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-green-900 flex items-center justify-center gap-2">
+                  <div className="text-3xl font-bold flex items-center justify-center gap-2">
                     {rooms.length}
                     {totalUnread > 0 && (
                       <Badge variant="destructive" className="text-xs animate-pulse">
@@ -162,38 +216,38 @@ export default function FounderDashboardPage() {
                       </Badge>
                     )}
                   </div>
-                  <p className="text-sm text-green-700 font-medium">Active Conversations</p>
+                  <p className="text-sm font-medium">Active Conversations</p>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-3 text-center">
-                  <div className="bg-white/60 rounded-lg p-3">
-                    <div className="text-lg font-semibold text-green-900">
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <div className="text-lg font-semibold">
                       {rooms.filter(room => room.status === 'active').length}
                     </div>
-                    <p className="text-xs text-green-600">Active</p>
+                    <p className="text-xs text-muted-foreground">Active</p>
                   </div>
-                  <div className="bg-white/60 rounded-lg p-3">
-                    <div className="text-lg font-semibold text-green-900">
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <div className="text-lg font-semibold">
                       {rooms.filter(room => room.unreadCount > 0).length}
                     </div>
-                    <p className="text-xs text-green-600">Unread</p>
+                    <p className="text-xs text-muted-foreground">Unread</p>
                   </div>
                 </div>
               </div>
 
               {/* Recent Conversations */}
               <div className="space-y-3">
-                <h4 className="font-semibold text-green-900 text-sm">Recent Conversations</h4>
+                <h4 className="font-semibold text-sm">Recent Conversations</h4>
                 {rooms.length > 0 ? (
                   <div className="space-y-2">
                     {rooms.slice(0, 3).map((room, index) => (
-                      <div key={room.id} className="bg-white/60 rounded-lg p-3 hover:bg-white/80 transition-colors">
+                      <div key={room.id} className="bg-gray-50 rounded-lg p-3 hover:bg-gray-100 transition-colors">
                         <div className="flex items-center justify-between">
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium text-green-900 text-sm truncate">
+                            <p className="font-medium text-sm truncate">
                               {room.investorName}
                             </p>
-                            <p className="text-xs text-green-600 truncate">
+                            <p className="text-xs text-muted-foreground truncate">
                               {room.investorFirm || 'Independent Investor'}
                             </p>
                           </div>
@@ -203,52 +257,52 @@ export default function FounderDashboardPage() {
                             </Badge>
                           )}
                         </div>
-                        <p className="text-xs text-green-700 mt-1 truncate">
+                        <p className="text-xs text-muted-foreground mt-1 truncate">
                           {room.lastMessage}
                         </p>
                       </div>
                     ))}
                     {rooms.length > 3 && (
-                      <p className="text-xs text-green-600 text-center">
+                      <p className="text-xs text-muted-foreground text-center">
                         +{rooms.length - 3} more conversations
                       </p>
                     )}
                   </div>
                 ) : (
                   <div className="text-center py-4">
-                    <MessageSquare className="h-8 w-8 text-green-300 mx-auto mb-2" />
-                    <p className="text-sm text-green-600">No conversations yet</p>
-                    <p className="text-xs text-green-500">Investors will reach out after reviewing your Memo 3</p>
+                    <MessageSquare className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">No conversations yet</p>
+                    <p className="text-xs text-muted-foreground">Investors will reach out after reviewing your Memo 3</p>
                   </div>
                 )}
               </div>
 
               {/* Actions Section */}
               <div className="space-y-3">
-                <h4 className="font-semibold text-green-900 text-sm">Quick Actions</h4>
+                <h4 className="font-semibold text-sm">Quick Actions</h4>
                 <div className="space-y-2">
                   <Link href="/founder/dashboard/messages" className="block">
-                    <Button className="w-full bg-green-600 hover:bg-green-700 text-white">
+                    <Button className="w-full">
                       <MessageSquare className="mr-2 h-4 w-4" />
                       View All Messages
                     </Button>
                   </Link>
                   
-                  <Button variant="outline" className="w-full border-green-300 text-green-700 hover:bg-green-50">
+                  <Button variant="outline" className="w-full">
                     <Users className="mr-2 h-4 w-4" />
                     Find More Investors
                   </Button>
                   
-                  <Button variant="ghost" className="w-full text-green-600 hover:bg-green-50">
+                  <Button variant="ghost" className="w-full">
                     <FileText className="mr-2 h-4 w-4" />
                     Share Pitch Deck
                   </Button>
                 </div>
 
                 {/* Tips */}
-                <div className="bg-green-100/50 rounded-lg p-3 mt-4">
-                  <h5 className="font-medium text-green-900 text-xs mb-1">💡 Pro Tip</h5>
-                  <p className="text-xs text-green-700">
+                <div className="bg-gray-50 rounded-lg p-3 mt-4">
+                  <h5 className="font-medium text-xs mb-1">💡 Pro Tip</h5>
+                  <p className="text-xs text-muted-foreground">
                     Respond quickly to investor messages to maintain their interest and momentum.
                   </p>
                 </div>
@@ -321,6 +375,84 @@ export default function FounderDashboardPage() {
                                 variant="outline" 
                                 className="w-full"
                                 onClick={handleGoogleAnalyticsConnect}
+                              >
+                                <PlusCircle className="mr-2 h-4 w-4" />
+                                Connect
+                              </Button>
+                            )
+                          ) : source.name === 'Stripe' ? (
+                            source.connected ? (
+                              <div className="w-full space-y-2">
+                                <Button variant="outline" disabled className="w-full">
+                                  <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
+                                  Connected
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  onClick={handleStripeDisconnect}
+                                  className="w-full text-xs"
+                                >
+                                  Disconnect
+                                </Button>
+                              </div>
+                            ) : (
+                              <Button 
+                                variant="outline" 
+                                className="w-full"
+                                onClick={handleStripeConnect}
+                              >
+                                <PlusCircle className="mr-2 h-4 w-4" />
+                                Connect
+                              </Button>
+                            )
+                          ) : source.name === 'HubSpot' ? (
+                            source.connected ? (
+                              <div className="w-full space-y-2">
+                                <Button variant="outline" disabled className="w-full">
+                                  <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
+                                  Connected
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  onClick={handleHubSpotDisconnect}
+                                  className="w-full text-xs"
+                                >
+                                  Disconnect
+                                </Button>
+                              </div>
+                            ) : (
+                              <Button 
+                                variant="outline" 
+                                className="w-full"
+                                onClick={handleHubSpotConnect}
+                              >
+                                <PlusCircle className="mr-2 h-4 w-4" />
+                                Connect
+                              </Button>
+                            )
+                          ) : source.name === 'QuickBooks' ? (
+                            source.connected ? (
+                              <div className="w-full space-y-2">
+                                <Button variant="outline" disabled className="w-full">
+                                  <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
+                                  Connected
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  onClick={handleQuickBooksDisconnect}
+                                  className="w-full text-xs"
+                                >
+                                  Disconnect
+                                </Button>
+                              </div>
+                            ) : (
+                              <Button 
+                                variant="outline" 
+                                className="w-full"
+                                onClick={handleQuickBooksConnect}
                               >
                                 <PlusCircle className="mr-2 h-4 w-4" />
                                 Connect
@@ -429,11 +561,382 @@ export default function FounderDashboardPage() {
         )}
     </div>
 
-    {/* Google Analytics Connection Dialog */}
+    {/* Stripe Data Display */}
+    {isStripeConnected && (
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5" />
+                $ Stripe Financial Data
+              </CardTitle>
+              <CardDescription>
+                Real-time financial data from your connected Stripe account.
+              </CardDescription>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Refresh
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Total Revenue</p>
+                    <p className="text-2xl font-bold">$0</p>
+                    <p className="text-xs text-muted-foreground">$0 available</p>
+                  </div>
+                  <DollarSign className="h-8 w-8 text-muted-foreground" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Monthly Recurring Revenue</p>
+                    <p className="text-2xl font-bold">$0</p>
+                    <p className="text-xs text-muted-foreground">2.3% churn rate</p>
+                  </div>
+                  <LineChart className="h-8 w-8 text-muted-foreground" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Active Subscriptions</p>
+                    <p className="text-2xl font-bold">0</p>
+                    <p className="text-xs text-muted-foreground">$0 ARPU</p>
+                  </div>
+                  <Users className="h-8 w-8 text-muted-foreground" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Conversion Rate</p>
+                    <p className="text-2xl font-bold">3.2%</p>
+                    <p className="text-xs text-muted-foreground">2.3% churn rate</p>
+                  </div>
+                  <BarChart className="h-8 w-8 text-muted-foreground" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Recent Payments</CardTitle>
+                <CardDescription>Latest payment transactions from Stripe.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-8 text-sm text-muted-foreground">
+                  No recent payments available
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Recent Customers</CardTitle>
+                <CardDescription>Latest customers from Stripe.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-8 text-sm text-muted-foreground">
+                  No recent customers available
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle className="text-lg">Account Information</CardTitle>
+              <CardDescription>Stripe account details.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Account Email</p>
+                  <p className="font-medium">N/A</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Business Name</p>
+                  <p className="font-medium">N/A</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Available Balance</p>
+                  <p className="font-medium">$0</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </CardContent>
+      </Card>
+    )}
+
+    {/* HubSpot Data Display */}
+    {isHubSpotConnected && (
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                HubSpot CRM Data
+              </CardTitle>
+              <CardDescription>
+                Real-time CRM data from your connected HubSpot account.
+              </CardDescription>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Refresh
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Total Contacts</p>
+                    <p className="text-2xl font-bold">2</p>
+                    <p className="text-xs text-muted-foreground">+0 this month</p>
+                  </div>
+                  <Users className="h-8 w-8 text-muted-foreground" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Total Companies</p>
+                    <p className="text-2xl font-bold">1</p>
+                    <p className="text-xs text-muted-foreground">+0 this month</p>
+                  </div>
+                  <FileText className="h-8 w-8 text-muted-foreground" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Total Deals</p>
+                    <p className="text-2xl font-bold">0</p>
+                    <p className="text-xs text-muted-foreground">+0 this month</p>
+                  </div>
+                  <TrendingUp className="h-8 w-8 text-muted-foreground" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Pipeline Value</p>
+                    <p className="text-2xl font-bold">$0</p>
+                    <p className="text-xs text-muted-foreground">0% conversion</p>
+                  </div>
+                  <LineChart className="h-8 w-8 text-muted-foreground" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Recent Contacts</CardTitle>
+                <CardDescription>Latest contacts from HubSpot</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-2 border rounded">
+                    <div>
+                      <p className="font-medium text-sm">Maria Johnson (Sample Contact)</p>
+                      <p className="text-xs text-muted-foreground">emailmaria@hubspot.com</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between p-2 border rounded">
+                    <div>
+                      <p className="font-medium text-sm">Brian Halligan (Sample Contact)</p>
+                      <p className="text-xs text-muted-foreground">bh@hubspot.com</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Recent Deals</CardTitle>
+                <CardDescription>Latest deals from HubSpot</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-8 text-sm text-muted-foreground">
+                  No recent deals available
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Recent Companies</CardTitle>
+                <CardDescription>Latest companies from HubSpot</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-2 border rounded">
+                    <div>
+                      <p className="font-medium text-sm">HubSpot</p>
+                      <p className="text-xs text-muted-foreground">hubspot.com</p>
+                    </div>
+                    <Badge variant="secondary">Company</Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Summary Statistics</CardTitle>
+              <CardDescription>Key metrics from your HubSpot data</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Pipeline Value</p>
+                  <p className="text-xl font-bold">$0</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Average Deal Size</p>
+                  <p className="text-xl font-bold">$0</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Conversion Rate</p>
+                  <p className="text-xl font-bold">0%</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Lead Quality Score</p>
+                  <p className="text-xl font-bold">0/10</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </CardContent>
+      </Card>
+    )}
+
+    {/* QuickBooks Data Display */}
+    {isQuickBooksConnected && (
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <LineChart className="h-5 w-5" />
+                QuickBooks Financial Data
+              </CardTitle>
+              <CardDescription>
+                Real-time accounting data from your connected QuickBooks account.
+              </CardDescription>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Refresh
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Account Balance</p>
+                    <p className="text-2xl font-bold">$0</p>
+                    <p className="text-xs text-muted-foreground">Current balance</p>
+                  </div>
+                  <DollarSign className="h-8 w-8 text-muted-foreground" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Total Expenses</p>
+                    <p className="text-2xl font-bold">$0</p>
+                    <p className="text-xs text-muted-foreground">This month</p>
+                  </div>
+                  <TrendingUp className="h-8 w-8 text-muted-foreground" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Profit/Loss</p>
+                    <p className="text-2xl font-bold">$0</p>
+                    <p className="text-xs text-muted-foreground">Net income</p>
+                  </div>
+                  <BarChart className="h-8 w-8 text-muted-foreground" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </CardContent>
+      </Card>
+    )}
+
+    {/* Connection Dialogs */}
     <GoogleAnalyticsDialog
       open={isGoogleAnalyticsDialogOpen}
       onOpenChange={setIsGoogleAnalyticsDialogOpen}
       onConnected={handleGoogleAnalyticsConnected}
+    />
+    <StripeConnectDialog
+      open={isStripeDialogOpen}
+      onOpenChange={setIsStripeDialogOpen}
+      onConnected={handleStripeConnected}
+    />
+    <HubSpotConnectDialog
+      open={isHubSpotDialogOpen}
+      onOpenChange={setIsHubSpotDialogOpen}
+      onConnected={handleHubSpotConnected}
+    />
+    <QuickBooksConnectDialog
+      open={isQuickBooksDialogOpen}
+      onOpenChange={setIsQuickBooksDialogOpen}
+      onConnected={handleQuickBooksConnected}
     />
     </>
   );

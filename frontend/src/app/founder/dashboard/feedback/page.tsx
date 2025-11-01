@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { apiClient } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Info } from "lucide-react";
 
 interface QAPair {
   question: string;
@@ -133,6 +135,12 @@ export default function FeedbackPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <Alert className="bg-blue-50 border-blue-200 text-blue-900 [&>svg]:text-blue-600">
+            <Info className="h-4 w-4" />
+            <AlertDescription>
+              Wait for a sometime to get your desired recommendations and AI feedback for your question.
+            </AlertDescription>
+          </Alert>
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground">
@@ -203,6 +211,12 @@ export default function FeedbackPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <Alert className="bg-blue-50 border-blue-200 text-blue-900 [&>svg]:text-blue-600">
+            <Info className="h-4 w-4" />
+            <AlertDescription>
+              Wait for a sometime to get your desired recommendations and AI feedback for your question.
+            </AlertDescription>
+          </Alert>
           <div className="space-y-3">
             <Textarea
               placeholder="Ask a question about your pitch deck... (e.g., 'What are the main strengths of my pitch deck?', 'How can I improve my market positioning?')"

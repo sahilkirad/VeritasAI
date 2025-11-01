@@ -10,6 +10,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { uploadFile, API_ENDPOINTS } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { Info } from "lucide-react";
 
 // Enhanced file type with processing status and scores
 interface UploadedFile {
@@ -568,6 +569,14 @@ export default function DocumentsPage() {
                                 ))}
                     </div>
                         )}
+
+                        {/* Waiting message - shown always */}
+                        <Alert className="mb-4 bg-blue-50 border-blue-200 text-blue-900 [&>svg]:text-blue-600">
+                          <Info className="h-4 w-4" />
+                          <AlertDescription>
+                            Wait a couple of minutes until the status of uploaded file changes from Uploading to Processing.
+                          </AlertDescription>
+                        </Alert>
 
                         {/* Upload Area */}
                         <div 

@@ -1,5 +1,6 @@
 'use client';
 
+// Updated: Wait instructions and UI improvements
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp } from "lucide-react";

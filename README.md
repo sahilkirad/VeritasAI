@@ -47,10 +47,11 @@
 
 ### 🎯 Target Users
 
-- **💼 VCs & Investors**: Streamline deal flow and due diligence
-- **🚀 Startup Founders**: Get AI-powered feedback on pitch materials
-- **🏢 Investment Firms**: Standardize evaluation processes
-- **📈 Accelerators**: Screen and evaluate startup applications
+- **💼 VCs & Investors**: Streamline deal flow and due diligence with professional investor rooms
+- **🚀 Startup Founders**: Get AI-powered feedback on pitch materials and connect with investors
+- **🏢 Investment Firms**: Standardize evaluation processes with automated workflows
+- **📈 Accelerators**: Screen and evaluate startup applications efficiently
+- **📱 Mobile Users**: Access all platform features on-the-go with native mobile app
 
 ## ✨ Features
 
@@ -80,12 +81,14 @@
 - **Risk Assessment**: Identifies and categorizes investment risks
 - **Scoring System**: Weighted scoring across multiple dimensions
 - **Recommendations**: Clear invest/watchlist/pass recommendations
-- **VC Matchmaking**: Matches startups with appropriate investors
+- **VC Matchmaking**: Matches startups with appropriate investors (frontend-based matching with Firestore integration)
 - **Engagement Automation**: Automated follow-up communications
+- **Investor Rooms**: Secure data rooms with professional purple-themed UI for investor-founder collaboration
+- **Mobile App**: Native mobile application for iOS and Android (Firebase App Distribution)
 
 ### ☁️ Cloud-Native & Scalable
 - **Firebase Functions**: Serverless, auto-scaling backend deployment (asia-south1 region)
-- **Next.js Frontend**: Modern React-based web application with TypeScript
+- **Next.js Frontend**: Modern React-based web application with TypeScript and professional UI design
 - **Firestore**: Real-time database for state management and document storage
 - **BigQuery**: Analytics and reporting for investment data
 - **Vector Search**: Embeddings storage for RAG-based diligence queries
@@ -93,6 +96,13 @@
 - **Auto-scaling**: Handles varying workloads automatically
 - **Cost-effective**: Pay only for actual usage
 - **Global Availability**: Deploy anywhere in Google Cloud regions
+- **Mobile Application**: Native mobile app available via Firebase App Distribution
+
+### 📱 Mobile Application
+- **Native Mobile App**: Access Veritas services on iOS and Android devices
+- **Firebase App Distribution**: Easy distribution for beta testing and internal use
+- **Download Link**: Available on the landing page for quick access
+- **Full Feature Access**: Complete platform functionality on mobile devices
 
 ## 🏗️ Platform Architecture
 
@@ -603,6 +613,13 @@ sequenceDiagram
 - **Firebase CLI** installed (`npm install -g firebase-tools`)
 - **Perplexity API Key** (for data enrichment and validation)
 
+### 📱 Mobile App Access
+
+Download the Veritas mobile app for iOS and Android:
+- **Download Link**: [Firebase App Distribution](https://appdistribution.firebase.dev/i/271a46c07956c054)
+- Access available directly from the landing page
+- Full platform functionality on mobile devices
+
 ### ⚡ Local Development
 
 1. **Clone the repository**
@@ -647,8 +664,14 @@ firebase login
 cd functions
 python run_localhost.py
 
-# Frontend (Next.js)
+# Frontend (Next.js) - Using dev script
+cd ..
+chmod +x dev.sh
+./dev.sh
+
+# Or manually:
 cd frontend
+npm install
 npm run dev
    ```
 
@@ -1046,9 +1069,20 @@ VeritasAI/
 │
 ├── 🎨 frontend/                          # Next.js Frontend Application
 │   ├── 📋 package.json                  # Frontend dependencies
+│   ├── 🚀 dev.sh                        # Development server script
 │   ├── 📁 src/                          # React/Next.js source code
 │   │   ├── app/                         # Next.js app router
+│   │   │   ├── page.tsx                 # Landing page with mobile app download
+│   │   │   ├── founder/                 # Founder dashboard and features
+│   │   │   │   ├── dashboard/
+│   │   │   │   │   ├── investor-match/  # Investor matching (frontend-based)
+│   │   │   │   │   └── datarooms/       # Investor Rooms (purple-themed UI)
+│   │   │   └── dashboard/               # Investor dashboard
+│   │   │       ├── diligence/           # Diligence Hub
+│   │   │       └── memo/                # Deal Memo viewer
 │   │   ├── components/                  # React components
+│   │   │   ├── memo/                    # Memo-related components
+│   │   │   └── ui/                      # UI component library
 │   │   └── lib/                         # Utility functions
 │   ├── 📁 public/                       # Static assets
 │   ├── 📁 out/                          # Static export output
@@ -1365,9 +1399,11 @@ journey
 **Key Founder Touchpoints**:
 1. **Profile Creation**: `/founder/profile` - Collect founder background
 2. **Document Upload**: `/founder/upload` - Upload pitch deck PDF
-3. **Memo Review**: `/dashboard/memo` - View extracted Memo 1
+3. **Memo Review**: `/dashboard/memo` - View extracted Memo 1 (with wait instructions: 5-6 minutes)
 4. **Enrichment Request**: `/dashboard/memo` - Trigger data enrichment
 5. **Validation Review**: `/dashboard/memo` - Review validation results
+6. **Investor Matching**: `/founder/dashboard/investor-match` - Find matching investors (frontend-based, 3-5 minutes loading)
+7. **Investor Rooms**: `/founder/dashboard/datarooms` - Manage secure data rooms with professional purple-themed UI
 
 ### 💼 Investor Journey
 
@@ -1395,9 +1431,10 @@ journey
 **Key Investor Touchpoints**:
 1. **Dashboard**: `/dashboard` - Overview of all companies
 2. **Company Selection**: `/investor/companies` - Browse and filter
-3. **Diligence Hub**: `/investor/diligence` - Request and view diligence
-4. **Validation Report**: `/investor/diligence/[companyId]` - Detailed validation
-5. **Custom Queries**: `/investor/diligence/[companyId]` - Ask specific questions
+3. **Diligence Hub**: `/dashboard/diligence` - Request and view diligence (with wait instructions: 5-6 minutes)
+4. **Deal Memo**: `/dashboard/memo` - View investment memos with wait instructions
+5. **Validation Report**: `/investor/diligence/[companyId]` - Detailed validation
+6. **Custom Queries**: `/investor/diligence/[companyId]` - Ask specific questions
 
 ### 🔄 Complete Platform Flow Diagram
 
@@ -1822,7 +1859,27 @@ curl -X POST https://asia-south1-veritas-472301.cloudfunctions.net/enrich_memo \
 # 5. Test local development
 cd functions
 python run_localhost.py
+
+# 6. Start frontend development server
+cd ..
+chmod +x dev.sh
+./dev.sh
 ```
+
+## 📱 Mobile App
+
+Download the Veritas mobile application for iOS and Android:
+- **Download Link**: https://appdistribution.firebase.dev/i/271a46c07956c054
+- Available directly from the landing page
+- Full platform access on mobile devices
+
+## 🎨 Recent UI Improvements
+
+- **Professional Purple Theme**: Investor Rooms page redesigned with modern purple gradient theme
+- **Wait Instructions**: Added clear loading time indicators (3-5 minutes for Investor Match, 5-6 minutes for Diligence Hub and Deal Memo)
+- **Mobile App Integration**: Landing page now includes prominent mobile app download section
+- **Enhanced UX**: Improved spacing, shadows, and hover effects throughout the platform
+- **Responsive Design**: Optimized for all device sizes including mobile, tablet, and desktop
 
 **🚀 Transform your investment process with advanced AI orchestration today!**
 

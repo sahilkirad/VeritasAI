@@ -4,7 +4,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Logo } from "../components/icons/logo"
-import { ArrowRight } from "lucide-react"
+import { ArrowRight, Smartphone, Download } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import { useRouter } from "next/navigation"
 
@@ -132,6 +132,46 @@ export default function LandingPage() {
               </CardContent>
             </Card>
 
+          </div>
+
+          {/* Mobile App Download Section */}
+          <div className="mt-16 w-full max-w-4xl">
+            <Card className="border-2 border-purple-200 bg-gradient-to-br from-purple-50 via-white to-purple-50/50 shadow-xl overflow-hidden">
+              <CardContent className="p-8 md:p-10">
+                <div className="flex flex-col md:flex-row items-center gap-6 md:gap-8">
+                  {/* Icon Section */}
+                  <div className="flex-shrink-0">
+                    <div className="p-6 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-2xl shadow-lg ring-4 ring-purple-100">
+                      <Smartphone className="h-12 w-12 text-white" />
+                    </div>
+                  </div>
+                  
+                  {/* Content Section */}
+                  <div className="flex-1 text-center md:text-left">
+                    <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">
+                      Access Our Services Anytime
+                    </h2>
+                    <p className="text-base text-gray-600 mb-6 leading-relaxed">
+                      Download our mobile app to stay connected with founders, investors, and opportunities on the go.
+                    </p>
+                    <Button 
+                      className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl font-semibold px-8 py-6 text-base transition-all hover:scale-105"
+                      asChild
+                    >
+                      <a 
+                        href="https://appdistribution.firebase.dev/i/271a46c07956c054" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2"
+                      >
+                        <Download className="h-5 w-5" />
+                        Download Mobile App
+                      </a>
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </main>

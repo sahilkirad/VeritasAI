@@ -930,6 +930,18 @@ def schedule_ai_interview(req: https_fn.Request) -> https_fn.Response:
                                 <p>• Flexible pacing - answer at your own speed</p>
                             </div>
                             
+                            <div style="margin-top: 30px; padding: 20px; background-color: #eff6ff; border-radius: 6px; border-left: 4px solid #3b82f6;">
+                                <p style="margin: 0 0 15px 0; font-size: 15px; color: #1e40af; font-weight: 600;">
+                                    <strong>📝 Interview Instructions:</strong>
+                                </p>
+                                <p style="margin: 8px 0; font-size: 14px; color: #1e3a8a; line-height: 1.7;">
+                                    <strong>1. Recording Process:</strong> Click the record button to start recording your answer. Once you have finished, click stop and submit. You will automatically receive the next question.
+                                </p>
+                                <p style="margin: 8px 0; font-size: 14px; color: #1e3a8a; line-height: 1.7;">
+                                    <strong>2. Viewing Results:</strong> After completing the interview, navigate to the Interview section of the memo page, wait a moment, then click the Refresh button to view your updated interview data.
+                                </p>
+                            </div>
+                            
                             <div class="button-container">
                                 <a href="{interview_url}" class="button">Begin Interview</a>
                             </div>

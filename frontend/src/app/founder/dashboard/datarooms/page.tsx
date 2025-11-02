@@ -167,22 +167,39 @@ export default function DataRoomsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50/50 via-white to-purple-50/30">
       {/* Header */}
-      <div className="bg-white border-b p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Investor Rooms</h1>
-              <p className="text-gray-600 mt-2">Control your narrative. Create secure rooms and grant specific investors access to specific information.</p>
+      <div className="bg-gradient-to-r from-purple-600 via-purple-700 to-indigo-700 border-b shadow-xl relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-purple-600/90 via-purple-700/90 to-indigo-700/90 backdrop-blur-sm"></div>
+        <div className="relative max-w-7xl mx-auto px-6 py-10 lg:px-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div className="text-white">
+              <div className="flex items-start gap-4 mb-4">
+                <div className="p-4 bg-white/10 backdrop-blur-md rounded-2xl shadow-xl border border-white/20">
+                  <Shield className="h-10 w-10 text-white" />
+                </div>
+                <div className="flex-1">
+                  <h1 className="text-4xl lg:text-5xl font-bold mb-3 tracking-tight">Investor Rooms</h1>
+                  <p className="text-purple-50 text-base lg:text-lg leading-relaxed max-w-2xl">
+                    Control your narrative. Create secure rooms and grant specific investors access to specific information.
+                  </p>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-3">
-              <Button variant="outline" className="gap-2">
+            <div className="flex items-center gap-3 flex-shrink-0">
+              <Button 
+                variant="outline" 
+                className="gap-2 bg-white/10 border-white/30 text-white hover:bg-white/20 backdrop-blur-md shadow-lg transition-all duration-200"
+                size="lg"
+              >
                 <Filter className="h-4 w-4" />
                 Filter
               </Button>
-              <Button className="bg-green-600 hover:bg-green-700 gap-2">
-                <PlusCircle className="h-4 w-4" />
+              <Button 
+                className="bg-white text-purple-700 hover:bg-purple-50 gap-2 shadow-xl font-semibold px-6 transition-all duration-200 hover:shadow-2xl hover:scale-105"
+                size="lg"
+              >
+                <PlusCircle className="h-5 w-5" />
                 Create New Room
               </Button>
             </div>
@@ -191,59 +208,59 @@ export default function DataRoomsPage() {
       </div>
 
       {/* Stats Overview */}
-      <div className="max-w-7xl mx-auto p-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
+      <div className="max-w-7xl mx-auto px-6 py-8 lg:px-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+          <Card className="border-purple-200/60 bg-white shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-2">
             <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-green-100 rounded-lg">
-                  <Shield className="h-6 w-6 text-green-600" />
+              <div className="flex items-center gap-5">
+                <div className="p-4 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl shadow-lg ring-4 ring-purple-100">
+                  <Shield className="h-7 w-7 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Active Rooms</p>
-                  <p className="text-2xl font-bold text-gray-900">{rooms.filter(r => r.status === 'active').length}</p>
+                  <p className="text-xs text-purple-600 font-semibold uppercase tracking-wide mb-1">Active Rooms</p>
+                  <p className="text-3xl font-bold text-purple-900">{rooms.filter(r => r.status === 'active').length}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
           
-          <Card>
+          <Card className="border-purple-200/60 bg-white shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-2">
             <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-blue-100 rounded-lg">
-                  <Users className="h-6 w-6 text-blue-600" />
+              <div className="flex items-center gap-5">
+                <div className="p-4 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl shadow-lg ring-4 ring-indigo-100">
+                  <Users className="h-7 w-7 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Total Investors</p>
-                  <p className="text-2xl font-bold text-gray-900">{investorList.length}</p>
+                  <p className="text-xs text-purple-600 font-semibold uppercase tracking-wide mb-1">Total Investors</p>
+                  <p className="text-3xl font-bold text-purple-900">{investorList.length}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
           
-          <Card>
+          <Card className="border-purple-200/60 bg-white shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-2">
             <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-purple-100 rounded-lg">
-                  <Eye className="h-6 w-6 text-purple-600" />
+              <div className="flex items-center gap-5">
+                <div className="p-4 bg-gradient-to-br from-violet-500 to-purple-600 rounded-2xl shadow-lg ring-4 ring-violet-100">
+                  <Eye className="h-7 w-7 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Total Views</p>
-                  <p className="text-2xl font-bold text-gray-900">{rooms.reduce((sum, room) => sum + room.views, 0)}</p>
+                  <p className="text-xs text-purple-600 font-semibold uppercase tracking-wide mb-1">Total Views</p>
+                  <p className="text-3xl font-bold text-purple-900">{rooms.reduce((sum, room) => sum + room.views, 0)}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
           
-          <Card>
+          <Card className="border-purple-200/60 bg-white shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-2">
             <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-orange-100 rounded-lg">
-                  <TrendingUp className="h-6 w-6 text-orange-600" />
+              <div className="flex items-center gap-5">
+                <div className="p-4 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl shadow-lg ring-4 ring-pink-100">
+                  <TrendingUp className="h-7 w-7 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Engagement Rate</p>
-                  <p className="text-2xl font-bold text-gray-900">87%</p>
+                  <p className="text-xs text-purple-600 font-semibold uppercase tracking-wide mb-1">Engagement Rate</p>
+                  <p className="text-3xl font-bold text-purple-900">87%</p>
                 </div>
               </div>
             </CardContent>
@@ -254,107 +271,139 @@ export default function DataRoomsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Rooms List */}
           <div className="lg:col-span-2 space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-gray-900">Your Rooms</h2>
-              <div className="flex items-center gap-2">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input placeholder="Search rooms..." className="pl-10 w-64" />
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+              <div>
+                <h2 className="text-2xl lg:text-3xl font-bold text-purple-900 mb-2">Your Rooms</h2>
+                <p className="text-sm text-purple-600 font-medium">Manage and monitor your investor data rooms</p>
+              </div>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <div className="relative flex-1 sm:flex-none">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-purple-400" />
+                  <Input 
+                    placeholder="Search rooms..." 
+                    className="pl-11 w-full sm:w-72 border-purple-300 focus:border-purple-500 focus:ring-purple-500 shadow-sm bg-white rounded-lg h-11" 
+                  />
                 </div>
               </div>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-5">
               {rooms.map((room) => (
-                <Card key={room.id} className={`${getRoomColor(room.color)} hover:shadow-lg transition-all duration-200`}>
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between mb-4">
+                <Card key={room.id} className="border-2 border-purple-200/60 bg-white hover:shadow-2xl transition-all duration-300 hover:border-purple-400 hover:-translate-y-1 group">
+                  <CardContent className="p-7">
+                    <div className="flex items-start justify-between mb-6">
                       <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-lg font-semibold text-gray-900">{room.name}</h3>
-                          <Badge className={getStatusColor(room.status)}>
+                        <div className="flex items-center flex-wrap gap-3 mb-4">
+                          <div className="p-3 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl shadow-lg ring-4 ring-purple-100 group-hover:ring-purple-200 transition-all">
+                            <Shield className="h-6 w-6 text-white" />
+                          </div>
+                          <h3 className="text-xl lg:text-2xl font-bold text-purple-900">{room.name}</h3>
+                          <Badge className="bg-purple-100 text-purple-700 border-2 border-purple-300 font-semibold px-3 py-1 shadow-sm">
                             {room.status}
                           </Badge>
-                          <Badge className={getEngagementColor(room.engagement)}>
+                          <Badge className="bg-purple-50 text-purple-600 border-2 border-purple-200 font-semibold px-3 py-1 shadow-sm">
                             {room.engagement} engagement
                           </Badge>
                         </div>
-                        <p className="text-gray-600 mb-4">{room.description}</p>
+                        <p className="text-purple-700 mb-5 font-medium text-base leading-relaxed">{room.description}</p>
                         
                         {/* Participants */}
-                        <div className="flex items-center gap-2 mb-4">
-                          <div className="flex items-center -space-x-2">
+                        <div className="flex items-center gap-4 mb-5 p-4 bg-gradient-to-r from-purple-50 to-purple-50/50 rounded-xl border-2 border-purple-100 shadow-sm">
+                          <div className="flex items-center -space-x-3">
                             {room.participants.map((participant, index) => (
-                              <Avatar key={participant.id} className="h-8 w-8 border-2 border-white">
+                              <Avatar key={participant.id} className="h-12 w-12 border-4 border-white shadow-lg ring-2 ring-purple-200 hover:scale-110 transition-transform">
                                 <AvatarImage src={participant.avatar} />
-                                <AvatarFallback>{participant.name.charAt(0)}</AvatarFallback>
+                                <AvatarFallback className="bg-gradient-to-br from-purple-500 to-indigo-600 text-white font-bold text-lg">{participant.name.charAt(0)}</AvatarFallback>
                               </Avatar>
                             ))}
                           </div>
-                          <span className="text-sm text-gray-500">
-                            {room.participants.length} investor{room.participants.length !== 1 ? 's' : ''}
-                          </span>
+                          <div>
+                            <span className="text-sm text-purple-700 font-bold block">
+                              {room.participants.length} investor{room.participants.length !== 1 ? 's' : ''}
+                            </span>
+                            <span className="text-xs text-purple-500">participating</span>
+                          </div>
                         </div>
 
                         {/* Documents */}
-                        <div className="mb-4">
-                          <p className="text-sm font-medium text-gray-700 mb-2">Documents ({room.documents.length})</p>
+                        <div className="mb-5 p-4 bg-gradient-to-r from-purple-50 to-purple-50/50 rounded-xl border-2 border-purple-100 shadow-sm">
+                          <div className="flex items-center justify-between mb-3">
+                            <p className="text-sm font-bold text-purple-800 uppercase tracking-wide">Documents ({room.documents.length})</p>
+                            <FileText className="h-5 w-5 text-purple-500" />
+                          </div>
                           <div className="flex flex-wrap gap-2">
                             {room.documents.map((doc) => (
-                              <div key={doc.id} className="flex items-center gap-2 bg-white/60 rounded-lg px-3 py-1 text-sm">
-                                <FileText className="h-4 w-4 text-gray-500" />
-                                <span className="text-gray-700">{doc.name}</span>
+                              <div key={doc.id} className="flex items-center gap-2 bg-white border-2 border-purple-200 rounded-lg px-4 py-2.5 text-sm shadow-md hover:shadow-lg hover:border-purple-300 transition-all cursor-pointer">
+                                <FileText className="h-4 w-4 text-purple-600 flex-shrink-0" />
+                                <span className="text-purple-900 font-semibold truncate max-w-[200px]">{doc.name}</span>
                               </div>
                             ))}
                           </div>
                         </div>
 
                         {/* Stats */}
-                        <div className="flex items-center gap-6 text-sm text-gray-500">
-                          <div className="flex items-center gap-1">
-                            <Eye className="h-4 w-4" />
-                            <span>{room.views} views</span>
+                        <div className="flex flex-wrap items-center gap-6 text-sm p-4 bg-gradient-to-r from-white to-purple-50/30 rounded-xl border-2 border-purple-100 shadow-sm">
+                          <div className="flex items-center gap-2 text-purple-700">
+                            <div className="p-2 bg-purple-100 rounded-lg">
+                              <Eye className="h-4 w-4 text-purple-600" />
+                            </div>
+                            <span className="font-semibold">{room.views} views</span>
                           </div>
-                          <div className="flex items-center gap-1">
-                            <Clock className="h-4 w-4" />
-                            <span>Last activity: {room.lastActivity}</span>
+                          <div className="flex items-center gap-2 text-purple-700">
+                            <div className="p-2 bg-purple-100 rounded-lg">
+                              <Clock className="h-4 w-4 text-purple-600" />
+                            </div>
+                            <span className="font-semibold">Last: {room.lastActivity}</span>
                           </div>
-                          <div className="flex items-center gap-1">
-                            <Calendar className="h-4 w-4" />
-                            <span>Created: {room.created}</span>
+                          <div className="flex items-center gap-2 text-purple-700">
+                            <div className="p-2 bg-purple-100 rounded-lg">
+                              <Calendar className="h-4 w-4 text-purple-600" />
+                            </div>
+                            <span className="font-semibold">Created: {room.created}</span>
                           </div>
                         </div>
                       </div>
 
                       {/* Actions */}
-                      <div className="flex items-center gap-2 ml-4">
-                        <Button variant="ghost" size="sm">
-                          <MessageSquare className="h-4 w-4" />
+                      <div className="flex items-center gap-2 ml-4 flex-shrink-0">
+                        <Button variant="ghost" size="sm" className="hover:bg-purple-100 text-purple-700">
+                          <MessageSquare className="h-5 w-5" />
                         </Button>
-                        <Button variant="ghost" size="sm">
-                          <Share2 className="h-4 w-4" />
+                        <Button variant="ghost" size="sm" className="hover:bg-purple-100 text-purple-700">
+                          <Share2 className="h-5 w-5" />
                         </Button>
-                        <Button variant="ghost" size="sm">
-                          <Settings className="h-4 w-4" />
+                        <Button variant="ghost" size="sm" className="hover:bg-purple-100 text-purple-700">
+                          <Settings className="h-5 w-5" />
                         </Button>
-                        <Button variant="ghost" size="sm">
-                          <MoreVertical className="h-4 w-4" />
+                        <Button variant="ghost" size="sm" className="hover:bg-purple-100 text-purple-700">
+                          <MoreVertical className="h-5 w-5" />
                         </Button>
                       </div>
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="flex items-center gap-3 pt-4 border-t border-gray-200">
-                      <Button variant="outline" size="sm" className="flex-1">
+                    <div className="flex flex-wrap items-center gap-3 pt-6 mt-6 border-t-2 border-purple-200">
+                      <Button 
+                        variant="outline" 
+                        size="lg" 
+                        className="flex-1 min-w-[140px] border-2 border-purple-300 text-purple-700 hover:bg-purple-50 hover:border-purple-500 font-semibold shadow-sm hover:shadow-md transition-all"
+                      >
                         <Eye className="h-4 w-4 mr-2" />
                         View Room
                       </Button>
-                      <Button variant="outline" size="sm" className="flex-1">
+                      <Button 
+                        variant="outline" 
+                        size="lg" 
+                        className="flex-1 min-w-[140px] border-2 border-purple-300 text-purple-700 hover:bg-purple-50 hover:border-purple-500 font-semibold shadow-sm hover:shadow-md transition-all"
+                      >
                         <Settings className="h-4 w-4 mr-2" />
                         Edit Settings
                       </Button>
-                      <Link href="/founder/dashboard/messages">
-                        <Button size="sm" className="bg-green-600 hover:bg-green-700">
+                      <Link href="/founder/dashboard/messages" className="flex-1 min-w-[140px]">
+                        <Button 
+                          size="lg" 
+                          className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl font-semibold transition-all hover:scale-105"
+                        >
                           <MessageSquare className="h-4 w-4 mr-2" />
                           Start Chat
                         </Button>
@@ -369,29 +418,42 @@ export default function DataRoomsPage() {
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Quick Actions */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Zap className="h-5 w-5" />
+            <Card className="border-2 border-purple-200/60 bg-white shadow-xl overflow-hidden">
+              <CardHeader className="bg-gradient-to-r from-purple-600 via-purple-700 to-indigo-700 text-white p-6">
+                <CardTitle className="flex items-center gap-3 text-white text-lg font-bold">
+                  <div className="p-2 bg-white/20 rounded-lg">
+                    <Zap className="h-5 w-5" />
+                  </div>
                   Quick Actions
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <Button className="w-full justify-start" variant="outline">
-                  <PlusCircle className="h-4 w-4 mr-2" />
+              <CardContent className="space-y-3 p-6">
+                <Button 
+                  className="w-full justify-start border-2 border-purple-300 text-purple-700 hover:bg-purple-50 hover:border-purple-500 font-semibold shadow-sm hover:shadow-md transition-all h-12" 
+                  variant="outline"
+                >
+                  <PlusCircle className="h-5 w-5 mr-3 text-purple-600" />
                   Create New Room
                 </Button>
-                <Button className="w-full justify-start" variant="outline">
-                  <Users className="h-4 w-4 mr-2" />
+                <Button 
+                  className="w-full justify-start border-2 border-purple-300 text-purple-700 hover:bg-purple-50 hover:border-purple-500 font-semibold shadow-sm hover:shadow-md transition-all h-12" 
+                  variant="outline"
+                >
+                  <Users className="h-5 w-5 mr-3 text-purple-600" />
                   Invite Investors
                 </Button>
-                <Button className="w-full justify-start" variant="outline">
-                  <FileText className="h-4 w-4 mr-2" />
+                <Button 
+                  className="w-full justify-start border-2 border-purple-300 text-purple-700 hover:bg-purple-50 hover:border-purple-500 font-semibold shadow-sm hover:shadow-md transition-all h-12" 
+                  variant="outline"
+                >
+                  <FileText className="h-5 w-5 mr-3 text-purple-600" />
                   Upload Documents
                 </Button>
-                <Link href="/founder/dashboard/messages">
-                  <Button className="w-full justify-start bg-green-600 hover:bg-green-700">
-                    <MessageSquare className="h-4 w-4 mr-2" />
+                <Link href="/founder/dashboard/messages" className="block">
+                  <Button 
+                    className="w-full justify-start bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl font-bold transition-all h-12 hover:scale-105"
+                  >
+                    <MessageSquare className="h-5 w-5 mr-3" />
                     View All Chats
                   </Button>
                 </Link>
@@ -399,65 +461,69 @@ export default function DataRoomsPage() {
             </Card>
 
             {/* Recent Activity */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Clock className="h-5 w-5" />
+            <Card className="border-2 border-purple-200/60 bg-white shadow-xl overflow-hidden">
+              <CardHeader className="bg-gradient-to-r from-purple-600 via-purple-700 to-indigo-700 text-white p-6">
+                <CardTitle className="flex items-center gap-3 text-white text-lg font-bold">
+                  <div className="p-2 bg-white/20 rounded-lg">
+                    <Clock className="h-5 w-5" />
+                  </div>
                   Recent Activity
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-green-100 rounded-full">
-                    <Eye className="h-4 w-4 text-green-600" />
+              <CardContent className="space-y-3 p-6">
+                <div className="flex items-center gap-4 p-3 hover:bg-purple-50 rounded-xl transition-all cursor-pointer border border-transparent hover:border-purple-200 hover:shadow-md">
+                  <div className="p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg flex-shrink-0">
+                    <Eye className="h-5 w-5 text-white" />
                   </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">First Look Room viewed</p>
-                    <p className="text-xs text-gray-500">2 hours ago</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-100 rounded-full">
-                    <MessageSquare className="h-4 w-4 text-blue-600" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">New message received</p>
-                    <p className="text-xs text-gray-500">5 hours ago</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-purple-900">First Look Room viewed</p>
+                    <p className="text-xs text-purple-600 font-medium mt-1">2 hours ago</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-purple-100 rounded-full">
-                    <Download className="h-4 w-4 text-purple-600" />
+                <div className="flex items-center gap-4 p-3 hover:bg-purple-50 rounded-xl transition-all cursor-pointer border border-transparent hover:border-purple-200 hover:shadow-md">
+                  <div className="p-3 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-lg flex-shrink-0">
+                    <MessageSquare className="h-5 w-5 text-white" />
                   </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">Document downloaded</p>
-                    <p className="text-xs text-gray-500">1 day ago</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-purple-900">New message received</p>
+                    <p className="text-xs text-purple-600 font-medium mt-1">5 hours ago</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4 p-3 hover:bg-purple-50 rounded-xl transition-all cursor-pointer border border-transparent hover:border-purple-200 hover:shadow-md">
+                  <div className="p-3 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl shadow-lg flex-shrink-0">
+                    <Download className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-purple-900">Document downloaded</p>
+                    <p className="text-xs text-purple-600 font-medium mt-1">1 day ago</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
             {/* Investor Insights */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5" />
+            <Card className="border-2 border-purple-200/60 bg-white shadow-xl overflow-hidden">
+              <CardHeader className="bg-gradient-to-r from-purple-600 via-purple-700 to-indigo-700 text-white p-6">
+                <CardTitle className="flex items-center gap-3 text-white text-lg font-bold">
+                  <div className="p-2 bg-white/20 rounded-lg">
+                    <BarChart3 className="h-5 w-5" />
+                  </div>
                   Investor Insights
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-3 p-6">
                 <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Most Engaged</span>
-                    <span className="text-sm font-medium">Momentum Ventures</span>
+                  <div className="flex justify-between items-center p-4 bg-gradient-to-r from-white to-purple-50/50 rounded-xl border-2 border-purple-100 shadow-sm hover:shadow-md transition-all">
+                    <span className="text-sm text-purple-700 font-semibold">Most Engaged</span>
+                    <span className="text-sm font-bold text-purple-900 bg-purple-100 px-3 py-1 rounded-lg">Momentum Ventures</span>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Most Downloads</span>
-                    <span className="text-sm font-medium">Pitch Deck</span>
+                  <div className="flex justify-between items-center p-4 bg-gradient-to-r from-white to-purple-50/50 rounded-xl border-2 border-purple-100 shadow-sm hover:shadow-md transition-all">
+                    <span className="text-sm text-purple-700 font-semibold">Most Downloads</span>
+                    <span className="text-sm font-bold text-purple-900 bg-purple-100 px-3 py-1 rounded-lg">Pitch Deck</span>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Avg. Response Time</span>
-                    <span className="text-sm font-medium">2.3 hours</span>
+                  <div className="flex justify-between items-center p-4 bg-gradient-to-r from-white to-purple-50/50 rounded-xl border-2 border-purple-100 shadow-sm hover:shadow-md transition-all">
+                    <span className="text-sm text-purple-700 font-semibold">Avg. Response Time</span>
+                    <span className="text-sm font-bold text-purple-900 bg-purple-100 px-3 py-1 rounded-lg">2.3 hours</span>
                   </div>
                 </div>
               </CardContent>

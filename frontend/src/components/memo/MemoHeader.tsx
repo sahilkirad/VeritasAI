@@ -87,11 +87,16 @@ export default function MemoHeader({ memoData, diligenceData, onTriggerDiligence
 
       {/* Header */}
       <div className="flex items-center justify-between py-1">
-        <div>
+        <div className="flex-1">
           <h1 className="text-xl font-bold">Deal Memo</h1>
           <p className="text-muted-foreground text-xs">
             AI-powered analysis for {memo1.title || memoData?.filename || 'Unknown Company'}
           </p>
+          <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-lg">
+            <p className="text-xs text-amber-800 font-medium">
+              ⏳ Please wait for 5 to 6 Minutes to load
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-1">
           <Badge variant="outline" className="text-green-600 border-green-600 text-xs px-1 py-0">

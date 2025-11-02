@@ -343,6 +343,11 @@ export default function DiligencePage() {
           <CardDescription>
             Select a company and run automated diligence validation
           </CardDescription>
+          <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+            <p className="text-sm text-amber-800 font-medium">
+              ⏳ Please wait for 5 to 6 Minutes to load
+            </p>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

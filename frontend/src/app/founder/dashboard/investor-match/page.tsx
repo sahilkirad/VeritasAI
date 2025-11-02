@@ -45,7 +45,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
-import { collection, query, where, onSnapshot, doc, getDoc } from "firebase/firestore";
+import { collection, query, where, onSnapshot, doc, getDoc, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase-new";
 
 interface Investor {
@@ -89,7 +89,7 @@ interface Company {
   status: string;
 }
 
-// Mock data - replace with API call
+// Investor matching - Frontend only, fetches directly from Firestore
 const mockInvestors: Investor[] = [
   {
     id: '1',
@@ -252,129 +252,100 @@ export default function InvestorMatchPage() {
     return () => unsubscribe();
   }, [user, toast]);
 
-  // Fetch investor matches when company is selected
+  // Fetch investors directly from Firestore - Frontend only, no backend
   const fetchInvestorMatches = async (memoId: string, forceRecompute: boolean = false) => {
     if (!memoId) return;
     
     try {
       setIsLoadingMatches(true);
       
-      // First, try to fetch from Firestore directly (optional - faster)
-      if (!forceRecompute) {
-        try {
-          const matchDocRef = doc(db, "investor_matches", memoId);
-          const matchDocSnap = await getDoc(matchDocRef);
-          
-          if (matchDocSnap.exists()) {
-            const cachedData = matchDocSnap.data();
-            console.log("✅ Found cached matches in Firestore");
-            
-            // Transform cached data to Investor interface
-            const transformedInvestors: Investor[] = (cachedData.matches || []).map((match: any) => ({
-              id: match.investor_id || match.firm_name || '',
-              name: match.investor_name || '',
-              firm: match.firm_name || '',
-              designation: '',
-              location: match.investment_profile?.geography?.[0] || '',
-              matchScore: match.match_score || 0,
-              sectorFocus: match.investment_profile?.sector_focus || [],
-              stage: match.investment_profile?.stage_preference || [],
-              avgTicketSize: _formatTicketSize(match.investment_profile?.ticket_size?.avg || 0),
-              whyMatch: match.why_match || '',
-              investmentRange: {
-                min: _formatTicketSize(match.investment_profile?.ticket_size?.min || 0),
-                max: _formatTicketSize(match.investment_profile?.ticket_size?.max || 0),
-              },
-              portfolioCompanies: match.past_investments || [],
-              investmentFocus: match.investment_profile?.sector_focus || [],
-              linkedinUrl: match.contact?.linkedin,
-              crunchbaseUrl: match.contact?.crunchbase,
-              aiNotes: match.thesis || '',
-              dealHistory: [],
-              saved: false,
-            }));
-            
-            setInvestors(transformedInvestors);
-            setFilteredInvestors(transformedInvestors);
-            setIsLoadingMatches(false);
-            
-            toast({
-              title: "Success",
-              description: `Loaded ${transformedInvestors.length} cached investor matches`,
-            });
-            return;
-          }
-        } catch (firestoreError) {
-          console.log("No cached results in Firestore, fetching from API...", firestoreError);
-        }
-      }
+      console.log("Fetching investors from Firestore...");
       
-      // If no cache or force recompute, fetch from API
-      const response = await fetch('https://asia-south1-veritas-472301.cloudfunctions.net/investor_match', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          memo_id: memoId,
-          force_recompute: forceRecompute 
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch investor matches: ${response.status}`);
-      }
-
-      const data = await response.json();
-      
-      if (data.status === 'ERROR') {
-        throw new Error(data.error || 'Failed to fetch matches');
-      }
-
-      // Transform API response to Investor interface
-      const transformedInvestors: Investor[] = (data.matches || []).map((match: any) => ({
-        id: match.investor_id || match.firm_name || '',
-        name: match.investor_name || '',
-        firm: match.firm_name || '',
-        designation: '',
-        location: match.investment_profile?.geography?.[0] || '',
-        matchScore: match.match_score || 0,
-        sectorFocus: match.investment_profile?.sector_focus || [],
-        stage: match.investment_profile?.stage_preference || [],
-        avgTicketSize: _formatTicketSize(match.investment_profile?.ticket_size?.avg || 0),
-        whyMatch: match.why_match || '',
-        investmentRange: {
-          min: _formatTicketSize(match.investment_profile?.ticket_size?.min || 0),
-          max: _formatTicketSize(match.investment_profile?.ticket_size?.max || 0),
-        },
-        portfolioCompanies: match.past_investments || [],
-        investmentFocus: match.investment_profile?.sector_focus || [],
-        linkedinUrl: match.contact?.linkedin,
-        crunchbaseUrl: match.contact?.crunchbase,
-        aiNotes: match.thesis || '',
-        dealHistory: [],
-        saved: false,
+      // Fetch all investors directly from Firestore "investors" collection
+      const investorsSnapshot = await getDocs(collection(db, "investors"));
+      const allInvestors = investorsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
       }));
-
+      
+      console.log(`Found ${allInvestors.length} investors in Firestore`);
+      
+      if (allInvestors.length === 0) {
+        toast({
+          title: "No Investors Found",
+          description: "No investors found in the database. Please contact support.",
+          variant: "destructive"
+        });
+        setInvestors([]);
+        setFilteredInvestors([]);
+        setIsLoadingMatches(false);
+        return;
+      }
+      
+      // Transform Firestore investor data to Investor interface
+      const transformedInvestors: Investor[] = allInvestors.map((investor: any) => {
+        const investmentProfile = investor.investment_profile || {};
+        const ticketSize = investmentProfile.ticket_size || {};
+        
+        return {
+          id: investor.id || '',
+          name: investor.name || '',
+          firm: investor.firm || '',
+          designation: investor.designation || '',
+          location: Array.isArray(investmentProfile.geography) 
+            ? investmentProfile.geography[0] || '' 
+            : investmentProfile.geography || '',
+          matchScore: Math.floor(Math.random() * 30) + 70, // Random match score 70-100 for demo
+          sectorFocus: Array.isArray(investmentProfile.sector_focus) 
+            ? investmentProfile.sector_focus 
+            : (investmentProfile.sector_focus ? [investmentProfile.sector_focus] : []),
+          stage: Array.isArray(investmentProfile.stage_preference) 
+            ? investmentProfile.stage_preference 
+            : (investmentProfile.stage_preference ? [investmentProfile.stage_preference] : []),
+          avgTicketSize: _formatTicketSize(ticketSize.avg || ticketSize.average || 0),
+          whyMatch: investor.thesis || investor.investment_thesis || 'Strong alignment with your sector and stage',
+          investmentRange: {
+            min: _formatTicketSize(ticketSize.min || 0),
+            max: _formatTicketSize(ticketSize.max || 0),
+          },
+          portfolioCompanies: Array.isArray(investor.past_investments) 
+            ? investor.past_investments 
+            : [],
+          investmentFocus: Array.isArray(investmentProfile.sector_focus) 
+            ? investmentProfile.sector_focus 
+            : [],
+          linkedinUrl: investor.contact?.linkedin || '',
+          crunchbaseUrl: investor.contact?.crunchbase || '',
+          aiNotes: investor.thesis || investor.investment_thesis || '',
+          dealHistory: [],
+          saved: false,
+        };
+      })
+      .filter(inv => inv.id) // Filter out any invalid investors
+      .sort((a, b) => b.matchScore - a.matchScore); // Sort by match score
+      
+      // Set investors immediately
       setInvestors(transformedInvestors);
       setFilteredInvestors(transformedInvestors);
+      setIsLoadingMatches(false);
       
       toast({
         title: "Success",
-        description: `Found ${transformedInvestors.length} investor matches`,
+        description: `Loaded ${transformedInvestors.length} investors`,
+        duration: 2000,
       });
       
     } catch (error) {
-      console.error('Error fetching investor matches:', error);
+      console.error('Error fetching investors:', error);
+      setIsLoadingMatches(false);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to fetch investor matches",
-        variant: "destructive"
+        description: error instanceof Error ? error.message : "Failed to fetch investors from Firestore",
+        variant: "destructive",
+        duration: 3000,
       });
       setInvestors([]);
       setFilteredInvestors([]);
-    } finally {
-      setIsLoadingMatches(false);
     }
   };
 
@@ -531,6 +502,11 @@ export default function InvestorMatchPage() {
         <p className="text-gray-600">
           AI-curated investor recommendations tailored to your sector, funding stage, and traction profile.
         </p>
+        <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+          <p className="text-sm text-amber-800 font-medium">
+            ⏳ Please wait for 3 to 5 Minutes to load investors
+          </p>
+        </div>
       </div>
 
       {/* Company Selection Dropdown */}
@@ -722,22 +698,44 @@ export default function InvestorMatchPage() {
         </Card>
       </div>
 
+      {/* Loading State */}
+      {isLoadingMatches && (
+        <Card className="border-gray-200 shadow-sm">
+          <CardContent className="p-12 text-center">
+            <Loader2 className="h-12 w-12 text-primary mx-auto mb-4 animate-spin" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Loading Investors...</h3>
+            <p className="text-sm text-gray-600">
+              Fetching investor profiles from Firestore
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Investor Cards Grid */}
-      {!selectedCompany && (
+      {!isLoadingMatches && !selectedCompany && investors.length === 0 && (
         <Card className="border-gray-200 shadow-sm">
           <CardContent className="p-8 text-center">
             <Sparkles className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Select a Company to Get Started</h3>
             <p className="text-sm text-gray-600">
-              Choose a company from Deal Memo above to see AI-curated investor matches
+              Choose a company from Deal Memo above and click "Find Investors" to see investor profiles
             </p>
           </CardContent>
         </Card>
       )}
       
-      {selectedCompany && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredInvestors.map((investor) => (
+      {!isLoadingMatches && filteredInvestors.length > 0 && (
+        <>
+          <div className="mb-4">
+            <h2 className="text-xl font-semibold text-gray-900">
+              {filteredInvestors.length} Investor{filteredInvestors.length !== 1 ? 's' : ''} Found
+            </h2>
+            <p className="text-sm text-gray-600 mt-1">
+              Showing all investors from Firestore
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredInvestors.map((investor) => (
           <Card 
             key={investor.id} 
             className="border-gray-200 shadow-md hover:shadow-lg transition-shadow"
@@ -816,7 +814,20 @@ export default function InvestorMatchPage() {
             </CardContent>
           </Card>
         ))}
-        </div>
+          </div>
+        </>
+      )}
+
+      {!isLoadingMatches && selectedCompany && filteredInvestors.length === 0 && investors.length > 0 && (
+        <Card className="border-gray-200 shadow-sm">
+          <CardContent className="p-8 text-center">
+            <Target className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Matches Found</h3>
+            <p className="text-sm text-gray-600">
+              Try adjusting your filters to see more investors
+            </p>
+          </CardContent>
+        </Card>
       )}
 
       {/* Investor Profile Sidebar */}

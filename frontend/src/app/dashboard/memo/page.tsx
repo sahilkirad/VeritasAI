@@ -1113,11 +1113,16 @@ export default function DealMemoPage() {
     return (
       <div className="space-y-2 max-w-6xl mx-auto px-2">
         <div className="flex items-center justify-between">
-          <div>
+          <div className="flex-1">
             <h1 className="text-2xl font-bold">Available Deal Memos</h1>
             <p className="text-muted-foreground text-sm">
               Select a deal memo to review and analyze
             </p>
+            <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <p className="text-sm text-amber-800 font-medium">
+                ⏳ Please wait for 5 to 6 Minutes to load
+              </p>
+            </div>
           </div>
         </div>
 

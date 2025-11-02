@@ -61,11 +61,11 @@
       },
       {
         "source": "/interview",
-        "destination": "/interview/index.html"
+        "destination": "/interview.html"
       },
       {
         "source": "/interview/**",
-        "destination": "/interview/index.html"
+        "destination": "/interview.html"
       },
       {
         "source": "/dashboard/memo",

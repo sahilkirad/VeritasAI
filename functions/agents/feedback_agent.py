@@ -212,6 +212,49 @@ class FeedbackAgent:
             self.logger.error(f"Error querying founder data: {e}")
             return []
 
+    def _format_competition(self, competition_data) -> str:
+        """
+        Safely format competition data for display, handling both strings and dicts.
+        
+        Args:
+            competition_data: Can be None, empty list, list of strings, list of dicts, or mixed types.
+            
+        Returns:
+            str: Formatted competition string or "Not specified" if empty/invalid.
+        """
+        try:
+            if not competition_data:
+                return "Not specified"
+            
+            # Handle non-list types (single dict, string, etc.)
+            if not isinstance(competition_data, list):
+                if isinstance(competition_data, dict):
+                    # Try common dict fields, fallback to string representation
+                    name = competition_data.get('name') or competition_data.get('title') or competition_data.get('competitor')
+                    return str(name) if name else str(competition_data)
+                return str(competition_data)
+            
+            # Handle empty list
+            if len(competition_data) == 0:
+                return "Not specified"
+            
+            # It's a list - format each item
+            formatted_items = []
+            for item in competition_data:
+                if isinstance(item, dict):
+                    # Extract the most useful field, with fallbacks
+                    name = item.get('name') or item.get('title') or item.get('competitor')
+                    formatted_items.append(str(name) if name else str(item))
+                else:
+                    # String, number, or other - convert to string
+                    formatted_items.append(str(item))
+            
+            return ', '.join(formatted_items)
+            
+        except Exception as e:
+            self.logger.warning(f"Error formatting competition data: {e}, returning 'Not specified'")
+            return "Not specified"
+
     def _generate_recommendations(self, founder_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Generate recommendations using Gemini based on founder's data."""
         try:
@@ -228,7 +271,7 @@ class FeedbackAgent:
             Solution: {memo_1.get('solution', 'Not specified')}
             Market Size: {memo_1.get('market_size', 'Not specified')}
             Business Model: {memo_1.get('business_model', 'Not specified')}
-            Competition: {', '.join(memo_1.get('competition', []))}
+            Competition: {self._format_competition(memo_1.get('competition', []))}
             Team: {memo_1.get('team', 'Not specified')}
             Traction: {memo_1.get('traction', 'Not specified')}
             Funding Ask: {memo_1.get('funding_ask', 'Not specified')}
@@ -323,7 +366,7 @@ class FeedbackAgent:
             Solution: {memo_1.get('solution', 'Not specified')}
             Market Size: {memo_1.get('market_size', 'Not specified')}
             Business Model: {memo_1.get('business_model', 'Not specified')}
-            Competition: {', '.join(memo_1.get('competition', []))}
+            Competition: {self._format_competition(memo_1.get('competition', []))}
             Team: {memo_1.get('team', 'Not specified')}
             Traction: {memo_1.get('traction', 'Not specified')}
             Funding Ask: {memo_1.get('funding_ask', 'Not specified')}

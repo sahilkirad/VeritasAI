@@ -16,7 +16,8 @@ import {
   Mic, 
   Headphones,
   Loader2,
-  MicOff
+  MicOff,
+  CircleDot
 } from 'lucide-react';
 
 interface StartInterviewButtonProps {
@@ -596,6 +597,18 @@ export default function StartInterviewButton({
               <p className="font-medium text-sm">AI Bot</p>
               <p className="text-xs text-muted-foreground">
                 An AI interviewer will ask you questions automatically
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex items-start gap-3">
+            <div className="p-1 bg-primary/10 rounded-full mt-0.5">
+              <CircleDot className="h-3 w-3 text-primary" />
+            </div>
+            <div>
+              <p className="font-medium text-sm">Recording Process</p>
+              <p className="text-xs text-muted-foreground">
+                Click the record button to start recording your answer. Once you have finished, click stop and submit. You will automatically receive the next question. After completing the interview, navigate to the Interview section of the memo page, wait a moment, then click the Refresh button to view your updated interview data.
               </p>
             </div>
           </div>

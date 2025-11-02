@@ -986,7 +986,7 @@ export default function Memo1Tab({ memo1, memoId, onInterviewScheduled }: Memo1T
                 ) : (
                   <>
                     <CheckCircle className="h-3 w-3" />
-                    Run AI Validation
+                    Validate with Public Data (Google, MCA, LinkedIn)
                   </>
                 )}
               </Button>

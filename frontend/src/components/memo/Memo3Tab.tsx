@@ -1399,7 +1399,7 @@ export default function Memo3Tab({ diligenceData, memo1Data, memoId }: Memo3TabP
               ) : (
                 <>
                   <CheckCircle className="h-4 w-4" />
-                  Run AI Validation
+                  Validate with Public Data (Google, MCA, LinkedIn)
                 </>
               )}
             </Button>

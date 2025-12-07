@@ -192,7 +192,7 @@ export default function DiligencePage() {
       setIsRunningDiligence(true);
       setDiligenceResults(null);
       
-      const response = await fetch(process.env.NEXT_PUBLIC_RUN_DILIGENCE_URL || 'https://asia-south1-veritas-472301.cloudfunctions.net/run_diligence', {
+      const response = await fetch(process.env.NEXT_PUBLIC_RUN_DILIGENCE_URL || 'https://veritas-functions-533015987350.asia-south1.run.app/run_diligence', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -251,7 +251,7 @@ export default function DiligencePage() {
     try {
       setIsQuerying(true);
       
-      const response = await fetch(process.env.NEXT_PUBLIC_QUERY_DILIGENCE_URL || 'https://asia-south1-veritas-472301.cloudfunctions.net/query_diligence', {
+      const response = await fetch(process.env.NEXT_PUBLIC_QUERY_DILIGENCE_URL || 'https://veritas-functions-533015987350.asia-south1.run.app/query_diligence', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -104,7 +104,7 @@ export function useReportGeneration(): UseReportGenerationReturn {
       if (startDate) params.append('start_date', startDate)
       if (endDate) params.append('end_date', endDate)
 
-      const url = `https://asia-south1-veritas-472301.cloudfunctions.net/generate_comprehensive_report?${params.toString()}`
+      const url = `https://veritas-functions-533015987350.asia-south1.run.app/generate_comprehensive_report?${params.toString()}`
       
       const response = await fetch(url, {
         method: 'GET',

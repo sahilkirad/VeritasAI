@@ -68,7 +68,7 @@ export function useBigQueryAnalytics(refreshInterval = 30000) {
       setError(null)
       
       const response = await fetch(
-        'https://asia-south1-veritas-472301.cloudfunctions.net/get_admin_analytics',
+        'https://veritas-functions-533015987350.asia-south1.run.app/get_admin_analytics',
         {
           method: 'GET',
           headers: {

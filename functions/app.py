@@ -148,9 +148,8 @@ def process_ingestion_task_route():
         time_str = datetime.utcnow().isoformat() + "Z"
         
         # The decorator at line 109 does: event_dict["time"]
-        # It converts event to dict, likely using dict(event) or accessing __dict__
-        # We need MockCloudEvent to work with BOTH dict() and vars() conversions
-        # Solution: Inherit from dict AND set attributes so both work
+        # It converts event to dict using dict(event) which should work with our dict subclass
+        # But we also need to ensure vars(event) works if the decorator uses that
         class MockCloudEvent(dict):
             def __init__(self, data_bytes):
                 # Initialize as dict with all required keys
@@ -178,11 +177,26 @@ def process_ingestion_task_route():
             
             def get_data(self):
                 return self.data
+            
+            # Ensure dict conversion includes all keys
+            def __iter__(self):
+                return iter(["data", "specversion", "type", "source", "id", "time"])
+            
+            def keys(self):
+                return ["data", "specversion", "type", "source", "id", "time"]
+            
+            def items(self):
+                return [("data", self["data"]), ("specversion", self["specversion"]), 
+                       ("type", self["type"]), ("source", self["source"]), 
+                       ("id", self["id"]), ("time", self["time"])]
+            
+            def __contains__(self, key):
+                return key in ["data", "specversion", "type", "source", "id", "time"]
         
         event = MockCloudEvent(message_bytes)
         
-        # Call the function
-        main.process_ingestion_task(event)
+        # Call the implementation function directly (bypasses firebase decorator)
+        main._process_ingestion_task_impl(message_bytes)
         
         return jsonify({"status": "success"}), 200
         
@@ -266,8 +280,8 @@ def process_diligence_task_route():
         
         event = MockCloudEvent(message_bytes)
         
-        # Call the function
-        main.process_diligence_task(event)
+        # Call the implementation function directly (bypasses firebase decorator)
+        main._process_diligence_task_impl(message_bytes)
         
         return jsonify({"status": "success"}), 200
         
@@ -354,8 +368,8 @@ def conduct_interview_route():
         
         event = MockCloudEvent(message_bytes)
         
-        # Call the function
-        main.conduct_interview(event)
+        # Call the implementation function directly (bypasses firebase decorator)
+        main._conduct_interview_impl(message_bytes)
         
         return jsonify({"status": "success"}), 200
         
@@ -442,8 +456,8 @@ def generate_interview_summary_route():
         
         event = MockCloudEvent(message_bytes)
         
-        # Call the function
-        main.generate_interview_summary(event)
+        # Call the implementation function directly (bypasses firebase decorator)
+        main._generate_interview_summary_impl(message_bytes)
         
         return jsonify({"status": "success"}), 200
         
@@ -453,4 +467,7 @@ def generate_interview_summary_route():
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
+
+if __name__ == "__main__":
+    app.run(host='0.0.0.0', port=5000, debug=True)
 

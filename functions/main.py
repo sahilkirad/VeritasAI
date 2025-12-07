@@ -451,14 +451,12 @@ def on_file_upload(req: https_fn.Request) -> https_fn.Response:
         return https_fn.Response(f"Internal server error: {str(e)}", status=500, headers=headers)
 
 # --- 3. Ingestion Pipeline: Stage 2 (AI Processing) ---
-@pubsub_fn.on_message_published(
-    topic="document-ingestion-topic",
-    memory=options.MemoryOption.MB_512,
-    timeout_sec=540,
-    secrets=["PERPLEXITY_API_KEY"]
-)
-def process_ingestion_task(event: pubsub_fn.CloudEvent) -> None:
-    """Triggers on a Pub/Sub message and calls the IntakeCurationAgent."""
+
+def _process_ingestion_task_impl(message_data_bytes: bytes) -> None:
+    """
+    Implementation function for processing ingestion tasks.
+    Accepts raw message data bytes to avoid CloudEvent dependency.
+    """
     global publisher
     
     # Initialize Firebase app when function runs
@@ -471,40 +469,37 @@ def process_ingestion_task(event: pubsub_fn.CloudEvent) -> None:
         # Lazy load the agent
         agent = get_intake_agent()
 
-        # Extract and decode the Pub/Sub message data
-        message_data = event.data.message.data
-        
-        # Log the raw message data for debugging
-        print(f"Raw message data type: {type(message_data)}")
-        print(f"Raw message data: {message_data}")
-        
         # Handle different message data formats
-        if isinstance(message_data, bytes):
+        if isinstance(message_data_bytes, bytes):
             try:
-                message_str = message_data.decode('utf-8')
+                message_str = message_data_bytes.decode('utf-8')
                 print(f"Decoded message from bytes: {message_str}")
             except UnicodeDecodeError as e:
                 print(f"ERROR: Failed to decode message bytes as UTF-8: {e}")
                 return
-        elif isinstance(message_data, str):
+        elif isinstance(message_data_bytes, str):
             # Check if the string looks like Base64 encoded data
-            if message_data and not message_data.startswith('{') and not message_data.startswith('['):
+            if message_data_bytes and not message_data_bytes.startswith('{') and not message_data_bytes.startswith('['):
                 try:
                     # Try to decode as Base64 first
                     import base64
-                    decoded_bytes = base64.b64decode(message_data)
+                    decoded_bytes = base64.b64decode(message_data_bytes)
                     message_str = decoded_bytes.decode('utf-8')
                     print(f"Decoded Base64 message: {message_str}")
                 except Exception as e:
                     # If Base64 decoding fails, treat as regular string
-                    message_str = message_data
+                    message_str = message_data_bytes
                     print(f"Base64 decode failed, treating as regular string: {message_str}")
             else:
-                message_str = message_data
+                message_str = message_data_bytes
                 print(f"Message is already a JSON string: {message_str}")
         else:
-            print(f"ERROR: Unexpected message data type: {type(message_data)}. Expected bytes or string.")
+            print(f"ERROR: Unexpected message data type: {type(message_data_bytes)}. Expected bytes or string.")
             return
+        
+        # Log the raw message data for debugging
+        print(f"Raw message data type: {type(message_data_bytes)}")
+        print(f"Raw message data: {message_data_bytes}")
 
         # Validate message content before JSON parsing
         if not message_str or message_str.strip() == "":
@@ -625,16 +620,27 @@ def process_ingestion_task(event: pubsub_fn.CloudEvent) -> None:
         print(f"A critical error occurred in process_ingestion_task: {e}")
         raise
 
-# --- 4. Diligence Pipeline: Stage 3 (Deep Analysis) ---
+
 @pubsub_fn.on_message_published(
-    topic="diligence-topic",
-    memory=options.MemoryOption.MB_512,  # Reduced memory to match firebase.json
-    timeout_sec=540,  # Maximum allowed for event-triggered functions
+    topic="document-ingestion-topic",
+    memory=options.MemoryOption.MB_512,
+    timeout_sec=540,
     secrets=["PERPLEXITY_API_KEY"]
 )
-def process_diligence_task(event: pubsub_fn.CloudEvent) -> None:
-    """Triggers on a Pub/Sub message and calls the DiligenceAgent."""
-    
+def process_ingestion_task(event: pubsub_fn.CloudEvent) -> None:
+    """Firebase-decorated wrapper that calls the implementation."""
+    # Extract message data from CloudEvent and call implementation
+    message_data = event.data.message.data
+    _process_ingestion_task_impl(message_data)
+
+
+# --- 4. Diligence Pipeline: Stage 3 (Deep Analysis) ---
+
+def _process_diligence_task_impl(message_data_bytes: bytes) -> None:
+    """
+    Implementation function for processing diligence tasks.
+    Accepts raw message data bytes to avoid CloudEvent dependency.
+    """
     # Initialize Firebase app when function runs
     get_firebase_app()
     
@@ -644,25 +650,23 @@ def process_diligence_task(event: pubsub_fn.CloudEvent) -> None:
         # Lazy load the agent
         agent = get_diligence_agent()
 
-        # Extract and decode the Pub/Sub message data
-        message_data = event.data.message.data
-        
-        if isinstance(message_data, bytes):
-            message_str = message_data.decode('utf-8')
-        elif isinstance(message_data, str):
-            if message_data and not message_data.startswith('{') and not message_data.startswith('['):
+        # Handle different message data formats
+        if isinstance(message_data_bytes, bytes):
+            message_str = message_data_bytes.decode('utf-8')
+        elif isinstance(message_data_bytes, str):
+            if message_data_bytes and not message_data_bytes.startswith('{') and not message_data_bytes.startswith('['):
                 try:
                     import base64
-                    decoded_bytes = base64.b64decode(message_data)
+                    decoded_bytes = base64.b64decode(message_data_bytes)
                     message_str = decoded_bytes.decode('utf-8')
                 except Exception:
-                    message_str = message_data
+                    message_str = message_data_bytes
             else:
-                message_str = message_data
+                message_str = message_data_bytes
         else:
-            print(f"ERROR: Unexpected message data type: {type(message_data)}")
+            print(f"ERROR: Unexpected message data type: {type(message_data_bytes)}")
             return
-
+        
         if not message_str or message_str.strip() == "":
             print("ERROR: Empty message payload received.")
             return
@@ -721,6 +725,20 @@ def process_diligence_task(event: pubsub_fn.CloudEvent) -> None:
     except Exception as e:
         print(f"A critical error occurred in process_diligence_task: {e}")
         raise
+
+
+@pubsub_fn.on_message_published(
+    topic="diligence-topic",
+    memory=options.MemoryOption.MB_512,  # Reduced memory to match firebase.json
+    timeout_sec=540,  # Maximum allowed for event-triggered functions
+    secrets=["PERPLEXITY_API_KEY"]
+)
+def process_diligence_task(event: pubsub_fn.CloudEvent) -> None:
+    """Firebase-decorated wrapper that calls the implementation."""
+    # Extract message data from CloudEvent and call implementation
+    message_data = event.data.message.data
+    _process_diligence_task_impl(message_data)
+
 
 # --- 5. HTTP Endpoint for Manual Diligence Trigger ---
 @https_fn.on_request(
@@ -1820,28 +1838,25 @@ def start_ai_interview(req: https_fn.Request) -> https_fn.Response:
         return https_fn.Response(json.dumps({"status": "FAILED", "error": str(e)}), status=500, headers=headers)
 
 
-@pubsub_fn.on_message_published(
-    topic="bot-join-meeting", 
-    timeout_sec=300,
-    memory=options.MemoryOption.MB_512
-)
-def conduct_interview(event: pubsub_fn.CloudEvent) -> None:
-    """Prepare interview questions - frontend handles recording"""
-    
+def _conduct_interview_impl(message_data_bytes: bytes) -> None:
+    """
+    Implementation function for conducting interviews.
+    Accepts raw message data bytes to avoid CloudEvent dependency.
+    """
     # Initialize Firebase app when function runs
     get_firebase_app()
 
     try:
-        # Extract interview_id from message - handle new Pub/Sub event structure
+        # Extract interview_id from message
         import base64
-        
-        # New event structure uses event.data["message"]["data"]
-        if hasattr(event.data, 'message'):
-            message_bytes = base64.b64decode(event.data.message.data)
+        if isinstance(message_data_bytes, str):
+            # If it's a string, try to decode as base64 first
+            try:
+                message_bytes = base64.b64decode(message_data_bytes)
+            except:
+                message_bytes = message_data_bytes.encode('utf-8')
         else:
-            # Fallback for direct data access
-            message_bytes = base64.b64decode(event.data["message"]["data"])
-        
+            message_bytes = message_data_bytes
         message_data = json.loads(message_bytes.decode('utf-8'))
         interview_id = message_data.get('interview_id')
         company_id = message_data.get('company_id')
@@ -1891,20 +1906,41 @@ def conduct_interview(event: pubsub_fn.CloudEvent) -> None:
             pass
 
 
-@pubsub_fn.on_message_published(topic="interview-completed", memory=512)
-def generate_interview_summary(event: pubsub_fn.CloudEvent) -> None:
-    """Generate post-interview analysis triggered by Pub/Sub."""
-    
+@pubsub_fn.on_message_published(
+    topic="bot-join-meeting", 
+    timeout_sec=300,
+    memory=options.MemoryOption.MB_512
+)
+def conduct_interview(event: pubsub_fn.CloudEvent) -> None:
+    """Firebase-decorated wrapper that calls the implementation."""
+    # Extract message data from CloudEvent and call implementation
+    import base64
+    if hasattr(event.data, 'message'):
+        message_bytes = base64.b64decode(event.data.message.data)
+    else:
+        message_bytes = base64.b64decode(event.data["message"]["data"])
+    _conduct_interview_impl(message_bytes)
+
+
+def _generate_interview_summary_impl(message_data_bytes: bytes) -> None:
+    """
+    Implementation function for generating interview summaries.
+    Accepts raw message data bytes to avoid CloudEvent dependency.
+    """
     # Initialize Firebase app when function runs
     get_firebase_app()
 
     try:
         # Extract interview_id with proper Pub/Sub message parsing
         import base64
-        if hasattr(event.data, 'message'):
-            message_bytes = base64.b64decode(event.data.message.data)
+        if isinstance(message_data_bytes, str):
+            # If it's a string, try to decode as base64 first
+            try:
+                message_bytes = base64.b64decode(message_data_bytes)
+            except:
+                message_bytes = message_data_bytes.encode('utf-8')
         else:
-            message_bytes = base64.b64decode(event.data["message"]["data"])
+            message_bytes = message_data_bytes
         message_data = json.loads(message_bytes.decode('utf-8'))
         interview_id = message_data.get('interview_id')
         company_id = message_data.get('company_id')
@@ -1930,6 +1966,18 @@ def generate_interview_summary(event: pubsub_fn.CloudEvent) -> None:
         print(f"Error in generate_interview_summary: {e}")
         import traceback
         traceback.print_exc()
+
+
+@pubsub_fn.on_message_published(topic="interview-completed", memory=512)
+def generate_interview_summary(event: pubsub_fn.CloudEvent) -> None:
+    """Firebase-decorated wrapper that calls the implementation."""
+    # Extract message data from CloudEvent and call implementation
+    import base64
+    if hasattr(event.data, 'message'):
+        message_bytes = base64.b64decode(event.data.message.data)
+    else:
+        message_bytes = base64.b64decode(event.data["message"]["data"])
+    _generate_interview_summary_impl(message_bytes)
 
 
 @https_fn.on_request(region="asia-south1", memory=options.MemoryOption.MB_512)

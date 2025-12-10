@@ -7,6 +7,32 @@ from firebase_functions import pubsub_fn
 app = Flask(__name__)
 
 
+@app.route("/", methods=["GET"])
+def root():
+    """Health check and API info endpoint"""
+    return jsonify({
+        "status": "healthy",
+        "service": "veritas-functions",
+        "message": "Cloud Run service is running",
+        "endpoints": [
+            "/on_file_upload",
+            "/validate_memo_data",
+            "/run_diligence",
+            "/query_diligence",
+            "/schedule_ai_interview",
+            "/start_ai_interview",
+            "/submit_interview_answer",
+            "/ai_feedback",
+            "/check_memo",
+            "/trigger_diligence",
+            "/process_ingestion_task",
+            "/process_diligence_task",
+            "/conduct_interview",
+            "/generate_interview_summary"
+        ]
+    }), 200
+
+
 def convert_firebase_response(firebase_resp):
     """Convert Firebase Functions Response to Flask Response"""
     if hasattr(firebase_resp, 'status'):

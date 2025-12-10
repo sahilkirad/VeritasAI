@@ -94,9 +94,9 @@ jobs:
             --platform managed \
             --allow-unauthenticated \
             --timeout=600 \
-            --memory=8Gi \
+            --memory=4Gi \
             --cpu=2 \
-            --max-instances 5 \
+            --max-instances 10 \
             --project ${{ env.GCP_PROJECT_ID }} \
             --quiet
 

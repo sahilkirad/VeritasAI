@@ -7,6 +7,49 @@ from firebase_functions import pubsub_fn
 app = Flask(__name__)
 
 
+def handle_pubsub_error(e):
+    """
+    Handle errors in Pub/Sub routes and return appropriate status codes.
+    
+    Returns:
+        tuple: (response_dict, status_code)
+        - 429 for rate limits (tells Pub/Sub to back off)
+        - 500 for retryable errors (Pub/Sub will retry)
+        - 400 for non-retryable errors (Pub/Sub won't retry)
+    """
+    import traceback
+    error_str = str(e)
+    error_type = type(e).__name__
+    
+    # Log the full error
+    print(f"Error type: {error_type}, Error: {error_str}")
+    traceback.print_exc()
+    
+    # Check for rate limit errors (429)
+    if "429" in error_str or "ResourceExhausted" in error_str or "Resource exhausted" in error_str:
+        print("Rate limit detected - returning 429 to trigger backoff")
+        return {"error": "Rate limit exceeded. Please retry later.", "type": "rate_limit"}, 429
+    
+    # Check for authentication/authorization errors (non-retryable)
+    if "401" in error_str or "403" in error_str or "Unauthorized" in error_str or "Forbidden" in error_str:
+        print("Auth error detected - returning 400 (non-retryable)")
+        return {"error": "Authentication/Authorization error", "type": "auth_error"}, 400
+    
+    # Check for timeout errors (retryable)
+    if "timeout" in error_str.lower() or "TIMEOUT" in error_str:
+        print("Timeout detected - returning 500 (retryable)")
+        return {"error": "Request timeout", "type": "timeout"}, 500
+    
+    # Check for memory errors (retryable but should be fixed)
+    if "SIGKILL" in error_str or "out of memory" in error_str.lower():
+        print("Memory error detected - returning 500 (retryable)")
+        return {"error": "Memory limit exceeded", "type": "memory_error"}, 500
+    
+    # Default: return 500 for retryable errors
+    print("Unknown error - returning 500 (retryable)")
+    return {"error": error_str, "type": error_type}, 500
+
+
 @app.route("/", methods=["GET"])
 def root():
     """Health check and API info endpoint"""
@@ -227,10 +270,8 @@ def process_ingestion_task_route():
         return jsonify({"status": "success"}), 200
         
     except Exception as e:
-        print(f"Error in process_ingestion_task_route: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
+        error_response, status_code = handle_pubsub_error(e)
+        return jsonify(error_response), status_code
 
 
 @app.route("/process_diligence_task", methods=["POST", "OPTIONS"])
@@ -312,10 +353,8 @@ def process_diligence_task_route():
         return jsonify({"status": "success"}), 200
         
     except Exception as e:
-        print(f"Error in process_diligence_task_route: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
+        error_response, status_code = handle_pubsub_error(e)
+        return jsonify(error_response), status_code
 
 
 @app.route("/conduct_interview", methods=["POST", "OPTIONS"])
@@ -400,10 +439,8 @@ def conduct_interview_route():
         return jsonify({"status": "success"}), 200
         
     except Exception as e:
-        print(f"Error in conduct_interview_route: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
+        error_response, status_code = handle_pubsub_error(e)
+        return jsonify(error_response), status_code
 
 
 @app.route("/generate_interview_summary", methods=["POST", "OPTIONS"])
@@ -488,10 +525,8 @@ def generate_interview_summary_route():
         return jsonify({"status": "success"}), 200
         
     except Exception as e:
-        print(f"Error in generate_interview_summary_route: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
+        error_response, status_code = handle_pubsub_error(e)
+        return jsonify(error_response), status_code
 
 
 if __name__ == "__main__":

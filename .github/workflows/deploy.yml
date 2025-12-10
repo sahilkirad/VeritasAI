@@ -93,6 +93,9 @@ jobs:
             --region ${{ env.GCP_REGION }} \
             --platform managed \
             --allow-unauthenticated \
+            --timeout=600 \
+            --memory=8Gi \
+            --cpu=2 \
             --project ${{ env.GCP_PROJECT_ID }} \
             --quiet
 

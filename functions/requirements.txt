@@ -1,13 +1,16 @@
 # Firebase and Google Cloud SDKs
+functions-framework>=3.5.0
+Flask>=3.0.0
+gunicorn>=22.0.0
 firebase-functions>=0.2.0
 firebase-admin>=6.5.0
 google-cloud-aiplatform>=1.49.0
 google-cloud-speech>=2.25.0
 google-cloud-pubsub>=2.20.0
 google-cloud-storage>=2.16.0
-google-analytics-data 
-google-cloud-texttospeech>=2.16.2 
-google-api-python-client>=2.133.0 
+google-analytics-data
+google-cloud-texttospeech>=2.16.2
+google-api-python-client>=2.133.0
 google-auth>=2.23.0
 google-auth-oauthlib>=1.1.0
 google-auth-httplib2>=0.1.1
@@ -20,8 +23,6 @@ pypdf2
 aiohttp>=3.8.0
 # Environment variable management
 python-dotenv>=1.0.0
-
-google-cloud-texttospeech>=2.16.2  # For AI voice
 
 # Vertex AI for structured data extraction
 vertexai>=1.38.0

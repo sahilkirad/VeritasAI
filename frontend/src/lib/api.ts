@@ -10,7 +10,7 @@ class ApiClient {
   private baseUrl: string;
 
   constructor() {
-    this.baseUrl = process.env.NEXT_PUBLIC_FIREBASE_FUNCTIONS_URL || 'https://asia-south1-veritas-472301.cloudfunctions.net';
+    this.baseUrl = process.env.NEXT_PUBLIC_FIREBASE_FUNCTIONS_URL || 'https://veritas-functions-533015987350.asia-south1.run.app';
   }
 
   private async getAuthToken(): Promise<string> {
@@ -288,21 +288,21 @@ class ApiClient {
 export const apiClient = new ApiClient();
 
 export const API_ENDPOINTS = {
-  TRIGGER_DILIGENCE: process.env.NEXT_PUBLIC_TRIGGER_DILIGENCE_URL || 'https://trigger-diligence-abvgpbhuca-el.a.run.app',
-  ON_FILE_UPLOAD: process.env.NEXT_PUBLIC_ON_FILE_UPLOAD_URL || 'https://on-file-upload-abvgpbhuca-el.a.run.app',
-  PROCESS_INGESTION: process.env.NEXT_PUBLIC_PROCESS_INGESTION_URL || 'https://asia-south1-veritas-472301.cloudfunctions.net/process_ingestion_task',
-  PROCESS_DILIGENCE: process.env.NEXT_PUBLIC_PROCESS_DILIGENCE_URL || 'https://asia-south1-veritas-472301.cloudfunctions.net/process_diligence_task',
-  SCHEDULE_INTERVIEW: process.env.NEXT_PUBLIC_SCHEDULE_INTERVIEW_URL || 'https://schedule-ai-interview-abvgpbhuca-el.a.run.app',
-  START_INTERVIEW: process.env.NEXT_PUBLIC_START_INTERVIEW_URL || 'https://asia-south1-veritas-472301.cloudfunctions.net/start_ai_interview',
-  SUBMIT_INTERVIEW_ANSWER: process.env.NEXT_PUBLIC_SUBMIT_INTERVIEW_ANSWER_URL || 'https://asia-south1-veritas-472301.cloudfunctions.net/submit_interview_answer',
-  CHECK_MEMO: process.env.NEXT_PUBLIC_CHECK_MEMO_URL || 'https://check-memo-abvgpbhuca-el.a.run.app',
-  CHECK_DILIGENCE: process.env.NEXT_PUBLIC_CHECK_DILIGENCE_URL || 'https://check-diligence-abvgpbhuca-el.a.run.app',
-  VALIDATE_MEMO_DATA: process.env.NEXT_PUBLIC_VALIDATE_MEMO_DATA_URL || 'https://validate-memo-data-abvgpbhuca-el.a.run.app',
-  VALIDATE_MARKET_SIZE: process.env.NEXT_PUBLIC_VALIDATE_MARKET_SIZE_URL || 'https://validate-market-size-abvgpbhuca-el.a.run.app',
-  VALIDATE_COMPETITORS: process.env.NEXT_PUBLIC_VALIDATE_COMPETITORS_URL || 'https://validate-competitors-abvgpbhuca-el.a.run.app',
-  AI_FEEDBACK: process.env.NEXT_PUBLIC_AI_FEEDBACK_URL || 'https://ai-feedback-abvgpbhuca-el.a.run.app',
-  QUERY_DILIGENCE: process.env.NEXT_PUBLIC_QUERY_DILIGENCE_URL || 'https://query-diligence-abvgpbhuca-el.a.run.app',
-  RUN_DILIGENCE: process.env.NEXT_PUBLIC_RUN_DILIGENCE_URL || 'https://run-diligence-abvgpbhuca-el.a.run.app',
+  TRIGGER_DILIGENCE: process.env.NEXT_PUBLIC_TRIGGER_DILIGENCE_URL || 'https://veritas-functions-533015987350.asia-south1.run.app/trigger_diligence',
+  ON_FILE_UPLOAD: process.env.NEXT_PUBLIC_ON_FILE_UPLOAD_URL || 'https://veritas-functions-533015987350.asia-south1.run.app/on_file_upload',
+  PROCESS_INGESTION: process.env.NEXT_PUBLIC_PROCESS_INGESTION_URL || 'https://veritas-functions-533015987350.asia-south1.run.app/process_ingestion_task',
+  PROCESS_DILIGENCE: process.env.NEXT_PUBLIC_PROCESS_DILIGENCE_URL || 'https://veritas-functions-533015987350.asia-south1.run.app/process_diligence_task',
+  SCHEDULE_INTERVIEW: process.env.NEXT_PUBLIC_SCHEDULE_INTERVIEW_URL || 'https://veritas-functions-533015987350.asia-south1.run.app/schedule_ai_interview',
+  START_INTERVIEW: process.env.NEXT_PUBLIC_START_INTERVIEW_URL || 'https://veritas-functions-533015987350.asia-south1.run.app/start_ai_interview',
+  SUBMIT_INTERVIEW_ANSWER: process.env.NEXT_PUBLIC_SUBMIT_INTERVIEW_ANSWER_URL || 'https://veritas-functions-533015987350.asia-south1.run.app/submit_interview_answer',
+  CHECK_MEMO: process.env.NEXT_PUBLIC_CHECK_MEMO_URL || 'https://veritas-functions-533015987350.asia-south1.run.app/check_memo',
+  CHECK_DILIGENCE: process.env.NEXT_PUBLIC_CHECK_DILIGENCE_URL || 'https://veritas-functions-533015987350.asia-south1.run.app/check_diligence',
+  VALIDATE_MEMO_DATA: process.env.NEXT_PUBLIC_VALIDATE_MEMO_DATA_URL || 'https://veritas-functions-533015987350.asia-south1.run.app/validate_memo_data',
+  VALIDATE_MARKET_SIZE: process.env.NEXT_PUBLIC_VALIDATE_MARKET_SIZE_URL || 'https://veritas-functions-533015987350.asia-south1.run.app/validate_market_size',
+  VALIDATE_COMPETITORS: process.env.NEXT_PUBLIC_VALIDATE_COMPETITORS_URL || 'https://veritas-functions-533015987350.asia-south1.run.app/validate_competitors',
+  AI_FEEDBACK: process.env.NEXT_PUBLIC_AI_FEEDBACK_URL || 'https://veritas-functions-533015987350.asia-south1.run.app/ai_feedback',
+  QUERY_DILIGENCE: process.env.NEXT_PUBLIC_QUERY_DILIGENCE_URL || 'https://veritas-functions-533015987350.asia-south1.run.app/query_diligence',
+  RUN_DILIGENCE: process.env.NEXT_PUBLIC_RUN_DILIGENCE_URL || 'https://veritas-functions-533015987350.asia-south1.run.app/run_diligence',
 };
 
 // Standalone uploadFile function for backward compatibility

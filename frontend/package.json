@@ -10,7 +10,7 @@
     "build": "next build",
     "build:static": "node build-static.js",
     "build:interview": "node build-with-interview-dir.js",
-    "dev": "next dev",
+    "dev": "cross-env NODE_OPTIONS=--max-old-space-size=4096 next dev",
     "lint": "next lint",
     "start": "next start"
   },
@@ -80,6 +80,7 @@
     "@types/node": "^22",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "cross-env": "^7.0.3",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.18",
     "typescript": "^5"

@@ -4,11 +4,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'frontend/**'
-      - 'functions/**'
-      - 'firebase.json'
-      - '.github/workflows/deploy.yml'
 
 env:
   GCP_PROJECT_ID: veritas-472301
